@@ -13,25 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react-native';
 import { COLORS } from '../../lib/constants';
-
-// Mock validation - replace with API call
-async function validateInviteCode(code: string): Promise<{ valid: boolean; inviterName?: string }> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  // Mock valid codes
-  const validCodes: Record<string, string> = {
-    'AMARI2026': 'AMARI Team',
-    'GALA2026': 'Gala Committee',
-    'COUNCIL': 'Council Member',
-  };
-
-  const upperCode = code.toUpperCase();
-  if (validCodes[upperCode]) {
-    return { valid: true, inviterName: validCodes[upperCode] };
-  }
-  return { valid: false };
-}
+import { api } from '../../lib/api';
 
 export default function InviteScreen() {
   const router = useRouter();
@@ -55,7 +37,8 @@ export default function InviteScreen() {
     setValidationResult(null);
 
     try {
-      const result = await validateInviteCode(code);
+      // Call real API
+      const result = await api.validateCode(code);
       setValidationResult(result);
 
       if (result.valid) {
@@ -63,14 +46,14 @@ export default function InviteScreen() {
         setTimeout(() => {
           router.push({
             pathname: '/(auth)/register',
-            params: { code: code.toUpperCase(), inviter: result.inviterName },
+            params: { code: code.toUpperCase(), inviter: result.inviterName || 'AMARI Team' },
           });
         }, 1000);
       } else {
-        setError('This invite code is not valid or has expired.');
+        setError(result.error || 'This invite code is not valid or has expired.');
       }
-    } catch (err) {
-      setError('Unable to validate code. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Unable to validate code. Please try again.');
     } finally {
       setIsValidating(false);
     }

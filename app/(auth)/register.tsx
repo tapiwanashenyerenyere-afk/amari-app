@@ -14,10 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
 import { COLORS } from '../../lib/constants';
+import { api } from '../../lib/api';
+import { useAuthStore } from '../../stores/auth';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ code: string; inviter: string }>();
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const [form, setForm] = useState({
     name: '',
@@ -50,13 +53,25 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Submit registration to API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call real API
+      const result = await api.register({
+        code: params.code || '',
+        email: form.email.trim(),
+        name: form.name.trim(),
+        building: form.building.trim() || undefined,
+      });
+
+      // Store auth token and member data
+      api.setToken(result.session.token);
+
+      // Get full profile and set auth
+      const profile = await api.getProfile();
+      setAuth(result.session.token, profile);
 
       // Navigate to main app after successful registration
       router.replace('/(tabs)');
-    } catch (err) {
-      setErrors({ submit: 'Registration failed. Please try again.' });
+    } catch (err: any) {
+      setErrors({ submit: err.message || 'Registration failed. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
