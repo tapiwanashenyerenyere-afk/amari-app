@@ -1,8 +1,11 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../lib/constants';
+import { api, Event, Announcement } from '../../lib/api';
+import { useAuthStore } from '../../stores/auth';
 
-// Mock countdown data
+// Gala date - update this for the actual event
 const GALA_DATE = new Date('2026-03-14T18:00:00');
 
 function calculateTimeLeft() {
@@ -16,8 +19,62 @@ function calculateTimeLeft() {
   return { days, hours, minutes };
 }
 
+function calculateDaysAway(dateStr: string) {
+  const eventDate = new Date(dateStr);
+  const now = new Date();
+  const diff = eventDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
 export default function HomeScreen() {
   const timeLeft = calculateTimeLeft();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const [events, setEvents] = useState<Event[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [connectionsCount, setConnectionsCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const [eventsRes, announcementsRes, connectionsRes] = await Promise.all([
+        api.getEvents(),
+        api.getAnnouncements(),
+        api.getConnections(),
+      ]);
+
+      setEvents(eventsRes.events);
+      setAnnouncements(announcementsRes.announcements);
+      setConnectionsCount(connectionsRes.count);
+    } catch (err) {
+      console.error('Failed to fetch home data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [isAuthenticated]);
+
+  // Get next upcoming event
+  const upcomingEvents = events
+    .filter(e => new Date(e.eventDate) > new Date())
+    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+
+  const nextEvent = upcomingEvents[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -25,6 +82,13 @@ export default function HomeScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.charcoal}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -56,17 +120,29 @@ export default function HomeScreen() {
         {/* Next Event */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>UPCOMING</Text>
-          <View style={styles.eventCard}>
-            <Text style={styles.eventName}>Nominee Dinner</Text>
-            <Text style={styles.eventDate}>12 DAYS</Text>
-          </View>
+          {isLoading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color={COLORS.warmGray} />
+            </View>
+          ) : nextEvent ? (
+            <View style={styles.eventCard}>
+              <Text style={styles.eventName}>{nextEvent.title}</Text>
+              <Text style={styles.eventDate}>
+                {calculateDaysAway(nextEvent.eventDate)} DAYS
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.eventCard}>
+              <Text style={styles.emptyText}>No upcoming events</Text>
+            </View>
+          )}
         </View>
 
         {/* Connections Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>YOUR CONNECTIONS</Text>
           <View style={styles.connectionsCard}>
-            <Text style={styles.connectionsCount}>23</Text>
+            <Text style={styles.connectionsCount}>{connectionsCount}</Text>
             <Text style={styles.connectionsLabel}>connections</Text>
           </View>
         </View>
@@ -74,16 +150,24 @@ export default function HomeScreen() {
         {/* Announcements */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ANNOUNCEMENTS</Text>
-          <View style={styles.announcementsList}>
-            <View style={styles.announcementItem}>
-              <Text style={styles.announcementBullet}>▸</Text>
-              <Text style={styles.announcementText}>2026 Nominations Open</Text>
+          {isLoading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color={COLORS.warmGray} />
             </View>
-            <View style={styles.announcementItem}>
-              <Text style={styles.announcementBullet}>▸</Text>
-              <Text style={styles.announcementText}>New Partner: SecondzAU</Text>
+          ) : announcements.length > 0 ? (
+            <View style={styles.announcementsList}>
+              {announcements.slice(0, 3).map((announcement) => (
+                <View key={announcement.id} style={styles.announcementItem}>
+                  <Text style={styles.announcementBullet}></Text>
+                  <Text style={styles.announcementText}>{announcement.title}</Text>
+                </View>
+              ))}
             </View>
-          </View>
+          ) : (
+            <View style={styles.announcementsList}>
+              <Text style={styles.emptyText}>No announcements</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -168,6 +252,13 @@ const styles = StyleSheet.create({
     color: COLORS.warmGray,
     marginBottom: 12,
   },
+  loadingCard: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
   eventCard: {
     backgroundColor: COLORS.white,
     padding: 20,
@@ -186,6 +277,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
     color: COLORS.burgundy,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.warmGray,
+    fontStyle: 'italic',
   },
   connectionsCard: {
     backgroundColor: COLORS.white,

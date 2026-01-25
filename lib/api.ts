@@ -74,6 +74,43 @@ export interface Announcement {
   publishedAt: string;
 }
 
+export interface Connection {
+  id: string;
+  member: {
+    id: string;
+    name: string;
+    tier: string | null;
+    avatarUrl: string | null;
+  };
+  connectedAt: string;
+}
+
+export interface ConnectionRequest {
+  id: string;
+  requester: {
+    id: string;
+    name: string;
+    tier: string | null;
+    avatarUrl: string | null;
+  };
+  message: string | null;
+  requestedAt: string;
+}
+
+export interface Ticket {
+  id: string;
+  ticketCode: string;
+  tableNumber: string | null;
+  seatNumber: string | null;
+  purchasedAt: string;
+  event: {
+    id: string;
+    title: string;
+    eventDate: string;
+    location: string | null;
+  };
+}
+
 class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -168,6 +205,32 @@ class ApiClient {
   // Announcements endpoints
   async getAnnouncements(): Promise<{ announcements: Announcement[] }> {
     return this.request<{ announcements: Announcement[] }>('/announcements');
+  }
+
+  // Connections endpoints
+  async getConnections(): Promise<{ connections: Connection[]; count: number }> {
+    return this.request<{ connections: Connection[]; count: number }>('/connections');
+  }
+
+  async getPendingRequests(): Promise<{ requests: ConnectionRequest[] }> {
+    return this.request<{ requests: ConnectionRequest[] }>('/connections/pending');
+  }
+
+  async acceptConnection(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/connections/${id}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async declineConnection(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/connections/${id}/decline`, {
+      method: 'POST',
+    });
+  }
+
+  // Tickets endpoints
+  async getTickets(): Promise<{ tickets: Ticket[] }> {
+    return this.request<{ tickets: Ticket[] }>('/tickets');
   }
 }
 

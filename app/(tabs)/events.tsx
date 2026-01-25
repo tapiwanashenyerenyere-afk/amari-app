@@ -1,36 +1,77 @@
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, TIER_DISPLAY_NAMES } from '../../lib/constants';
+import { api, Event, Ticket } from '../../lib/api';
+import { useAuthStore } from '../../stores/auth';
 
-// Mock data
-const MY_TICKETS = [
-  {
-    id: '1',
-    eventName: 'AMARI GALA 2026',
-    table: 'Table 7',
-    seat: 'Seat 3',
-    hasQR: true,
-  },
-];
+function calculateDaysAway(dateStr: string) {
+  const eventDate = new Date(dateStr);
+  const now = new Date();
+  const diff = eventDate.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
 
-const UPCOMING_EVENTS = [
-  { id: '1', title: 'Nominee Dinner', minTier: 'platinum', daysAway: 12 },
-  { id: '2', title: 'Networking Brunch', minTier: null, daysAway: 25 },
-];
-
-const INVITE_ONLY_EVENTS = [
-  { id: '1', title: 'Council Strategy Session', isInvited: true },
-];
-
-const PAST_EVENTS = [
-  { id: '1', title: 'AMARI Gala 2025', date: 'March 2025' },
-  { id: '2', title: 'Launch Party 2024', date: 'October 2024' },
-];
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
 
 export default function EventsScreen() {
-  // Mock: assume user has platinum tier and is invited to council event
-  const userTier = 'platinum';
-  const hasInvites = true;
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const member = useAuthStore((state) => state.member);
+
+  const [events, setEvents] = useState<Event[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const [eventsRes, ticketsRes] = await Promise.all([
+        api.getEvents(),
+        api.getTickets(),
+      ]);
+
+      setEvents(eventsRes.events);
+      setTickets(ticketsRes.tickets);
+    } catch (err) {
+      console.error('Failed to fetch events data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [isAuthenticated]);
+
+  // Split events into upcoming and past
+  const now = new Date();
+  const upcomingEvents = events
+    .filter(e => new Date(e.eventDate) > now && !e.isInviteOnly)
+    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+
+  const inviteOnlyEvents = events
+    .filter(e => e.isInviteOnly && e.isInvited && new Date(e.eventDate) > now);
+
+  const pastEvents = events
+    .filter(e => new Date(e.eventDate) <= now)
+    .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
+    .slice(0, 5); // Show last 5 past events
+
+  const hasInvites = inviteOnlyEvents.length > 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -38,79 +79,114 @@ export default function EventsScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.charcoal}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Events</Text>
         </View>
 
-        {/* Your Tickets */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>YOUR TICKETS</Text>
-          {MY_TICKETS.map((ticket) => (
-            <Pressable key={ticket.id} style={styles.ticketCard}>
-              <Text style={styles.ticketEventName}>{ticket.eventName}</Text>
-              <Text style={styles.ticketDetails}>
-                {ticket.table} • {ticket.seat}
-              </Text>
-              <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrText}>[QR CODE]</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Upcoming Events - filtered by tier */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>UPCOMING EVENTS</Text>
-          <View style={styles.eventsList}>
-            {UPCOMING_EVENTS.map((event) => (
-              <View key={event.id} style={styles.eventItem}>
-                <View style={styles.eventInfo}>
-                  <Text style={styles.eventName}>{event.title}</Text>
-                  {event.minTier && (
-                    <Text style={styles.tierBadge}>
-                      {TIER_DISPLAY_NAMES[event.minTier]}+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.charcoal} />
+          </View>
+        ) : (
+          <>
+            {/* Your Tickets */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>YOUR TICKETS</Text>
+              {tickets.length > 0 ? (
+                tickets.map((ticket) => (
+                  <Pressable key={ticket.id} style={styles.ticketCard}>
+                    <Text style={styles.ticketEventName}>{ticket.event.title}</Text>
+                    <Text style={styles.ticketDetails}>
+                      {ticket.tableNumber && `Table ${ticket.tableNumber}`}
+                      {ticket.tableNumber && ticket.seatNumber && ' • '}
+                      {ticket.seatNumber && `Seat ${ticket.seatNumber}`}
                     </Text>
-                  )}
-                </View>
-                <Text style={styles.eventDays}>{event.daysAway} days</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Invite Only - only shows if user has invites */}
-        {hasInvites && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>INVITE ONLY</Text>
-            <View style={styles.eventsList}>
-              {INVITE_ONLY_EVENTS.map((event) => (
-                <View key={event.id} style={styles.eventItem}>
-                  <View style={styles.eventInfo}>
-                    <Text style={styles.eventName}>{event.title}</Text>
-                    <View style={styles.invitedBadge}>
-                      <Text style={styles.invitedText}>INVITED</Text>
+                    <View style={styles.qrPlaceholder}>
+                      <Text style={styles.qrText}>[QR CODE]</Text>
                     </View>
-                  </View>
+                  </Pressable>
+                ))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No tickets yet</Text>
                 </View>
-              ))}
+              )}
             </View>
-          </View>
-        )}
 
-        {/* Past Events */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PAST EVENTS</Text>
-          <View style={styles.eventsList}>
-            {PAST_EVENTS.map((event) => (
-              <View key={event.id} style={styles.pastEventItem}>
-                <Text style={styles.pastEventName}>{event.title}</Text>
-                <Text style={styles.pastEventDate}>{event.date}</Text>
+            {/* Upcoming Events */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>UPCOMING EVENTS</Text>
+              {upcomingEvents.length > 0 ? (
+                <View style={styles.eventsList}>
+                  {upcomingEvents.map((event) => (
+                    <View key={event.id} style={styles.eventItem}>
+                      <View style={styles.eventInfo}>
+                        <Text style={styles.eventName}>{event.title}</Text>
+                        {event.minTier && (
+                          <Text style={styles.tierBadge}>
+                            {TIER_DISPLAY_NAMES[event.minTier as keyof typeof TIER_DISPLAY_NAMES]}+
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.eventDays}>
+                        {calculateDaysAway(event.eventDate)} days
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No upcoming events</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Invite Only */}
+            {hasInvites && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>INVITE ONLY</Text>
+                <View style={styles.eventsList}>
+                  {inviteOnlyEvents.map((event) => (
+                    <View key={event.id} style={styles.eventItem}>
+                      <View style={styles.eventInfo}>
+                        <Text style={styles.eventName}>{event.title}</Text>
+                        <View style={styles.invitedBadge}>
+                          <Text style={styles.invitedText}>INVITED</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
-            ))}
-          </View>
-        </View>
+            )}
+
+            {/* Past Events */}
+            {pastEvents.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>PAST EVENTS</Text>
+                <View style={styles.eventsList}>
+                  {pastEvents.map((event) => (
+                    <View key={event.id} style={styles.pastEventItem}>
+                      <Text style={styles.pastEventName}>{event.title}</Text>
+                      <Text style={styles.pastEventDate}>
+                        {formatDate(event.eventDate)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,6 +212,10 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: COLORS.charcoal,
   },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
   section: {
     marginBottom: 24,
   },
@@ -149,6 +229,7 @@ const styles = StyleSheet.create({
   ticketCard: {
     backgroundColor: COLORS.charcoal,
     padding: 24,
+    marginBottom: 12,
   },
   ticketEventName: {
     fontSize: 16,
@@ -174,6 +255,18 @@ const styles = StyleSheet.create({
   qrText: {
     fontSize: 10,
     color: COLORS.warmGray,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.warmGray,
+    fontStyle: 'italic',
   },
   eventsList: {
     backgroundColor: COLORS.white,

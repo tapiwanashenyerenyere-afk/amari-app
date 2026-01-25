@@ -1,23 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { ChevronRight, Eye, EyeOff, CreditCard } from 'lucide-react-native';
+import { ChevronRight, Eye, EyeOff, CreditCard, LogOut } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { COLORS, TIER_DISPLAY_NAMES, TIER_COLORS, TierType } from '../../lib/constants';
-
-// Mock user data - NO GENDER FIELD
-const MOCK_USER = {
-  name: 'Tapiwa Matsinde',
-  tier: 'laureate' as TierType, // null for new members
-  memberId: 'AM-2024-0001',
-  building: 'Creating a platform that connects African diaspora professionals globally',
-  interests: ['Fintech', 'Impact', 'Design'],
-  openTo: ['Collaborations', 'Mentoring'],
-  visibility: {
-    building: 'connections',
-    interests: 'all',
-    openTo: 'hidden',
-  },
-};
+import { useAuthStore } from '../../stores/auth';
 
 function TierBadge({ tier }: { tier: TierType }) {
   if (!tier) {
@@ -57,11 +44,9 @@ function TierBadge({ tier }: { tier: TierType }) {
 function VisibilityToggle({
   label,
   value,
-  options = ['Hidden', 'Connections', 'All']
 }: {
   label: string;
   value: string;
-  options?: string[];
 }) {
   const getDisplayValue = (val: string) => {
     if (val === 'hidden') return 'Hidden';
@@ -87,7 +72,52 @@ function VisibilityToggle({
 }
 
 export default function ProfileScreen() {
-  const [user] = useState(MOCK_USER);
+  const router = useRouter();
+  const member = useAuthStore((state) => state.member);
+  const logout = useAuthStore((state) => state.logout);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
+  const isLoading = useAuthStore((state) => state.isLoading);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshProfile();
+    setIsRefreshing(false);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.replace('/(auth)');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Default visibility values
+  const visibility = member?.visibility || {
+    building: 'connections',
+    interests: 'all',
+    openTo: 'hidden',
+  };
+
+  // Generate member ID from id
+  const memberId = member?.id ? `AM-${member.id.toString().padStart(4, '0')}` : 'AM-0000';
+
+  if (!member) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.charcoal} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -95,31 +125,40 @@ export default function ProfileScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.charcoal}
+          />
+        }
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {user.name.charAt(0)}
+              {member.name.charAt(0)}
             </Text>
           </View>
-          <Text style={styles.name}>{user.name}</Text>
-          <Text style={styles.memberId}>{user.memberId}</Text>
+          <Text style={styles.name}>{member.name}</Text>
+          <Text style={styles.memberId}>{memberId}</Text>
         </View>
 
         {/* Tier Badge */}
         <View style={styles.tierSection}>
-          <TierBadge tier={user.tier} />
+          <TierBadge tier={member.tier as TierType} />
         </View>
 
         {/* What I'm Building */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>WHAT I'M BUILDING</Text>
           <View style={styles.contentCard}>
-            <Text style={styles.buildingText}>"{user.building}"</Text>
+            <Text style={styles.buildingText}>
+              {member.building ? `"${member.building}"` : 'Not set yet'}
+            </Text>
             <VisibilityToggle
               label="building"
-              value={user.visibility.building}
+              value={visibility.building || 'connections'}
             />
           </View>
         </View>
@@ -128,16 +167,20 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>INTERESTED IN</Text>
           <View style={styles.contentCard}>
-            <View style={styles.tagsRow}>
-              {user.interests.map((interest) => (
-                <View key={interest} style={styles.tag}>
-                  <Text style={styles.tagText}>{interest}</Text>
-                </View>
-              ))}
-            </View>
+            {member.interests && member.interests.length > 0 ? (
+              <View style={styles.tagsRow}>
+                {member.interests.map((interest: string) => (
+                  <View key={interest} style={styles.tag}>
+                    <Text style={styles.tagText}>{interest}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>No interests set</Text>
+            )}
             <VisibilityToggle
               label="interests"
-              value={user.visibility.interests}
+              value={visibility.interests || 'all'}
             />
           </View>
         </View>
@@ -146,16 +189,20 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>OPEN TO</Text>
           <View style={styles.contentCard}>
-            <View style={styles.tagsRow}>
-              {user.openTo.map((item) => (
-                <View key={item} style={styles.tag}>
-                  <Text style={styles.tagText}>{item}</Text>
-                </View>
-              ))}
-            </View>
+            {member.openTo && member.openTo.length > 0 ? (
+              <View style={styles.tagsRow}>
+                {member.openTo.map((item: string) => (
+                  <View key={item} style={styles.tag}>
+                    <Text style={styles.tagText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Not set</Text>
+            )}
             <VisibilityToggle
               label="openTo"
-              value={user.visibility.openTo}
+              value={visibility.openTo || 'hidden'}
             />
           </View>
         </View>
@@ -171,6 +218,25 @@ export default function ProfileScreen() {
               <Text style={styles.membershipCardText}>View Membership Card</Text>
             </View>
             <ChevronRight size={20} color={COLORS.white} strokeWidth={1.5} />
+          </Pressable>
+        </View>
+
+        {/* Logout Button */}
+        <View style={styles.section}>
+          <Pressable
+            style={styles.logoutButton}
+            onPress={handleLogout}
+            disabled={isLoggingOut}
+            accessibilityLabel="Sign out"
+          >
+            {isLoggingOut ? (
+              <ActivityIndicator size="small" color={COLORS.burgundy} />
+            ) : (
+              <>
+                <LogOut size={18} color={COLORS.burgundy} strokeWidth={1.5} />
+                <Text style={styles.logoutText}>Sign Out</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </ScrollView>
@@ -189,6 +255,11 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileHeader: {
     alignItems: 'center',
@@ -302,6 +373,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 16,
   },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.warmGray,
+    fontStyle: 'italic',
+    marginBottom: 16,
+  },
   visibilityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -350,5 +427,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.white,
     letterSpacing: 1,
+  },
+  logoutButton: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logoutText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.burgundy,
   },
 });

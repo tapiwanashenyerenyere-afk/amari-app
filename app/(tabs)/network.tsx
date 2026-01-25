@@ -1,34 +1,97 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Instagram, Users, Sparkles, MapPin, Heart } from 'lucide-react-native';
+import { Search, Instagram } from 'lucide-react-native';
 import { COLORS } from '../../lib/constants';
-
-// Mock data
-const MY_CONNECTIONS = [
-  { id: '1', name: 'Kalows Abdalla' },
-  { id: '2', name: 'Christina Mekonnen' },
-  { id: '3', name: 'Olivier Permal' },
-];
-
-const PENDING_REQUESTS = [
-  { id: '1', name: 'Sarah Okonkwo', type: 'received' },
-  { id: '2', name: 'James Mutua', type: 'received' },
-];
+import { api, Connection, ConnectionRequest } from '../../lib/api';
+import { useAuthStore } from '../../stores/auth';
 
 const AI_MATCH_OPTIONS = [
-  { id: 'similar', label: 'People like me', description: 'Similar interests & background' },
-  { id: 'complementary', label: 'Complementary skills', description: 'Find collaborators' },
-  { id: 'location', label: 'By location', description: 'Near you' },
-  { id: 'interest', label: 'By interest', description: 'Shared topics' },
+  { id: 'similar', label: 'People like me' },
+  { id: 'complementary', label: 'Complementary skills' },
+  { id: 'location', label: 'By location' },
+  { id: 'interest', label: 'By interest' },
 ];
 
 export default function NetworkScreen() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<ConnectionRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const [connectionsRes, pendingRes] = await Promise.all([
+        api.getConnections(),
+        api.getPendingRequests(),
+      ]);
+
+      setConnections(connectionsRes.connections);
+      setPendingRequests(pendingRes.requests);
+    } catch (err) {
+      console.error('Failed to fetch network data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+  };
+
+  const handleAccept = async (requestId: string) => {
+    setActionLoading(requestId);
+    try {
+      await api.acceptConnection(requestId);
+      // Refresh data after accepting
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to accept connection:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDecline = async (requestId: string) => {
+    setActionLoading(requestId);
+    try {
+      await api.declineConnection(requestId);
+      // Refresh data after declining
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to decline connection:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [isAuthenticated]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.charcoal}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -57,62 +120,90 @@ export default function NetworkScreen() {
           ))}
         </View>
 
-        {/* Your Connections */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>YOUR CONNECTIONS</Text>
-            <Text style={styles.connectionCount}>{MY_CONNECTIONS.length}</Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.charcoal} />
           </View>
-          <View style={styles.connectionsList}>
-            {MY_CONNECTIONS.map((connection) => (
-              <View key={connection.id} style={styles.connectionItem}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {connection.name.charAt(0)}
-                  </Text>
-                </View>
-                <Text style={styles.connectionName}>{connection.name}</Text>
+        ) : (
+          <>
+            {/* Your Connections */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>YOUR CONNECTIONS</Text>
+                <Text style={styles.connectionCount}>{connections.length}</Text>
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Pending Requests */}
-        {PENDING_REQUESTS.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>PENDING REQUESTS</Text>
-              <Text style={styles.connectionCount}>{PENDING_REQUESTS.length}</Text>
-            </View>
-            <View style={styles.requestsList}>
-              {PENDING_REQUESTS.map((request) => (
-                <View key={request.id} style={styles.requestItem}>
-                  <View style={styles.requestInfo}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {request.name.charAt(0)}
-                      </Text>
+              {connections.length > 0 ? (
+                <View style={styles.connectionsList}>
+                  {connections.map((connection) => (
+                    <View key={connection.id} style={styles.connectionItem}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {connection.member.name.charAt(0)}
+                        </Text>
+                      </View>
+                      <Text style={styles.connectionName}>{connection.member.name}</Text>
                     </View>
-                    <Text style={styles.requestName}>{request.name}</Text>
-                  </View>
-                  <View style={styles.requestActions}>
-                    <Pressable
-                      style={styles.acceptButton}
-                      accessibilityLabel={`Accept connection request from ${request.name}`}
-                    >
-                      <Text style={styles.acceptText}>Accept</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.declineButton}
-                      accessibilityLabel={`Decline connection request from ${request.name}`}
-                    >
-                      <Text style={styles.declineText}>Decline</Text>
-                    </Pressable>
-                  </View>
+                  ))}
                 </View>
-              ))}
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No connections yet</Text>
+                </View>
+              )}
             </View>
-          </View>
+
+            {/* Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>PENDING REQUESTS</Text>
+                  <Text style={styles.connectionCount}>{pendingRequests.length}</Text>
+                </View>
+                <View style={styles.requestsList}>
+                  {pendingRequests.map((request) => (
+                    <View key={request.id} style={styles.requestItem}>
+                      <View style={styles.requestInfo}>
+                        <View style={styles.avatar}>
+                          <Text style={styles.avatarText}>
+                            {request.requester.name.charAt(0)}
+                          </Text>
+                        </View>
+                        <Text style={styles.requestName}>{request.requester.name}</Text>
+                      </View>
+                      <View style={styles.requestActions}>
+                        <Pressable
+                          style={[
+                            styles.acceptButton,
+                            actionLoading === request.id && styles.buttonDisabled,
+                          ]}
+                          onPress={() => handleAccept(request.id)}
+                          disabled={actionLoading === request.id}
+                          accessibilityLabel={`Accept connection request from ${request.requester.name}`}
+                        >
+                          {actionLoading === request.id ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                          ) : (
+                            <Text style={styles.acceptText}>Accept</Text>
+                          )}
+                        </Pressable>
+                        <Pressable
+                          style={[
+                            styles.declineButton,
+                            actionLoading === request.id && styles.buttonDisabled,
+                          ]}
+                          onPress={() => handleDecline(request.id)}
+                          disabled={actionLoading === request.id}
+                          accessibilityLabel={`Decline connection request from ${request.requester.name}`}
+                        >
+                          <Text style={styles.declineText}>Decline</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
         )}
 
         {/* Instagram Feed Placeholder */}
@@ -150,6 +241,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '300',
     color: COLORS.charcoal,
+  },
+  loadingContainer: {
+    paddingVertical: 60,
+    alignItems: 'center',
   },
   section: {
     marginBottom: 24,
@@ -202,6 +297,18 @@ const styles = StyleSheet.create({
   matchLabel: {
     fontSize: 13,
     color: COLORS.charcoal,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.warmGray,
+    fontStyle: 'italic',
   },
   connectionsList: {
     backgroundColor: COLORS.white,
@@ -263,6 +370,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.charcoal,
     paddingHorizontal: 16,
     paddingVertical: 8,
+    minWidth: 70,
+    alignItems: 'center',
   },
   acceptText: {
     fontSize: 12,
@@ -278,6 +387,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: COLORS.warmGray,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   instagramPlaceholder: {
     backgroundColor: COLORS.white,
