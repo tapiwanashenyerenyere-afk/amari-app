@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Instagram, Users, Sparkles, MapPin, Heart } from 'lucide-react-native';
 import { COLORS } from '../../lib/constants';
 
 // Mock data
@@ -38,7 +39,7 @@ export default function NetworkScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>FIND CONNECTIONS</Text>
           <View style={styles.searchContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Search size={18} color={COLORS.warmGray} strokeWidth={1.5} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by tags..."
@@ -118,7 +119,7 @@ export default function NetworkScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>@AMABOROGROUP</Text>
           <View style={styles.instagramPlaceholder}>
-            <Text style={styles.instagramIcon}>📷</Text>
+            <Instagram size={32} color={COLORS.charcoal} strokeWidth={1.5} />
             <Text style={styles.instagramText}>Instagram Feed</Text>
             <Text style={styles.instagramSubtext}>
               Latest posts from AMARI Gala / AMARI Group
@@ -179,9 +180,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
-  },
-  searchIcon: {
-    fontSize: 16,
   },
   searchInput: {
     flex: 1,
@@ -287,10 +285,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     padding: 32,
     alignItems: 'center',
-  },
-  instagramIcon: {
-    fontSize: 32,
-    marginBottom: 12,
+    gap: 12,
   },
   instagramText: {
     fontSize: 14,

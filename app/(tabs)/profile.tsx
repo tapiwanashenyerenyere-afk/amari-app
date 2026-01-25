@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import { ChevronRight, Eye, EyeOff, CreditCard } from 'lucide-react-native';
 import { COLORS, TIER_DISPLAY_NAMES, TIER_COLORS, TierType } from '../../lib/constants';
 
 // Mock user data - NO GENDER FIELD
@@ -69,10 +70,17 @@ function VisibilityToggle({
     return val;
   };
 
+  const isVisible = value !== 'hidden';
+
   return (
     <View style={styles.visibilityRow}>
-      <Text style={styles.visibilityLabel}>
-        Visible to {getDisplayValue(value)} {value !== 'hidden' ? '✓' : '✗'}
+      {isVisible ? (
+        <Eye size={14} color={COLORS.olive} strokeWidth={1.5} />
+      ) : (
+        <EyeOff size={14} color={COLORS.warmGray} strokeWidth={1.5} />
+      )}
+      <Text style={[styles.visibilityLabel, isVisible && styles.visibilityLabelActive]}>
+        Visible to {getDisplayValue(value)}
       </Text>
     </View>
   );
@@ -158,8 +166,11 @@ export default function ProfileScreen() {
             style={styles.membershipCardButton}
             accessibilityLabel="View your membership card"
           >
-            <Text style={styles.membershipCardText}>View Membership Card</Text>
-            <Text style={styles.membershipCardArrow}>→</Text>
+            <View style={styles.membershipCardContent}>
+              <CreditCard size={18} color={COLORS.white} strokeWidth={1.5} />
+              <Text style={styles.membershipCardText}>View Membership Card</Text>
+            </View>
+            <ChevronRight size={20} color={COLORS.white} strokeWidth={1.5} />
           </Pressable>
         </View>
       </ScrollView>
@@ -292,6 +303,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   visibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 12,
@@ -300,6 +314,9 @@ const styles = StyleSheet.create({
   visibilityLabel: {
     fontSize: 12,
     color: COLORS.warmGray,
+  },
+  visibilityLabelActive: {
+    color: COLORS.olive,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -323,14 +340,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  membershipCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   membershipCardText: {
     fontSize: 14,
     fontWeight: '500',
     color: COLORS.white,
     letterSpacing: 1,
-  },
-  membershipCardArrow: {
-    fontSize: 18,
-    color: COLORS.white,
   },
 });

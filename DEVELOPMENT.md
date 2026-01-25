@@ -132,24 +132,65 @@ All 5 tabs verified working via browser testing:
 
 ### Known Issues / TODO
 
-1. **Fonts not loaded** - Using system fonts, need to add EB Garamond, Syne, DM Sans
-2. **Icons are emoji** - Need proper icon library (Lucide or similar)
-3. **Mock data only** - No backend connection yet
-4. **QR code static** - Not generating real signed barcodes
-5. **No auth flow** - Need login/register screens
-6. **No deep linking** - Membership card not navigable yet
+1. **Mock data only** - No backend connection yet
+2. **QR code static** - Not generating real signed barcodes
+3. **No deep linking** - Membership card not navigable yet
+4. **No auth state management** - Need to implement proper auth flow with storage
 
 ### Next Steps
 
-1. Add custom fonts (EB Garamond, Syne, DM Sans)
-2. Replace emoji icons with Lucide icons
-3. Create auth screens with invite code validation
-4. Set up Hono.js backend
-5. Create PostgreSQL schema on Railway
-6. Implement real data fetching with React Query
-7. Add pgvector for AI member matching
+1. Set up Hono.js backend
+2. Create PostgreSQL schema on Railway
+3. Implement real data fetching with React Query
+4. Add pgvector for AI member matching
+5. Implement auth state persistence with expo-secure-store
+
+---
+
+## Build Session: January 25, 2026
+
+### What Was Built
+
+#### 1. Custom Fonts
+- Installed expo-font and Google Fonts packages
+- EB Garamond (serif) - Body text, quotes
+- Syne (display) - Headings, AMARI wordmark
+- DM Sans (sans) - UI elements, labels
+- Font loading with splash screen handling
+
+#### 2. Lucide Icons
+- Replaced all emoji icons with Lucide React Native
+- Tab bar: Home, Compass, Calendar, Users, User
+- Network: Search, Instagram
+- Profile: Eye, EyeOff, CreditCard, ChevronRight
+
+#### 3. Auth Screens
+- Welcome screen with "Excellence. Community. Legacy." tagline
+- Invite code entry with validation (mock API)
+- Registration form (name, email, "what I'm building")
+- Minimal, secretive messaging ("Membership is by invitation only")
+
+### Design Decisions
+
+1. **Secretive messaging** - No details about what AMARI is, just "invite only"
+2. **Dark auth screens** - Charcoal background for premium feel
+3. **Syne for wordmark** - Bold display font with wide letter-spacing
+4. **EB Garamond for tagline** - Elegant serif for the values
 
 ### Files Changed
+
+```
+app/_layout.tsx            - Added font loading with SplashScreen
+app/(tabs)/_layout.tsx     - Lucide icons for tab bar
+app/(tabs)/network.tsx     - Search and Instagram icons
+app/(tabs)/profile.tsx     - Eye, CreditCard, ChevronRight icons
+app/(auth)/_layout.tsx     - Auth stack layout (NEW)
+app/(auth)/index.tsx       - Welcome screen (NEW)
+app/(auth)/invite.tsx      - Invite code entry (NEW)
+app/(auth)/register.tsx    - Registration form (NEW)
+```
+
+### Session 1 Files (January 24)
 
 ```
 app.json                    - Updated name, scheme, plugins

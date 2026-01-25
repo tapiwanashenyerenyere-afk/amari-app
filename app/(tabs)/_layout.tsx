@@ -1,26 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { Home, Compass, Calendar, Users, User } from 'lucide-react-native';
 import { COLORS } from '../../lib/constants';
 
-// Simple icon components (will replace with proper icons later)
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    home: '⌂',
-    discover: '◎',
-    events: '▣',
-    network: '⬡',
-    profile: '◯',
-  };
-
-  return (
-    <Text style={[
-      styles.icon,
-      { color: focused ? COLORS.charcoal : COLORS.warmGray }
-    ]}>
-      {icons[name] || '○'}
-    </Text>
-  );
-}
+const ICON_SIZE = 22;
 
 export default function TabLayout() {
   return (
@@ -49,44 +31,67 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <Home
+              size={ICON_SIZE}
+              color={focused ? COLORS.charcoal : COLORS.warmGray}
+              strokeWidth={focused ? 2 : 1.5}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ focused }) => <TabIcon name="discover" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <Compass
+              size={ICON_SIZE}
+              color={focused ? COLORS.charcoal : COLORS.warmGray}
+              strokeWidth={focused ? 2 : 1.5}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="events"
         options={{
           title: 'Events',
-          tabBarIcon: ({ focused }) => <TabIcon name="events" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <Calendar
+              size={ICON_SIZE}
+              color={focused ? COLORS.charcoal : COLORS.warmGray}
+              strokeWidth={focused ? 2 : 1.5}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="network"
         options={{
           title: 'Network',
-          tabBarIcon: ({ focused }) => <TabIcon name="network" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <Users
+              size={ICON_SIZE}
+              color={focused ? COLORS.charcoal : COLORS.warmGray}
+              strokeWidth={focused ? 2 : 1.5}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <User
+              size={ICON_SIZE}
+              color={focused ? COLORS.charcoal : COLORS.warmGray}
+              strokeWidth={focused ? 2 : 1.5}
+            />
+          ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  icon: {
-    fontSize: 24,
-    marginBottom: 2,
-  },
-});
