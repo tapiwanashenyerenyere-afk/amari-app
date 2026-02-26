@@ -8,7 +8,7 @@ CREATE INDEX idx_members_city ON members(city) WHERE status = 'active';
 CREATE INDEX idx_members_industry ON members(industry) WHERE status = 'active';
 
 CREATE INDEX idx_events_type_tier ON events(type, min_tier);
-CREATE INDEX idx_events_starts_at ON events(starts_at) WHERE starts_at > now() - INTERVAL '1 day';
+CREATE INDEX idx_events_starts_at ON events(starts_at);
 
 CREATE INDEX idx_event_rsvps_event_status ON event_rsvps(event_id, status);
 CREATE INDEX idx_event_rsvps_member ON event_rsvps(member_id);

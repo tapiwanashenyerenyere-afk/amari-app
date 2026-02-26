@@ -3,6 +3,9 @@
 -- Fixes: write storm, race condition, display ID leak, audit log
 -- ============================================================
 
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- Enum types
 CREATE TYPE membership_tier AS ENUM ('member', 'silver', 'platinum', 'laureate');
 CREATE TYPE member_status AS ENUM ('pending', 'active', 'suspended', 'inactive');
@@ -277,7 +280,7 @@ CREATE TABLE barcode_revocations (
 
 CREATE TABLE barcode_seeds (
   date_bucket   date PRIMARY KEY DEFAULT CURRENT_DATE,
-  seed          text NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  seed          text NOT NULL DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   created_at    timestamptz DEFAULT now()
 );
 
@@ -298,7 +301,7 @@ DECLARE v_seed text; v_hmac text; v_token text;
 BEGIN
   v_seed := ensure_daily_seed();
   v_hmac := left(encode(
-    hmac(p_member_id::text || ':' || CURRENT_DATE::text, v_seed, 'sha256'),
+    extensions.hmac(p_member_id::text || ':' || CURRENT_DATE::text, v_seed, 'sha256'),
     'hex'
   ), 16);
   v_token := p_member_id::text || ':' || CURRENT_DATE::text || ':' || v_hmac;
@@ -341,7 +344,7 @@ BEGIN
   END IF;
 
   v_expected_hmac := encode(
-    hmac(v_member_id::text || ':' || v_date_bucket::text, v_seed, 'sha256'),
+    extensions.hmac(v_member_id::text || ':' || v_date_bucket::text, v_seed, 'sha256'),
     'hex'
   );
 
@@ -659,6 +662,5 @@ CREATE TABLE dead_letter_queue (
   created_at      timestamptz DEFAULT now()
 );
 
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- pg_cron for scheduled tasks
 CREATE EXTENSION IF NOT EXISTS pg_cron;

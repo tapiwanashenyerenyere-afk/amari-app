@@ -1,6 +1,3 @@
-[project]
-id = "amari-prod"
-
 [api]
 enabled = true
 port = 54321
@@ -10,7 +7,7 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true
@@ -23,6 +20,10 @@ additional_redirect_urls = ["amari://auth-callback"]
 
 [auth.external.apple]
 enabled = true
+client_id = "env(SUPABASE_AUTH_APPLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_APPLE_SECRET)"
 
 [auth.external.google]
 enabled = true
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
