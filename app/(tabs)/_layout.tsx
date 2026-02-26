@@ -1,56 +1,66 @@
+import { Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Compass, Calendar, Users, User } from 'lucide-react-native';
-import { COLORS } from '../../lib/constants';
-
-const ICON_SIZE = 22;
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { C, T, S, TAB_VISIBILITY, TIER_LEVELS } from '../../lib/constants';
+import { useAuth } from '../../providers/AuthProvider';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const { tier } = useAuth();
+  const tierLevel = TIER_LEVELS[tier] || 1;
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.charcoal,
-        tabBarInactiveTintColor: COLORS.warmGray,
+        headerShown: false,
+        tabBarActiveTintColor: C.textPrimary,
+        tabBarInactiveTintColor: C.textSecondary,
         tabBarStyle: {
-          backgroundColor: COLORS.cream,
-          borderTopColor: COLORS.border,
+          backgroundColor: C.cream,
+          borderTopColor: C.border,
           borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 70,
+          paddingTop: S._8,
+          paddingBottom: Math.max(insets.bottom, S._20),
+          height: 84 + Math.max(insets.bottom - 20, 0),
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontWeight: '500',
-          fontSize: 9,
-          letterSpacing: 1,
+          fontFamily: 'DMSans-SemiBold',
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 1.5,
           textTransform: 'uppercase',
         },
-        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Pulse',
           tabBarIcon: ({ focused }) => (
-            <Home
-              size={ICON_SIZE}
-              color={focused ? COLORS.charcoal : COLORS.warmGray}
-              strokeWidth={focused ? 2 : 1.5}
-            />
+            <Text style={[styles.icon, focused && styles.iconActive]}>◈</Text>
           ),
         }}
       />
       <Tabs.Screen
-        name="discover"
+        name="aligned"
         options={{
-          title: 'Discover',
+          title: 'Aligned',
           tabBarIcon: ({ focused }) => (
-            <Compass
-              size={ICON_SIZE}
-              color={focused ? COLORS.charcoal : COLORS.warmGray}
-              strokeWidth={focused ? 2 : 1.5}
-            />
+            <Text style={[styles.icon, focused && styles.iconActive]}>◎</Text>
           ),
+          href: tierLevel >= TAB_VISIBILITY.aligned ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
+        name="corridor"
+        options={{
+          title: 'Corridor',
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.icon, focused && styles.iconActive]}>◇</Text>
+          ),
+          href: tierLevel >= TAB_VISIBILITY.corridor ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -58,40 +68,33 @@ export default function TabLayout() {
         options={{
           title: 'Events',
           tabBarIcon: ({ focused }) => (
-            <Calendar
-              size={ICON_SIZE}
-              color={focused ? COLORS.charcoal : COLORS.warmGray}
-              strokeWidth={focused ? 2 : 1.5}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="network"
-        options={{
-          title: 'Network',
-          tabBarIcon: ({ focused }) => (
-            <Users
-              size={ICON_SIZE}
-              color={focused ? COLORS.charcoal : COLORS.warmGray}
-              strokeWidth={focused ? 2 : 1.5}
-            />
+            <Text style={[styles.icon, focused && styles.iconActive]}>◆</Text>
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Me',
           tabBarIcon: ({ focused }) => (
-            <User
-              size={ICON_SIZE}
-              color={focused ? COLORS.charcoal : COLORS.warmGray}
-              strokeWidth={focused ? 2 : 1.5}
-            />
+            <Text style={[styles.icon, focused && styles.iconActive]}>○</Text>
           ),
         }}
       />
+      {/* Hide legacy screens from tab bar */}
+      <Tabs.Screen name="discover" options={{ href: null }} />
+      <Tabs.Screen name="network" options={{ href: null }} />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  icon: {
+    fontSize: 16,
+    lineHeight: 20,
+    color: C.textTertiary,
+  },
+  iconActive: {
+    color: C.textPrimary,
+  },
+});

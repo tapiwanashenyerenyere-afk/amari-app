@@ -1,97 +1,62 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+  Switch,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
-import { ChevronRight, Eye, EyeOff, CreditCard, LogOut } from 'lucide-react-native';
+import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { COLORS, TIER_DISPLAY_NAMES, TIER_COLORS, TierType } from '../../lib/constants';
-import { useAuthStore } from '../../stores/auth';
+import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
+import { useAuth } from '../../providers/AuthProvider';
+import { useMyProfile, useUpdateProfile } from '../../queries/members';
+import { useTogglePresence, useActiveCityPresence } from '../../queries/cityPresence';
+import { useBarcode } from '../../hooks/useBarcode';
+import { supabase } from '../../lib/supabase';
 
-function TierBadge({ tier }: { tier: TierType }) {
-  if (!tier) {
-    return (
-      <View style={styles.noTierBadge}>
-        <Text style={styles.noTierText}>Member</Text>
-      </View>
-    );
-  }
-
-  const colors = TIER_COLORS[tier];
-  const isCouncil = tier === 'council';
-
-  if (isCouncil) {
-    return (
-      <View style={styles.councilSeal}>
-        <View style={styles.councilOuter}>
-          <View style={styles.councilInner}>
-            <Text style={styles.councilText}>COUNCIL</Text>
-            <View style={styles.councilDivider} />
-            <Text style={styles.councilYear}>EST. 2024</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.tierBadge, { backgroundColor: colors?.bg }]}>
-      <Text style={[styles.tierBadgeText, { color: colors?.text }]}>
-        {TIER_DISPLAY_NAMES[tier]}
-      </Text>
-    </View>
-  );
-}
-
-function VisibilityToggle({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  const getDisplayValue = (val: string) => {
-    if (val === 'hidden') return 'Hidden';
-    if (val === 'connections') return 'Connections';
-    if (val === 'all') return 'All';
-    return val;
-  };
-
-  const isVisible = value !== 'hidden';
-
-  return (
-    <View style={styles.visibilityRow}>
-      {isVisible ? (
-        <Eye size={14} color={COLORS.olive} strokeWidth={1.5} />
-      ) : (
-        <EyeOff size={14} color={COLORS.warmGray} strokeWidth={1.5} />
-      )}
-      <Text style={[styles.visibilityLabel, isVisible && styles.visibilityLabelActive]}>
-        Visible to {getDisplayValue(value)}
-      </Text>
-    </View>
-  );
-}
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const member = useAuthStore((state) => state.member);
-  const logout = useAuthStore((state) => state.logout);
-  const refreshProfile = useAuthStore((state) => state.refreshProfile);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const { session, tier } = useAuth();
+  const { data: profile, isLoading, refetch, isRefetching } = useMyProfile();
+  const { data: barcode } = useBarcode();
+  const updateProfile = useUpdateProfile();
+  const togglePresence = useTogglePresence();
+  const { data: nearbyPresence } = useActiveCityPresence(profile?.city);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refreshProfile();
-    setIsRefreshing(false);
-  };
+  const cityPresenceActive = profile?.city
+    ? nearbyPresence?.some((p: any) => p.member_id === session?.user?.id && p.is_active)
+    : false;
+
+  const nearbyCount = nearbyPresence?.length || 0;
+
+  const handleTogglePresence = useCallback(async () => {
+    if (!profile?.city) {
+      Alert.alert('Set your city', 'Add your city to your profile first.');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    togglePresence.mutate({
+      city: profile.city,
+      isActive: !cityPresenceActive,
+    });
+  }, [profile?.city, cityPresenceActive]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
-      router.replace('/(auth)');
+      await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout failed:', err);
     } finally {
@@ -99,145 +64,205 @@ export default function ProfileScreen() {
     }
   };
 
-  // Default visibility values
-  const visibility = member?.visibility || {
-    building: 'connections',
-    interests: 'all',
-    openTo: 'hidden',
-  };
+  const initials = profile?.full_name
+    ? profile.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+    : '??';
 
-  // Generate member ID from id
-  const memberId = member?.id ? `AM-${member.id.toString().padStart(4, '0')}` : 'AM-0000';
+  const displayId = profile?.display_id || 'AMARI-2026-XXXX';
 
-  if (!member) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.charcoal} />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={C.charcoal} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.charcoal }} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.charcoal}
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={C.lightPrimary}
           />
         }
       >
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {member.name.charAt(0)}
-            </Text>
-          </View>
-          <Text style={styles.name}>{member.name}</Text>
-          <Text style={styles.memberId}>{memberId}</Text>
-        </View>
+        {/* Dark Header */}
+        <MotiView
+          from={{ opacity: 0, translateY: -12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 500 }}
+          style={styles.darkHeader}
+        >
+          <View style={styles.darkGradientLine} />
 
-        {/* Tier Badge */}
-        <View style={styles.tierSection}>
-          <TierBadge tier={member.tier as TierType} />
-        </View>
-
-        {/* What I'm Building */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>WHAT I'M BUILDING</Text>
-          <View style={styles.contentCard}>
-            <Text style={styles.buildingText}>
-              {member.building ? `"${member.building}"` : 'Not set yet'}
-            </Text>
-            <VisibilityToggle
-              label="building"
-              value={visibility.building || 'connections'}
-            />
-          </View>
-        </View>
-
-        {/* Interested In */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>INTERESTED IN</Text>
-          <View style={styles.contentCard}>
-            {member.interests && member.interests.length > 0 ? (
-              <View style={styles.tagsRow}>
-                {member.interests.map((interest: string) => (
-                  <View key={interest} style={styles.tag}>
-                    <Text style={styles.tagText}>{interest}</Text>
-                  </View>
-                ))}
+          <View style={styles.profileRow}>
+            {/* Avatar */}
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+              {/* Tier badge on avatar */}
+              <View style={styles.tierBadge}>
+                <Text style={styles.tierBadgeText}>
+                  {TIER_DISPLAY_NAMES[tier]?.toUpperCase() || 'MEMBER'}
+                </Text>
               </View>
-            ) : (
-              <Text style={styles.emptyText}>No interests set</Text>
-            )}
-            <VisibilityToggle
-              label="interests"
-              value={visibility.interests || 'all'}
-            />
-          </View>
-        </View>
-
-        {/* Open To */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>OPEN TO</Text>
-          <View style={styles.contentCard}>
-            {member.openTo && member.openTo.length > 0 ? (
-              <View style={styles.tagsRow}>
-                {member.openTo.map((item: string) => (
-                  <View key={item} style={styles.tag}>
-                    <Text style={styles.tagText}>{item}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.emptyText}>Not set</Text>
-            )}
-            <VisibilityToggle
-              label="openTo"
-              value={visibility.openTo || 'hidden'}
-            />
-          </View>
-        </View>
-
-        {/* Membership Card Link */}
-        <View style={styles.section}>
-          <Pressable
-            style={styles.membershipCardButton}
-            accessibilityLabel="View your membership card"
-          >
-            <View style={styles.membershipCardContent}>
-              <CreditCard size={18} color={COLORS.white} strokeWidth={1.5} />
-              <Text style={styles.membershipCardText}>View Membership Card</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.white} strokeWidth={1.5} />
-          </Pressable>
-        </View>
 
-        {/* Logout Button */}
-        <View style={styles.section}>
-          <Pressable
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            disabled={isLoggingOut}
-            accessibilityLabel="Sign out"
+            {/* Name + title */}
+            <View>
+              {profile?.full_name?.split(' ').map((part: string, i: number) => (
+                <Text key={i} style={styles.nameText}>
+                  {part}
+                </Text>
+              ))}
+              <Text style={styles.roleText}>
+                {profile?.title || 'Member'}
+                {profile?.company ? `, ${profile.company}` : ''}
+              </Text>
+            </View>
+          </View>
+
+          {/* Barcode */}
+          <View style={styles.barcodeSection}>
+            <View style={styles.barcodeLines}>
+              {Array.from({ length: 34 }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.barcodeLine,
+                    {
+                      width: [3, 1, 2, 1, 3, 2, 1, 1, 3, 1][i % 10],
+                      backgroundColor:
+                        i % 9 === 0 ? C.gold : C.lightPrimary,
+                      opacity: 0.2 + (i % 4) * 0.12,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+            <Text style={styles.barcodeId}>{displayId}</Text>
+          </View>
+        </MotiView>
+
+        {/* Light content area */}
+        <View style={styles.lightContent}>
+          {/* City Presence Toggle */}
+          <MotiView
+            from={{ opacity: 0, translateY: 16 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 500, delay: 200 }}
           >
-            {isLoggingOut ? (
-              <ActivityIndicator size="small" color={COLORS.burgundy} />
-            ) : (
-              <>
-                <LogOut size={18} color={COLORS.burgundy} strokeWidth={1.5} />
+            <Pressable
+              style={[
+                styles.presenceCard,
+                cityPresenceActive && styles.presenceCardActive,
+              ]}
+              onPress={handleTogglePresence}
+              accessibilityLabel={`City Presence: ${cityPresenceActive ? 'On' : 'Off'}`}
+              accessibilityRole="switch"
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.presenceTitle}>City Presence</Text>
+                <Text
+                  style={[
+                    styles.presenceDesc,
+                    cityPresenceActive && styles.presenceDescActive,
+                  ]}
+                >
+                  {cityPresenceActive
+                    ? `Visible in ${profile?.city || 'your city'} · ${nearbyCount} alchemists nearby`
+                    : 'Currently hidden'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.toggleTrack,
+                  cityPresenceActive && styles.toggleTrackActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.toggleThumb,
+                    cityPresenceActive && styles.toggleThumbActive,
+                  ]}
+                />
+              </View>
+            </Pressable>
+          </MotiView>
+
+          {/* Info Cards */}
+          <MotiView
+            from={{ opacity: 0, translateY: 16 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 500, delay: 300 }}
+            style={styles.infoCards}
+          >
+            {[
+              {
+                label: 'Building',
+                value: profile?.company || 'Tap to add',
+                color: C.burgundy,
+              },
+              {
+                label: 'Interested In',
+                value: profile?.industry || 'Tap to add',
+                color: C.brass,
+              },
+              {
+                label: 'Open To',
+                value: profile?.bio || 'Tap to add',
+                color: C.olive,
+              },
+            ].map((card, i) => (
+              <Pressable
+                key={i}
+                style={({ pressed }) => [
+                  styles.infoCard,
+                  { borderLeftColor: card.color + '30' },
+                  pressed && styles.cardPressed,
+                ]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  // Future: open edit modal
+                }}
+              >
+                <Text style={{ ...T.label, color: card.color, marginBottom: S._8 }}>
+                  {card.label}
+                </Text>
+                <Text style={{ ...T.body, color: C.textSecondary }}>{card.value}</Text>
+              </Pressable>
+            ))}
+          </MotiView>
+
+          {/* Sign Out */}
+          <View style={styles.logoutSection}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handleLogout}
+              disabled={isLoggingOut}
+              accessibilityLabel="Sign out"
+            >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color={C.burgundy} />
+              ) : (
                 <Text style={styles.logoutText}>Sign Out</Text>
-              </>
-            )}
-          </Pressable>
+              )}
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -245,202 +270,181 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.cream,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
+  container: { flex: 1, backgroundColor: C.cream },
+  scroll: { flex: 1 },
+  content: {},
+  loadingBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: C.cream,
   },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
+
+  // Dark header
+  darkHeader: {
+    backgroundColor: C.charcoal,
+    paddingHorizontal: S._20,
+    paddingTop: S._12,
+    paddingBottom: S._24,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  darkGradientLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: C.gold,
+  },
+
+  // Profile row
+  profileRow: {
+    flexDirection: 'row',
+    gap: S._16,
+    alignItems: 'flex-end',
   },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.charcoal,
-    justifyContent: 'center',
+    backgroundColor: C.burgundy,
+    borderRadius: R.sm,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    position: 'relative',
   },
   avatarText: {
-    fontSize: 32,
-    color: COLORS.white,
-    fontWeight: '300',
-  },
-  name: {
-    fontSize: 24,
-    color: COLORS.charcoal,
-    marginBottom: 4,
-  },
-  memberId: {
-    fontSize: 12,
-    color: COLORS.warmGray,
-    letterSpacing: 1,
-  },
-  tierSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  noTierBadge: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: COLORS.creamDark,
-  },
-  noTierText: {
-    fontSize: 12,
-    color: COLORS.warmGray,
-    letterSpacing: 1,
+    fontFamily: 'Syne-ExtraBold',
+    fontSize: 28,
+    fontWeight: '800',
+    color: C.lightPrimary,
   },
   tierBadge: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    position: 'absolute',
+    bottom: -6,
+    right: -6,
+    paddingVertical: S._4,
+    paddingHorizontal: S._12,
+    backgroundColor: C.gold,
+    borderRadius: R.lg,
   },
   tierBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 2,
-  },
-  councilSeal: {
-    width: 100,
-    height: 100,
-    borderWidth: 2,
-    borderColor: 'rgba(26, 26, 26, 0.3)',
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  councilOuter: {
-    width: 80,
-    height: 80,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 26, 26, 0.2)',
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  councilInner: {
-    alignItems: 'center',
-  },
-  councilText: {
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 3,
-    color: COLORS.charcoal,
-  },
-  councilDivider: {
-    width: 40,
-    height: 1,
-    backgroundColor: 'rgba(26, 26, 26, 0.3)',
-    marginVertical: 6,
-  },
-  councilYear: {
-    fontSize: 8,
-    letterSpacing: 1,
-    color: COLORS.warmGray,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
+    ...T.label,
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: COLORS.warmGray,
-    marginBottom: 12,
+    color: C.warmBlack,
   },
-  contentCard: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 20,
+  nameText: {
+    ...T.title,
+    fontSize: 24,
+    color: C.lightPrimary,
   },
-  buildingText: {
-    fontSize: 15,
-    color: COLORS.charcoal,
-    fontStyle: 'italic',
-    lineHeight: 24,
-    marginBottom: 16,
+  roleText: {
+    ...T.bodyItalic,
+    color: C.lightSecondary,
+    marginTop: S._4,
   },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.warmGray,
-    fontStyle: 'italic',
-    marginBottom: 16,
-  },
-  visibilityRow: {
-    flexDirection: 'row',
+
+  // Barcode
+  barcodeSection: {
+    marginTop: S._20,
     alignItems: 'center',
-    gap: 6,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 12,
-    marginTop: 4,
   },
-  visibilityLabel: {
-    fontSize: 12,
-    color: COLORS.warmGray,
-  },
-  visibilityLabelActive: {
-    color: COLORS.olive,
-  },
-  tagsRow: {
+  barcodeLines: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    justifyContent: 'center',
+    gap: 2,
+    height: 40,
+    marginBottom: S._8,
   },
-  tag: {
-    backgroundColor: COLORS.creamDark,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+  barcodeLine: {
+    height: '100%',
   },
-  tagText: {
-    fontSize: 13,
-    color: COLORS.charcoal,
+  barcodeId: {
+    ...T.labelLg,
+    letterSpacing: 5,
+    color: C.lightSecondary,
   },
-  membershipCardButton: {
-    backgroundColor: COLORS.charcoal,
-    padding: 20,
+
+  // Light content
+  lightContent: {
+    backgroundColor: C.cream,
+    paddingHorizontal: S._12,
+    paddingTop: S._12,
+    paddingBottom: S._40,
+  },
+
+  // Presence card
+  presenceCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: S._16,
+    backgroundColor: C.creamSoft,
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
   },
-  membershipCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  presenceCardActive: {
+    backgroundColor: C.gFaint,
+    borderLeftColor: 'rgba(201,169,98,0.35)',
   },
-  membershipCardText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.white,
-    letterSpacing: 1,
+  presenceTitle: {
+    ...T.cardTitleSm,
+    fontSize: 13,
+    color: C.textPrimary,
   },
-  logoutButton: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 16,
-    flexDirection: 'row',
+  presenceDesc: {
+    ...T.bodyItalic,
+    fontSize: 13,
+    color: C.textTertiary,
+    marginTop: S._2,
+  },
+  presenceDescActive: { color: C.brass },
+
+  // Toggle
+  toggleTrack: {
+    width: 48,
+    height: 28,
+    padding: 3,
+    backgroundColor: C.border,
+    borderRadius: R.lg,
     justifyContent: 'center',
+  },
+  toggleTrackActive: { backgroundColor: C.burgundy },
+  toggleThumb: {
+    width: 22,
+    height: 22,
+    backgroundColor: C.cream,
+    borderRadius: 11,
+  },
+  toggleThumbActive: { alignSelf: 'flex-end' },
+
+  // Info cards
+  infoCards: {
+    marginTop: S._8,
+    gap: S._8,
+  },
+  infoCard: {
+    backgroundColor: C.creamSoft,
+    padding: S._16,
+    borderLeftWidth: 3,
+  },
+  cardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+
+  // Logout
+  logoutSection: { marginTop: S._24 },
+  logoutBtn: {
+    backgroundColor: C.creamSoft,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: S._16,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    minHeight: 48,
   },
   logoutText: {
+    fontFamily: 'DMSans-SemiBold',
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.burgundy,
+    color: C.burgundy,
   },
 });

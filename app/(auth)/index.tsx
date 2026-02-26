@@ -1,60 +1,78 @@
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { COLORS } from '../../lib/constants';
+import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
+import { C, T, S, R } from '../../lib/constants';
 
-const { height } = Dimensions.get('window');
-
-export default function WelcomeScreen() {
+export default function AuthLandingScreen() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
-        {/* Top Section - Wordmark */}
-        <View style={styles.header}>
-          <Text style={styles.wordmark}>AMARI</Text>
-        </View>
+        {/* Logo */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.7 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 15 }}
+          style={styles.logoBox}
+        >
+          <Text style={styles.logoText}>A</Text>
+        </MotiView>
 
-        {/* Middle Section - Tagline */}
-        <View style={styles.middle}>
-          <Text style={styles.tagline}>Excellence.</Text>
-          <Text style={styles.tagline}>Community.</Text>
-          <Text style={styles.tagline}>Legacy.</Text>
-        </View>
+        {/* Title */}
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 700, delay: 300 }}
+        >
+          <Text style={styles.wordmark}>AMARI GROUP</Text>
+        </MotiView>
 
-        {/* Bottom Section - Actions */}
-        <View style={styles.actions}>
-          <Text style={styles.memberText}>
-            Membership is by invitation only.
-          </Text>
+        {/* Divider */}
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 800, delay: 600 }}
+          style={styles.divider}
+        />
 
-          <Pressable
-            style={styles.inviteButton}
-            onPress={() => router.push('/(auth)/invite')}
-            accessibilityLabel="Enter invite code"
-          >
-            <Text style={styles.inviteButtonText}>I HAVE AN INVITE CODE</Text>
-          </Pressable>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <Pressable
-            style={styles.signInButton}
-            onPress={() => {
-              // TODO: Implement sign in flow
-              console.log('Sign in pressed');
-            }}
-            accessibilityLabel="Sign in to existing account"
-          >
-            <Text style={styles.signInButtonText}>SIGN IN</Text>
-          </Pressable>
-        </View>
+        {/* Tagline */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 900, delay: 800 }}
+          style={styles.taglineRow}
+        >
+          <Text style={styles.taglineFor}>For the </Text>
+          <Text style={styles.taglineAlchemists}>Alchemists</Text>
+        </MotiView>
       </View>
+
+      {/* Bottom actions */}
+      <MotiView
+        from={{ opacity: 0, translateY: 20 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 800, delay: 1200 }}
+        style={styles.bottom}
+      >
+        <Pressable
+          style={({ pressed }) => [
+            styles.enterBtn,
+            pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push('/(auth)/invite');
+          }}
+          accessibilityLabel="Enter with invitation code"
+        >
+          <Text style={styles.enterBtnText}>Enter</Text>
+        </Pressable>
+
+        <Text style={styles.bottomLabel}>Australia's Black Diaspora</Text>
+      </MotiView>
     </SafeAreaView>
   );
 }
@@ -62,84 +80,78 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.charcoal,
+    backgroundColor: C.cream,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
-  },
-  header: {
-    paddingTop: height * 0.1,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoBox: {
+    width: 88,
+    height: 88,
+    backgroundColor: C.charcoal,
+    borderRadius: R.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: S._24,
+  },
+  logoText: {
+    fontFamily: 'Syne-ExtraBold',
+    fontSize: 40,
+    fontWeight: '800',
+    color: C.cream,
   },
   wordmark: {
-    fontFamily: 'Syne-Bold',
-    fontSize: 32,
-    letterSpacing: 12,
-    color: COLORS.cream,
-  },
-  middle: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tagline: {
-    fontFamily: 'EBGaramond-Regular',
-    fontSize: 28,
-    color: COLORS.cream,
-    letterSpacing: 2,
-    marginVertical: 4,
-  },
-  actions: {
-    paddingBottom: 48,
-  },
-  memberText: {
-    fontFamily: 'DMSans-Regular',
-    fontSize: 14,
-    color: 'rgba(248, 246, 243, 0.6)',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  inviteButton: {
-    backgroundColor: COLORS.cream,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  inviteButtonText: {
     fontFamily: 'DMSans-SemiBold',
     fontSize: 13,
-    letterSpacing: 2,
-    color: COLORS.charcoal,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    fontWeight: '600',
+    letterSpacing: 8,
+    color: C.textPrimary,
   },
   divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(248, 246, 243, 0.15)',
+    width: 32,
+    height: 2,
+    backgroundColor: C.burgundy,
+    marginTop: S._20,
   },
-  dividerText: {
-    fontFamily: 'DMSans-Medium',
-    fontSize: 11,
-    letterSpacing: 2,
-    color: 'rgba(248, 246, 243, 0.4)',
-    marginHorizontal: 16,
+  taglineRow: {
+    flexDirection: 'row',
+    marginTop: S._20,
   },
-  signInButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(248, 246, 243, 0.3)',
-    paddingVertical: 18,
+  taglineFor: {
+    fontFamily: 'EBGaramond-Regular',
+    fontSize: 28,
+    color: C.textPrimary,
+  },
+  taglineAlchemists: {
+    fontFamily: 'EBGaramond-Regular',
+    fontSize: 28,
+    color: C.burgundy,
+    fontStyle: 'italic',
+  },
+  bottom: {
     alignItems: 'center',
+    paddingBottom: S._48,
+    paddingHorizontal: S._20,
   },
-  signInButtonText: {
-    fontFamily: 'DMSans-SemiBold',
-    fontSize: 13,
-    letterSpacing: 2,
-    color: COLORS.cream,
+  enterBtn: {
+    paddingVertical: S._16,
+    paddingHorizontal: S._56,
+    minHeight: 48,
+    borderRadius: R.pill,
+    backgroundColor: 'rgba(201,169,98,0.2)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,169,98,0.35)',
+    marginBottom: S._20,
+  },
+  enterBtnText: {
+    ...T.btn,
+    fontSize: 14,
+    color: C.textPrimary,
+  },
+  bottomLabel: {
+    ...T.label,
+    color: C.textTertiary,
   },
 });

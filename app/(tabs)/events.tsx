@@ -1,77 +1,57 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, TIER_DISPLAY_NAMES } from '../../lib/constants';
-import { api, Event, Ticket } from '../../lib/api';
-import { useAuthStore } from '../../stores/auth';
+import { MotiView } from 'moti';
+import * as Haptics from 'expo-haptics';
+import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
+import { useAuth } from '../../providers/AuthProvider';
+import { useEvents, useRsvpToEvent } from '../../queries/events';
 
-function calculateDaysAway(dateStr: string) {
-  const eventDate = new Date(dateStr);
-  const now = new Date();
-  const diff = eventDate.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+type EventMode = 'vibes' | 'dinners' | 'talks';
+
+const MODE_CONFIG: Record<
+  EventMode,
+  { label: string; sub: string; color: string; dbType: string }
+> = {
+  vibes: { label: 'Vibes', sub: 'Cultural', color: C.burgundy, dbType: 'vibes' },
+  dinners: { label: 'Dinners', sub: 'Intimate', color: C.gold, dbType: 'dinner' },
+  talks: { label: 'Talks', sub: 'Intellectual', color: C.olive, dbType: 'talk' },
+};
+
+function formatDay(dateStr: string) {
+  return new Date(dateStr).getDate().toString();
 }
 
-function formatDate(dateStr: string) {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+function formatMonth(dateStr: string) {
+  return new Date(dateStr)
+    .toLocaleDateString('en-US', { month: 'short' })
+    .toUpperCase();
+}
+
+function formatFullDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 export default function EventsScreen() {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const member = useAuthStore((state) => state.member);
+  const { tier } = useAuth();
+  const [mode, setMode] = useState<EventMode>('vibes');
+  const dbType = MODE_CONFIG[mode].dbType;
+  const { data: events, isLoading, refetch, isRefetching } = useEvents(dbType);
+  const rsvpMutation = useRsvpToEvent();
 
-  const [events, setEvents] = useState<Event[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const fetchData = async () => {
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const [eventsRes, ticketsRes] = await Promise.all([
-        api.getEvents(),
-        api.getTickets(),
-      ]);
-
-      setEvents(eventsRes.events);
-      setTickets(ticketsRes.tickets);
-    } catch (err) {
-      console.error('Failed to fetch events data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchData();
-    setIsRefreshing(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [isAuthenticated]);
-
-  // Split events into upcoming and past
-  const now = new Date();
-  const upcomingEvents = events
-    .filter(e => new Date(e.eventDate) > now && !e.isInviteOnly)
-    .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
-
-  const inviteOnlyEvents = events
-    .filter(e => e.isInviteOnly && e.isInvited && new Date(e.eventDate) > now);
-
-  const pastEvents = events
-    .filter(e => new Date(e.eventDate) <= now)
-    .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
-    .slice(0, 5); // Show last 5 past events
-
-  const hasInvites = inviteOnlyEvents.length > 0;
+  // Also fetch gala events for vibes tab
+  const { data: galas } = useEvents('gala');
+  const gala = galas?.[0];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -81,255 +61,396 @@ export default function EventsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={COLORS.charcoal}
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={C.textPrimary}
           />
         }
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Events</Text>
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: -12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 500 }}
+          style={styles.header}
+        >
+          <Text style={styles.heroText}>Events</Text>
+        </MotiView>
 
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.charcoal} />
-          </View>
-        ) : (
-          <>
-            {/* Your Tickets */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>YOUR TICKETS</Text>
-              {tickets.length > 0 ? (
-                tickets.map((ticket) => (
-                  <Pressable key={ticket.id} style={styles.ticketCard}>
-                    <Text style={styles.ticketEventName}>{ticket.event.title}</Text>
-                    <Text style={styles.ticketDetails}>
-                      {ticket.tableNumber && `Table ${ticket.tableNumber}`}
-                      {ticket.tableNumber && ticket.seatNumber && ' • '}
-                      {ticket.seatNumber && `Seat ${ticket.seatNumber}`}
-                    </Text>
-                    <View style={styles.qrPlaceholder}>
-                      <Text style={styles.qrText}>[QR CODE]</Text>
+        {/* Mode Tabs — Three Worlds */}
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400, delay: 100 }}
+          style={styles.modeTabs}
+        >
+          {(Object.keys(MODE_CONFIG) as EventMode[]).map((m) => {
+            const active = mode === m;
+            const cfg = MODE_CONFIG[m];
+            return (
+              <Pressable
+                key={m}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setMode(m);
+                }}
+                style={[
+                  styles.modeTab,
+                  active && {
+                    backgroundColor: cfg.color + '08',
+                    borderTopColor: cfg.color,
+                    borderTopWidth: 2,
+                  },
+                ]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[
+                    styles.modeLabel,
+                    active && styles.modeLabelActive,
+                  ]}
+                >
+                  {cfg.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.modeSub,
+                    active ? { color: cfg.color } : { color: C.textGhost },
+                  ]}
+                >
+                  {cfg.sub}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </MotiView>
+
+        {/* Events List */}
+        <View style={styles.eventList}>
+          {/* Gala Card — only on vibes tab */}
+          {mode === 'vibes' && gala && (
+            <MotiView
+              from={{ opacity: 0, translateY: 16 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 400 }}
+            >
+              <Pressable
+                style={({ pressed }) => [
+                  styles.galaCard,
+                  pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  rsvpMutation.mutate(gala.id);
+                }}
+                accessibilityLabel="AMARI Gala 2026"
+              >
+                <View style={styles.galaGradientLine} />
+
+                {/* The Event badge */}
+                <View style={styles.galaBadge}>
+                  <View style={styles.galaPulseDot} />
+                  <Text style={{ ...T.label, color: C.goldOnDark }}>The Event</Text>
+                </View>
+
+                <Text style={{ ...T.title, color: C.lightPrimary }}>AMARI</Text>
+                <Text style={styles.galaTitle}>Gala 2026</Text>
+                <Text
+                  style={{
+                    ...T.bodyItalic,
+                    color: C.lightSecondary,
+                    marginTop: S._8,
+                  }}
+                >
+                  Black Tie · November · Melbourne
+                </Text>
+
+                <Pressable style={styles.galaBtn}>
+                  <Text style={styles.galaBtnText}>Register Interest</Text>
+                </Pressable>
+              </Pressable>
+            </MotiView>
+          )}
+
+          {/* Regular events */}
+          {isLoading ? (
+            <View style={styles.emptyBox}>
+              <Text style={{ ...T.body, color: C.textTertiary }}>Loading events...</Text>
+            </View>
+          ) : !events?.length && !(mode === 'vibes' && gala) ? (
+            <View style={styles.emptyBox}>
+              <Text style={{ ...T.body, color: C.textTertiary }}>
+                No upcoming {MODE_CONFIG[mode].label.toLowerCase()} events.
+              </Text>
+            </View>
+          ) : (
+            events?.map((event: any, i: number) => (
+              <MotiView
+                key={event.id}
+                from={{ opacity: 0, translateY: 16 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 400, delay: i * 80 }}
+              >
+                {mode === 'dinners' ? (
+                  /* Dinner layout — date block + info */
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.dinnerCard,
+                      pressed && styles.cardPressed,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      rsvpMutation.mutate(event.id);
+                    }}
+                    accessibilityLabel={event.title}
+                  >
+                    <View style={styles.dateBlock}>
+                      <Text style={{ ...T.stat, color: C.textPrimary }}>
+                        {formatDay(event.starts_at)}
+                      </Text>
+                      <Text style={{ ...T.label, fontSize: 11, color: C.brass }}>
+                        {formatMonth(event.starts_at)}
+                      </Text>
+                    </View>
+                    <View style={styles.dinnerInfo}>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            ...T.cardTitleSm,
+                            color: C.textPrimary,
+                            marginBottom: S._4,
+                          }}
+                        >
+                          {event.title}
+                        </Text>
+                        <Text
+                          style={{
+                            ...T.bodyItalic,
+                            fontSize: 13,
+                            color: C.textSecondary,
+                          }}
+                        >
+                          {event.venue_name || 'TBA'} ·{' '}
+                          {event.capacity
+                            ? `${event.capacity} seats`
+                            : 'Open'}
+                        </Text>
+                      </View>
+                      {event.min_tier && event.min_tier !== 'member' && (
+                        <View style={styles.eventTierPill}>
+                          <Text style={{ ...T.meta, color: C.textSecondary }}>
+                            {TIER_DISPLAY_NAMES[event.min_tier]}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </Pressable>
-                ))
-              ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No tickets yet</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Upcoming Events */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>UPCOMING EVENTS</Text>
-              {upcomingEvents.length > 0 ? (
-                <View style={styles.eventsList}>
-                  {upcomingEvents.map((event) => (
-                    <View key={event.id} style={styles.eventItem}>
-                      <View style={styles.eventInfo}>
-                        <Text style={styles.eventName}>{event.title}</Text>
-                        {event.minTier && (
-                          <Text style={styles.tierBadge}>
-                            {TIER_DISPLAY_NAMES[event.minTier as keyof typeof TIER_DISPLAY_NAMES]}+
-                          </Text>
-                        )}
-                      </View>
-                      <Text style={styles.eventDays}>
-                        {calculateDaysAway(event.eventDate)} days
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyText}>No upcoming events</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Invite Only */}
-            {hasInvites && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>INVITE ONLY</Text>
-                <View style={styles.eventsList}>
-                  {inviteOnlyEvents.map((event) => (
-                    <View key={event.id} style={styles.eventItem}>
-                      <View style={styles.eventInfo}>
-                        <Text style={styles.eventName}>{event.title}</Text>
-                        <View style={styles.invitedBadge}>
-                          <Text style={styles.invitedText}>INVITED</Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Past Events */}
-            {pastEvents.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>PAST EVENTS</Text>
-                <View style={styles.eventsList}>
-                  {pastEvents.map((event) => (
-                    <View key={event.id} style={styles.pastEventItem}>
-                      <Text style={styles.pastEventName}>{event.title}</Text>
-                      <Text style={styles.pastEventDate}>
-                        {formatDate(event.eventDate)}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-          </>
-        )}
+                ) : mode === 'talks' ? (
+                  /* Talks layout — date label + title + speaker */
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.talkCard,
+                      pressed && styles.cardPressed,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      rsvpMutation.mutate(event.id);
+                    }}
+                    accessibilityLabel={event.title}
+                  >
+                    <Text style={{ ...T.label, color: C.olive, marginBottom: S._8 }}>
+                      {formatFullDate(event.starts_at)}
+                    </Text>
+                    <Text
+                      style={{
+                        ...T.cardTitle,
+                        color: C.textPrimary,
+                        marginBottom: S._4,
+                      }}
+                    >
+                      {event.title}
+                    </Text>
+                    <Text style={{ ...T.bodyItalic, color: C.textSecondary }}>
+                      {event.description}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  /* Vibes layout — simple cards */
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.vibesCard,
+                      pressed && styles.cardPressed,
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      rsvpMutation.mutate(event.id);
+                    }}
+                    accessibilityLabel={event.title}
+                  >
+                    <Text
+                      style={{
+                        ...T.cardTitle,
+                        fontSize: 15,
+                        color: C.textPrimary,
+                        marginBottom: S._4,
+                      }}
+                    >
+                      {event.title}
+                    </Text>
+                    <Text style={{ ...T.bodyItalic, color: C.textSecondary }}>
+                      {formatFullDate(event.starts_at)} · {event.venue_name || 'Culture'}
+                    </Text>
+                  </Pressable>
+                )}
+              </MotiView>
+            ))
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: C.cream },
+  scroll: { flex: 1 },
+  content: { paddingBottom: S._40 },
+
+  // Header
+  header: { paddingHorizontal: S._20, paddingTop: S._12 },
+  heroText: { ...T.hero, color: C.textPrimary },
+
+  // Mode tabs
+  modeTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: S._12,
+    paddingTop: S._16,
+    gap: S._8,
+  },
+  modeTab: {
     flex: 1,
-    backgroundColor: COLORS.cream,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: COLORS.charcoal,
-  },
-  loadingContainer: {
-    paddingVertical: 60,
+    paddingVertical: S._12,
+    minHeight: 48,
     alignItems: 'center',
+    borderTopWidth: 2,
+    borderTopColor: 'transparent',
   },
-  section: {
-    marginBottom: 24,
+  modeLabel: {
+    ...T.cardTitleSm,
+    fontSize: 13,
+    color: C.textTertiary,
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 2,
-    color: COLORS.warmGray,
-    marginBottom: 12,
+  modeLabelActive: { color: C.textPrimary },
+  modeSub: { ...T.label, fontSize: 11, marginTop: S._2 },
+
+  // Event list
+  eventList: {
+    paddingHorizontal: S._12,
+    paddingTop: S._12,
+    gap: S._8,
   },
-  ticketCard: {
-    backgroundColor: COLORS.charcoal,
-    padding: 24,
-    marginBottom: 12,
+
+  // Gala card
+  galaCard: {
+    backgroundColor: C.warmBlack,
+    padding: S._24,
+    paddingHorizontal: S._20,
+    minHeight: 232,
+    justifyContent: 'flex-end',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  ticketEventName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: COLORS.white,
-    letterSpacing: 2,
-    marginBottom: 4,
+  galaGradientLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: C.gold,
   },
-  ticketDetails: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 20,
+  galaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S._8,
+    paddingVertical: S._6,
+    paddingHorizontal: S._12,
+    backgroundColor: C.gold + '12',
+    borderWidth: 1,
+    borderColor: C.gold + '18',
+    borderRadius: R.lg,
+    alignSelf: 'flex-start',
+    marginBottom: S._16,
   },
-  qrPlaceholder: {
-    backgroundColor: COLORS.white,
-    padding: 24,
+  galaPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.goldOnDark,
+  },
+  galaTitle: {
+    ...T.title,
+    color: C.goldOnDark,
+  },
+  galaBtn: {
+    marginTop: S._16,
+    alignSelf: 'flex-start',
+    paddingVertical: S._16,
+    paddingHorizontal: S._24,
+    minHeight: 48,
+    borderRadius: R.pill,
+    backgroundColor: 'rgba(114,47,55,0.3)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(114,47,55,0.4)',
+  },
+  galaBtnText: { ...T.btn, color: C.lightPrimary },
+
+  // Dinner cards
+  dinnerCard: {
+    flexDirection: 'row',
+    backgroundColor: C.creamSoft,
+    overflow: 'hidden',
+  },
+  dateBlock: {
+    width: 64,
+    backgroundColor: C.gFaint,
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center',
-    width: 100,
-    height: 100,
+    borderRightWidth: 1,
+    borderRightColor: C.borderLight,
+    paddingVertical: S._12,
   },
-  qrText: {
-    fontSize: 10,
-    color: COLORS.warmGray,
-  },
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: COLORS.warmGray,
-    fontStyle: 'italic',
-  },
-  eventsList: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  eventItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  eventInfo: {
+  dinnerInfo: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  eventName: {
-    fontSize: 15,
-    color: COLORS.charcoal,
-  },
-  tierBadge: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.warmGray,
-    backgroundColor: COLORS.creamDark,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    letterSpacing: 1,
-  },
-  eventDays: {
-    fontSize: 12,
-    color: COLORS.warmGray,
-    fontVariant: ['tabular-nums'],
-  },
-  invitedBadge: {
-    backgroundColor: COLORS.burgundy,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  invitedText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: COLORS.white,
-    letterSpacing: 1,
-  },
-  pastEventItem: {
+    padding: S._16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  pastEventName: {
-    fontSize: 15,
-    color: COLORS.warmGray,
+  eventTierPill: {
+    paddingVertical: S._4,
+    paddingHorizontal: S._12,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: R.lg,
   },
-  pastEventDate: {
-    fontSize: 12,
-    color: COLORS.warmGray,
+
+  // Talk cards
+  talkCard: {
+    backgroundColor: C.creamSoft,
+    padding: S._20,
+    borderLeftWidth: 3,
+    borderLeftColor: C.olive + '30',
   },
+
+  // Vibes cards
+  vibesCard: {
+    backgroundColor: C.creamSoft,
+    padding: S._16,
+    borderLeftWidth: 3,
+    borderLeftColor: C.burgundy + '25',
+  },
+
+  cardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  emptyBox: { padding: S._24, alignItems: 'center' },
 });

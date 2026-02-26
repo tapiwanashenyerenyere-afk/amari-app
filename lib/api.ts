@@ -1,11 +1,91 @@
-// AMARI API Client
-// Connects to the backend API
+/**
+ * AMARI API Client
+ *
+ * Connects to the backend API with secure token handling.
+ */
 
-// Use your local machine's IP for mobile device testing, localhost for web
-const API_BASE_URL = 'http://localhost:3002/api/v1';
+import { config, DEMO_MODE } from './config';
 
-// For mobile device testing, replace with your computer's local IP:
-// const API_BASE_URL = 'http://192.168.x.x:3002/api/v1';
+// Mock data for demo mode
+const MOCK_MEMBER: MemberProfile = {
+  id: '1',
+  email: 'demo@amari.club',
+  name: 'Demo User',
+  avatarUrl: null,
+  tier: 'gold',
+  tierGrantedAt: '2024-01-01',
+  building: 'Building an amazing startup that connects communities',
+  interests: ['Tech', 'Design', 'Music', 'Art'],
+  openTo: ['Mentorship', 'Collaboration', 'Networking'],
+  visibility: { building: 'all', interests: 'all', openTo: 'connections' },
+  firstLogin: false,
+  createdAt: '2024-01-01',
+};
+
+const MOCK_EVENTS: Event[] = [
+  {
+    id: '1',
+    title: 'AMARI Gala 2026',
+    description: 'The premier celebration of Black excellence in Australia',
+    location: 'Melbourne Convention Centre',
+    eventDate: '2026-03-14T18:00:00Z',
+    minTier: null,
+    isInviteOnly: false,
+    imageUrl: null,
+    isInvited: true,
+  },
+  {
+    id: '2',
+    title: 'Networking Brunch',
+    description: 'Connect with fellow members over brunch',
+    location: 'Sydney Harbour',
+    eventDate: '2026-02-20T10:00:00Z',
+    minTier: 'silver',
+    isInviteOnly: false,
+    imageUrl: null,
+    isInvited: true,
+  },
+];
+
+const MOCK_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: '1',
+    title: 'Welcome to AMARI! Explore your new community.',
+    body: 'We are excited to have you join our exclusive network.',
+    linkUrl: null,
+    publishedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    title: 'Gala tickets now available for members',
+    body: null,
+    linkUrl: null,
+    publishedAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
+
+const MOCK_DISCOVER: DiscoverContent[] = [
+  {
+    id: '1',
+    type: 'spotlight',
+    title: 'Member Spotlight',
+    body: 'Building bridges across communities and creating opportunities for the next generation.',
+    imageUrl: null,
+    featuredMember: { ...MOCK_MEMBER, name: 'Sarah Johnson', tier: 'laureate' } as any,
+    isFeatured: true,
+    publishedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    type: 'news',
+    title: 'AMARI expands to Brisbane',
+    body: 'Exciting news for our Queensland members!',
+    imageUrl: null,
+    featuredMember: null,
+    isFeatured: false,
+    publishedAt: new Date().toISOString(),
+  },
+];
 
 export interface ValidateCodeResponse {
   valid: boolean;
@@ -81,6 +161,8 @@ export interface Connection {
     name: string;
     tier: string | null;
     avatarUrl: string | null;
+    building?: string | null;
+    interests?: string[];
   };
   connectedAt: string;
 }
@@ -129,29 +211,71 @@ class ApiClient {
   ): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
     };
+
+    // Safely merge custom headers if provided
+    if (options.headers) {
+      const customHeaders = options.headers as Record<string, string>;
+      Object.assign(headers, customHeaders);
+    }
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    const data = await response.json();
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Request failed');
+      clearTimeout(timeout);
+
+      // Check response status BEFORE parsing JSON
+      if (!response.ok) {
+        // Try to parse error response as JSON, fallback to status text
+        let errorMessage = `Request failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // Response wasn't JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse successful response
+      const data = await response.json();
+      return data;
+    } catch (error: any) {
+      clearTimeout(timeout);
+
+      // Handle abort/timeout
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your connection and try again.');
+      }
+
+      // Re-throw other errors
+      throw error;
     }
-
-    return data;
   }
 
   // Auth endpoints
   async validateCode(code: string): Promise<ValidateCodeResponse> {
+    // DEMO MODE: Accept any code
+    if (DEMO_MODE) {
+      return {
+        valid: true,
+        inviterName: 'AMARI Team',
+        tierGranted: 'gold',
+      };
+    }
     return this.request<ValidateCodeResponse>('/auth/validate-code', {
       method: 'POST',
       body: JSON.stringify({ code }),
@@ -164,6 +288,22 @@ class ApiClient {
     name: string;
     building?: string;
   }): Promise<RegisterResponse> {
+    // DEMO MODE: Return mock registration
+    if (DEMO_MODE) {
+      return {
+        member: {
+          id: '1',
+          email: data.email,
+          name: data.name,
+          tier: 'gold',
+          firstLogin: true,
+        },
+        session: {
+          token: 'demo-token-12345',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      };
+    }
     return this.request<RegisterResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -171,12 +311,19 @@ class ApiClient {
   }
 
   async logout(): Promise<void> {
+    if (DEMO_MODE) {
+      this.token = null;
+      return;
+    }
     await this.request('/auth/logout', { method: 'POST' });
     this.token = null;
   }
 
   // Member endpoints
   async getProfile(): Promise<MemberProfile> {
+    if (DEMO_MODE) {
+      return MOCK_MEMBER;
+    }
     return this.request<MemberProfile>('/members/me');
   }
 
@@ -194,21 +341,33 @@ class ApiClient {
 
   // Events endpoints
   async getEvents(): Promise<{ events: Event[] }> {
+    if (DEMO_MODE) {
+      return { events: MOCK_EVENTS };
+    }
     return this.request<{ events: Event[] }>('/events');
   }
 
   // Discover endpoints
   async getDiscover(): Promise<{ content: DiscoverContent[] }> {
+    if (DEMO_MODE) {
+      return { content: MOCK_DISCOVER };
+    }
     return this.request<{ content: DiscoverContent[] }>('/discover');
   }
 
   // Announcements endpoints
   async getAnnouncements(): Promise<{ announcements: Announcement[] }> {
+    if (DEMO_MODE) {
+      return { announcements: MOCK_ANNOUNCEMENTS };
+    }
     return this.request<{ announcements: Announcement[] }>('/announcements');
   }
 
   // Connections endpoints
   async getConnections(): Promise<{ connections: Connection[]; count: number }> {
+    if (DEMO_MODE) {
+      return { connections: [], count: 12 };
+    }
     return this.request<{ connections: Connection[]; count: number }>('/connections');
   }
 
@@ -234,5 +393,5 @@ class ApiClient {
   }
 }
 
-// Export singleton instance
-export const api = new ApiClient(API_BASE_URL);
+// Export singleton instance using configured API URL
+export const api = new ApiClient(config.apiBaseUrl);
