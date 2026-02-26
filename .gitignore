@@ -44,3 +44,16 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Supabase local
+supabase/.temp/
+
+# Claude
+.claude/
+
+# Large media
+assets/videos/
+
+# Session files
+CLAUDE-RESUME-PROMPT.txt
+SESSION-RESUME.md
