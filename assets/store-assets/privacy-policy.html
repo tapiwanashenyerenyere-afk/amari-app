@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — AMARI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════
+     AMARI Privacy Policy — Brand Tokens
+     Syne headings · EB Garamond body · DM Sans labels
+     Cream #f8f6f3 · Charcoal #1a1a1a · Burgundy #722F37
+     ═══════════════════════════════════════════════════════════ */
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;
+    background-color: #f8f6f3;
+    color: #1a1a1a;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ─── Layout ─── */
+
+  .page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    padding: 48px 24px 0;
+    max-width: 780px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .header-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #722F37;
+    margin-bottom: 48px;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 6vw, 48px);
+    line-height: 1.15;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .header-subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #6b665f;
+    letter-spacing: 0.01em;
+  }
+
+  .header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(26, 26, 26, 0.08);
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-label {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a857e;
+  }
+
+  .meta-value {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    color: #4a4541;
+  }
+
+  .divider {
+    max-width: 780px;
+    margin: 48px auto;
+    width: calc(100% - 48px);
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(26, 26, 26, 0.1) 20%,
+      rgba(26, 26, 26, 0.1) 80%,
+      transparent 100%
+    );
+  }
+
+  /* ─── Content ─── */
+
+  .content {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    width: 100%;
+  }
+
+  .intro-text {
+    font-size: 18px;
+    line-height: 1.8;
+    color: #4a4541;
+    margin-bottom: 48px;
+  }
+
+  /* ─── Table of Contents ─── */
+
+  .toc {
+    background: rgba(26, 26, 26, 0.025);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 56px;
+  }
+
+  .toc-title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8a857e;
+    margin-bottom: 16px;
+  }
+
+  .toc-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toc-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .toc-number {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    color: #722F37;
+    min-width: 20px;
+  }
+
+  .toc-link {
+    font-family: 'EB Garamond', serif;
+    font-size: 16px;
+    color: #4a4541;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .toc-link:hover {
+    color: #722F37;
+  }
+
+  /* ─── Sections ─── */
+
+  .section {
+    margin-bottom: 56px;
+  }
+
+  .section-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 64px;
+    line-height: 1;
+    color: rgba(26, 26, 26, 0.04);
+    letter-spacing: -0.04em;
+    margin-bottom: -12px;
+    user-select: none;
+  }
+
+  .section-heading {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: clamp(22px, 4vw, 28px);
+    line-height: 1.25;
+    color: #1a1a1a;
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  .section p,
+  .section li {
+    font-size: 17px;
+    line-height: 1.8;
+    color: #4a4541;
+  }
+
+  .section p {
+    margin-bottom: 16px;
+  }
+
+  .section p:last-child {
+    margin-bottom: 0;
+  }
+
+  .section ul {
+    list-style: none;
+    margin: 16px 0;
+    padding: 0;
+  }
+
+  .section ul li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 10px;
+  }
+
+  .section ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 11px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #722F37;
+    opacity: 0.5;
+  }
+
+  .section strong {
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  /* ─── Subsection ─── */
+
+  .subsection {
+    margin-top: 28px;
+    margin-bottom: 24px;
+  }
+
+  .subsection-heading {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #722F37;
+    margin-bottom: 12px;
+  }
+
+  /* ─── Highlight Box ─── */
+
+  .highlight-box {
+    background: rgba(114, 47, 55, 0.04);
+    border-left: 3px solid #722F37;
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .highlight-box p {
+    font-size: 16px;
+    color: #4a4541;
+    margin-bottom: 0;
+  }
+
+  /* ─── Contact Card ─── */
+
+  .contact-card {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 40px;
+    margin-top: 24px;
+  }
+
+  .contact-card-label {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #9e9990;
+    margin-bottom: 16px;
+  }
+
+  .contact-card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: #f8f6f3;
+    margin-bottom: 24px;
+  }
+
+  .contact-row {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .contact-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .contact-item-label {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7a756e;
+  }
+
+  .contact-item-value {
+    font-family: 'EB Garamond', serif;
+    font-size: 17px;
+    color: #c5c0b8;
+  }
+
+  .contact-item-value a {
+    color: #d4b876;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .contact-item-value a:hover {
+    color: #f8f6f3;
+  }
+
+  /* ─── Footer ─── */
+
+  .footer {
+    margin-top: auto;
+    padding: 32px 24px;
+    text-align: center;
+    border-top: 1px solid rgba(26, 26, 26, 0.06);
+  }
+
+  .footer-text {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    color: #8a857e;
+  }
+
+  .footer-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: #722F37;
+  }
+
+  /* ─── Responsive ─── */
+
+  @media (max-width: 600px) {
+    .header {
+      padding: 32px 20px 0;
+    }
+
+    .content {
+      padding: 0 20px 64px;
+    }
+
+    .toc {
+      padding: 24px;
+    }
+
+    .section-number {
+      font-size: 48px;
+    }
+
+    .contact-card {
+      padding: 28px 24px;
+    }
+
+    .header-meta {
+      gap: 16px;
+    }
+
+    .divider {
+      margin: 36px auto;
+      width: calc(100% - 40px);
+    }
+
+    .section {
+      margin-bottom: 44px;
+    }
+  }
+
+  @media (min-width: 601px) {
+    .contact-row {
+      flex-direction: row;
+      gap: 48px;
+    }
+  }
+
+  /* ─── Print ─── */
+
+  @media print {
+    body {
+      font-size: 12pt;
+      color: #000;
+      background: #fff;
+    }
+
+    .toc-link {
+      color: #000;
+    }
+
+    .section-number {
+      display: none;
+    }
+
+    .contact-card {
+      background: #f0f0f0;
+      color: #000;
+    }
+
+    .contact-card-title,
+    .contact-item-value,
+    .contact-item-value a {
+      color: #000;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="header-brand">AMARI</div>
+    <h1 class="header-title">Privacy Policy</h1>
+    <p class="header-subtitle">How we collect, use, and protect your information within the AMARI community.</p>
+
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="meta-label">Effective Date</span>
+        <span class="meta-value">February 27, 2026</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Last Updated</span>
+        <span class="meta-value">February 27, 2026</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Jurisdiction</span>
+        <span class="meta-value">Sydney, Australia</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <!-- ═══ CONTENT ═══ -->
+  <main class="content">
+
+    <p class="intro-text">
+      AMARI Group ("we", "us", "our") operates the AMARI mobile application (the "App"), an invite-only community platform serving Australia's Black Diaspora. We are committed to protecting your personal information in accordance with the <em>Australian Privacy Act 1988</em> (Cth) and the Australian Privacy Principles (APPs). This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it.
+    </p>
+
+    <!-- ─── Table of Contents ─── -->
+    <nav class="toc" aria-label="Table of contents">
+      <div class="toc-title">Contents</div>
+      <ol class="toc-list">
+        <li>
+          <span class="toc-number">01</span>
+          <a class="toc-link" href="#information-we-collect">Information We Collect</a>
+        </li>
+        <li>
+          <span class="toc-number">02</span>
+          <a class="toc-link" href="#how-we-use">How We Use Your Information</a>
+        </li>
+        <li>
+          <span class="toc-number">03</span>
+          <a class="toc-link" href="#data-storage">Data Storage &amp; Security</a>
+        </li>
+        <li>
+          <span class="toc-number">04</span>
+          <a class="toc-link" href="#third-party">Third-Party Services</a>
+        </li>
+        <li>
+          <span class="toc-number">05</span>
+          <a class="toc-link" href="#your-rights">Your Rights</a>
+        </li>
+        <li>
+          <span class="toc-number">06</span>
+          <a class="toc-link" href="#data-retention">Data Retention</a>
+        </li>
+        <li>
+          <span class="toc-number">07</span>
+          <a class="toc-link" href="#children">Children's Privacy</a>
+        </li>
+        <li>
+          <span class="toc-number">08</span>
+          <a class="toc-link" href="#changes">Changes to This Policy</a>
+        </li>
+        <li>
+          <span class="toc-number">09</span>
+          <a class="toc-link" href="#contact">Contact Us</a>
+        </li>
+      </ol>
+    </nav>
+
+    <!-- ═══ 1. INFORMATION WE COLLECT ═══ -->
+    <section class="section" id="information-we-collect">
+      <div class="section-number">01</div>
+      <h2 class="section-heading">Information We Collect</h2>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Information You Provide</h3>
+        <p>When you join the AMARI community and create an account, we collect the following personal information directly from you:</p>
+        <ul>
+          <li><strong>Full name</strong> — used to identify you within the community</li>
+          <li><strong>Email address</strong> — used for authentication, account recovery, and essential communications</li>
+          <li><strong>Password</strong> — encrypted and used solely for account authentication (we never store plaintext passwords)</li>
+        </ul>
+        <p>We do not collect sensitive personal information such as gender, racial or ethnic origin beyond what is implicit in the community's purpose, religious beliefs, political opinions, health information, or biometric data.</p>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Information Generated Through Use</h3>
+        <p>As you interact with the App, we automatically collect certain information related to your membership and engagement:</p>
+        <ul>
+          <li><strong>Membership tier</strong> — your current tier level (Member, Silver, Platinum, or Laureate) within the AMARI community</li>
+          <li><strong>Event attendance</strong> — records of community events you register for or attend</li>
+          <li><strong>Engagement metrics</strong> — basic usage data such as feature interactions and session activity, used to improve the App experience</li>
+          <li><strong>Push notification tokens</strong> — device tokens required to deliver push notifications you have opted into</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Information We Do Not Collect</h3>
+        <p>We want to be transparent about what we do not collect:</p>
+        <ul>
+          <li>We do not collect precise geolocation data</li>
+          <li>We do not access your device contacts, camera, or microphone</li>
+          <li>We do not collect gender or demographic fields beyond your name and email</li>
+          <li>We do not use third-party analytics or advertising SDKs</li>
+          <li>We do not collect financial or payment information within the App</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══ 2. HOW WE USE YOUR INFORMATION ═══ -->
+    <section class="section" id="how-we-use">
+      <div class="section-number">02</div>
+      <h2 class="section-heading">How We Use Your Information</h2>
+
+      <p>We use the personal information we collect for the following purposes:</p>
+      <ul>
+        <li><strong>Account management</strong> — to create and maintain your AMARI account, authenticate your identity, and manage your membership tier</li>
+        <li><strong>Community experience</strong> — to provide you with access to community features, content, and events appropriate to your membership level</li>
+        <li><strong>Communications</strong> — to send you essential account-related notifications, event updates, and community announcements via push notifications and email</li>
+        <li><strong>App improvement</strong> — to analyse aggregate engagement metrics and improve the App's features, performance, and user experience</li>
+        <li><strong>Event coordination</strong> — to manage event registrations, attendance tracking, and related community logistics</li>
+        <li><strong>Security</strong> — to detect, prevent, and address technical issues, abuse, or unauthorised access to the App</li>
+      </ul>
+
+      <div class="highlight-box">
+        <p><strong>We do not sell, rent, or trade your personal information to any third party.</strong> Your data is used exclusively to operate and improve the AMARI community experience.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 3. DATA STORAGE & SECURITY ═══ -->
+    <section class="section" id="data-storage">
+      <div class="section-number">03</div>
+      <h2 class="section-heading">Data Storage &amp; Security</h2>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Cloud Infrastructure</h3>
+        <p>Your data is stored and processed using <strong>Supabase</strong>, a secure, open-source backend platform. Supabase provides:</p>
+        <ul>
+          <li>Encrypted database storage with PostgreSQL</li>
+          <li>Row-Level Security (RLS) policies ensuring users can only access their own data</li>
+          <li>Secure authentication via Supabase Auth with bcrypt password hashing</li>
+          <li>Data transmission encrypted via TLS/SSL</li>
+          <li>Infrastructure hosted on enterprise-grade cloud providers</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Local Device Storage</h3>
+        <p>On your device, we use <strong>expo-secure-store</strong> to store sensitive data such as authentication tokens. Expo SecureStore uses:</p>
+        <ul>
+          <li>iOS Keychain Services on Apple devices</li>
+          <li>Android Keystore system on Android devices</li>
+        </ul>
+        <p>These are hardware-backed security modules provided by the operating system, ensuring your local data is encrypted and protected from other applications.</p>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Security Measures</h3>
+        <p>We implement a multi-layer security architecture:</p>
+        <ul>
+          <li><strong>Database layer</strong> — PostgreSQL Row-Level Security policies restrict data access at the database level</li>
+          <li><strong>Application layer</strong> — server-side Postgres functions enforce business logic and tier-based access controls</li>
+          <li><strong>Interface layer</strong> — client-side tier gating ensures users only see features and content appropriate to their membership level</li>
+        </ul>
+        <p>While we take reasonable steps to protect your information using industry-standard security practices, no method of electronic storage or transmission is 100% secure. We cannot guarantee absolute security but are committed to promptly addressing any security incidents.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 4. THIRD-PARTY SERVICES ═══ -->
+    <section class="section" id="third-party">
+      <div class="section-number">04</div>
+      <h2 class="section-heading">Third-Party Services</h2>
+
+      <p>The App integrates with a limited number of third-party services, each serving a specific function:</p>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Supabase</h3>
+        <p>Provides our backend infrastructure including authentication, database, and real-time features. Supabase processes your account data (name, email, encrypted password) and stores your membership and engagement data. Supabase's privacy practices are governed by their own privacy policy.</p>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Expo / Expo Push Notifications</h3>
+        <p>We use Expo's push notification service to deliver notifications to your device. Expo receives your device's push notification token to route notifications. Expo does not receive your personal information such as your name or email address.</p>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-heading">Google Play Store</h3>
+        <p>The App is distributed through the Google Play Store (package name: <strong>com.amari.mobile</strong>). Your interaction with the Google Play Store is governed by Google's Privacy Policy. We receive limited analytics from Google Play Console regarding app installs and crashes, which do not contain personally identifiable information.</p>
+      </div>
+
+      <p>We do not integrate any third-party advertising networks, social media tracking pixels, or analytics platforms (such as Google Analytics, Facebook SDK, or similar services).</p>
+    </section>
+
+    <!-- ═══ 5. YOUR RIGHTS ═══ -->
+    <section class="section" id="your-rights">
+      <div class="section-number">05</div>
+      <h2 class="section-heading">Your Rights</h2>
+
+      <p>Under the <em>Australian Privacy Act 1988</em> and the Australian Privacy Principles, you have the following rights regarding your personal information:</p>
+
+      <ul>
+        <li><strong>Right to access</strong> — you may request a copy of the personal information we hold about you</li>
+        <li><strong>Right to correction</strong> — you may request that we correct any inaccurate, incomplete, or out-of-date personal information</li>
+        <li><strong>Right to deletion</strong> — you may request that we delete your account and associated personal data, subject to any legal obligations we may have to retain certain records</li>
+        <li><strong>Right to complain</strong> — if you believe we have breached the Australian Privacy Principles, you may lodge a complaint with us or with the Office of the Australian Information Commissioner (OAIC)</li>
+        <li><strong>Right to opt out of communications</strong> — you may disable push notifications through your device settings at any time</li>
+      </ul>
+
+      <p>To exercise any of these rights, please contact us at the email address provided in the Contact section below. We will respond to your request within 30 days.</p>
+
+      <div class="highlight-box">
+        <p>If you are not satisfied with our response to a privacy complaint, you may escalate the matter to the <strong>Office of the Australian Information Commissioner (OAIC)</strong> at <em>www.oaic.gov.au</em> or by calling 1300 363 992.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 6. DATA RETENTION ═══ -->
+    <section class="section" id="data-retention">
+      <div class="section-number">06</div>
+      <h2 class="section-heading">Data Retention</h2>
+
+      <p>We retain your personal information for as long as your AMARI account remains active and you continue to be a member of the community.</p>
+
+      <p>If you request account deletion, we will:</p>
+      <ul>
+        <li>Delete your personal profile data (name, email) within 30 days of the request</li>
+        <li>Remove your authentication credentials immediately</li>
+        <li>Anonymise or delete engagement metrics and event attendance records within 30 days</li>
+        <li>Retain anonymised, aggregate data that cannot be linked back to you for the purpose of improving the App</li>
+      </ul>
+
+      <p>We may retain certain information where required by law or for legitimate business purposes such as resolving disputes or enforcing our community guidelines.</p>
+    </section>
+
+    <!-- ═══ 7. CHILDREN'S PRIVACY ═══ -->
+    <section class="section" id="children">
+      <div class="section-number">07</div>
+      <h2 class="section-heading">Children's Privacy</h2>
+
+      <p>The AMARI App is not directed at children under the age of 16. We do not knowingly collect personal information from children under 16. If you are a parent or guardian and believe your child has provided us with personal information without your consent, please contact us immediately at the email address below, and we will take steps to delete that information.</p>
+
+      <p>As an invite-only community platform, all members must be approved before gaining access, which provides an additional safeguard against underage use.</p>
+    </section>
+
+    <!-- ═══ 8. CHANGES ═══ -->
+    <section class="section" id="changes">
+      <div class="section-number">08</div>
+      <h2 class="section-heading">Changes to This Policy</h2>
+
+      <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. When we make material changes, we will:</p>
+
+      <ul>
+        <li>Update the "Last Updated" date at the top of this policy</li>
+        <li>Notify you via push notification or email where the changes are significant</li>
+        <li>Where required by law, seek your consent before applying changes that materially affect how your personal information is used</li>
+      </ul>
+
+      <p>We encourage you to review this Privacy Policy periodically to stay informed about how we protect your information.</p>
+    </section>
+
+    <!-- ═══ 9. CONTACT ═══ -->
+    <section class="section" id="contact">
+      <div class="section-number">09</div>
+      <h2 class="section-heading">Contact Us</h2>
+
+      <p>If you have any questions, concerns, or requests regarding this Privacy Policy or our data practices, please do not hesitate to reach out.</p>
+
+      <div class="contact-card">
+        <div class="contact-card-label">Get in Touch</div>
+        <div class="contact-card-title">AMARI Group</div>
+        <div class="contact-row">
+          <div class="contact-item">
+            <span class="contact-item-label">Email</span>
+            <span class="contact-item-value"><a href="mailto:amari@amarigroupau.com">amari@amarigroupau.com</a></span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-item-label">Location</span>
+            <span class="contact-item-value">Sydney, Australia</span>
+          </div>
+          <div class="contact-item">
+            <span class="contact-item-label">Privacy Regulator</span>
+            <span class="contact-item-value"><a href="https://www.oaic.gov.au" target="_blank" rel="noopener noreferrer">oaic.gov.au</a></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="footer">
+    <p class="footer-text">&copy; 2026 <span class="footer-brand">AMARI Group</span>. All rights reserved.</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

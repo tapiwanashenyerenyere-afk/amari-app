@@ -15,6 +15,7 @@ import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import { C, T, S, R } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
+import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 export default function InviteScreen() {
   const router = useRouter();
@@ -34,17 +35,19 @@ export default function InviteScreen() {
     setIsValidating(true);
 
     try {
-      const { data, error: dbError } = await supabase
-        .from('invitation_codes')
-        .select('id, code, tier_grant, expires_at, used_by')
-        .eq('code', code.toUpperCase())
-        .is('used_by', null)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
+      const { data, error: rpcError } = await supabase.rpc('validate_invitation_code', {
+        p_code: code.toUpperCase(),
+      });
 
-      if (dbError) throw dbError;
+      if (rpcError) throw rpcError;
 
-      if (!data) {
+      if (data?.error === 'rate_limited') {
+        setError('Too many attempts. Please wait an hour.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      if (!data?.valid) {
         setError('Invalid or expired invitation code');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
@@ -56,7 +59,7 @@ export default function InviteScreen() {
       setTimeout(() => {
         router.push({
           pathname: '/(auth)/register',
-          params: { code: data.code, tier: data.tier_grant },
+          params: { code: code.toUpperCase() },
         });
       }, 800);
     } catch (err) {
@@ -70,6 +73,39 @@ export default function InviteScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Aurora background blobs */}
+      <View style={styles.auroraContainer}>
+        <View
+          style={[
+            styles.auroraBlob,
+            {
+              backgroundColor: 'rgba(201,169,98,0.12)',
+              top: '15%',
+              left: -60,
+              width: 280,
+              height: 280,
+              borderRadius: 140,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.auroraBlob,
+            {
+              backgroundColor: 'rgba(114,47,55,0.08)',
+              bottom: '20%',
+              right: -40,
+              width: 260,
+              height: 260,
+              borderRadius: 130,
+            },
+          ]}
+        />
+      </View>
+
+      {/* Grain texture */}
+      <GrainOverlay opacity={0.03} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -80,7 +116,7 @@ export default function InviteScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Go back"
         >
-          <Text style={{ ...T.nav, color: C.textSecondary }}>← Back</Text>
+          <Text style={{ ...T.nav, color: C.lightTertiary }}>← Back</Text>
         </Pressable>
 
         <View style={styles.content}>
@@ -98,7 +134,7 @@ export default function InviteScreen() {
           <MotiView
             from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 200 }}
+            transition={{ type: 'timing', duration: 600, delay: 250 }}
             style={styles.inputSection}
           >
             <TextInput
@@ -115,7 +151,7 @@ export default function InviteScreen() {
                 setIsValid(false);
               }}
               placeholder="AMARI-XXXX-XXX"
-              placeholderTextColor={C.textGhost}
+              placeholderTextColor={C.lightFaint}
               autoCapitalize="characters"
               autoCorrect={false}
               autoFocus
@@ -129,7 +165,12 @@ export default function InviteScreen() {
           </MotiView>
         </View>
 
-        <View style={styles.bottom}>
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600, delay: 400 }}
+          style={styles.bottom}
+        >
           <Pressable
             style={({ pressed }) => [
               styles.validateBtn,
@@ -144,19 +185,24 @@ export default function InviteScreen() {
               <ActivityIndicator size="small" color={C.lightPrimary} />
             ) : (
               <Text style={styles.validateBtnText}>
-                {isValid ? 'Verified ✓' : 'Validate'}
+                {isValid ? 'Verified' : 'Validate'}
               </Text>
             )}
           </Pressable>
-        </View>
+        </MotiView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: C.charcoal },
   keyboardView: { flex: 1 },
+
+  // Aurora
+  auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  auroraBlob: { position: 'absolute', opacity: 1 },
+
   backBtn: {
     paddingHorizontal: S._20,
     paddingVertical: S._12,
@@ -169,22 +215,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: S._24,
   },
-  title: { ...T.title, color: C.textPrimary, marginBottom: S._8 },
-  subtitle: { ...T.body, color: C.textSecondary },
+  title: { ...T.title, color: C.lightPrimary, marginBottom: S._8 },
+  subtitle: { ...T.body, color: C.lightSecondary },
   inputSection: { marginTop: S._32 },
   input: {
     fontFamily: 'DMSans-SemiBold',
     fontSize: 18,
     fontWeight: '600',
     letterSpacing: 4,
-    color: C.textPrimary,
-    backgroundColor: C.creamSoft,
+    color: C.lightPrimary,
+    backgroundColor: 'rgba(248,246,243,0.06)',
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: 'rgba(248,246,243,0.12)',
+    borderRadius: 14,
     padding: S._20,
     textAlign: 'center',
   },
-  inputValid: { borderColor: C.olive },
+  inputValid: { borderColor: C.oliveOnDark },
   inputError: { borderColor: C.error },
   errorText: {
     ...T.meta,
@@ -194,7 +241,7 @@ const styles = StyleSheet.create({
   },
   successText: {
     ...T.meta,
-    color: C.olive,
+    color: C.oliveOnDark,
     marginTop: S._8,
     textAlign: 'center',
   },
@@ -203,7 +250,10 @@ const styles = StyleSheet.create({
     paddingBottom: S._32,
   },
   validateBtn: {
-    backgroundColor: C.charcoal,
+    backgroundColor: 'rgba(114,47,55,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(196,112,122,0.2)',
+    borderRadius: 14,
     paddingVertical: S._16,
     minHeight: 48,
     alignItems: 'center',

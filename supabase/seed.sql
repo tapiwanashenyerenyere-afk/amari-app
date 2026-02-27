@@ -2,12 +2,12 @@
 -- TEST DATA FOR DEVELOPMENT
 -- ============================================================
 
--- Test invitation codes
-INSERT INTO invitation_codes (code, tier_grant, expires_at) VALUES
-  ('AMARI-TEST-001', 'member', now() + interval '30 days'),
-  ('AMARI-SILVER-001', 'silver', now() + interval '30 days'),
-  ('AMARI-PLAT-001', 'platinum', now() + interval '30 days'),
-  ('AMARI-LAUR-001', 'laureate', now() + interval '30 days');
+-- Test invitation codes (matching production format)
+INSERT INTO invitation_codes (code, tier_grant, grants_admin, expires_at) VALUES
+  ('AMARI-ADM-999', 'laureate', true, now() + interval '1 year'),
+  ('AMARI-BRD-999', 'platinum', false, now() + interval '1 year'),
+  ('AMARI-ELT-999', 'silver', false, now() + interval '1 year'),
+  ('AMARI-MBR-999', 'member', false, now() + interval '1 year');
 
 -- Test pulse edition
 INSERT INTO pulse_editions (publish_date, status, headline, summary_content, full_content, stats) VALUES

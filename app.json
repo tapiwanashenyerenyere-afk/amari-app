@@ -4,14 +4,14 @@
     "slug": "amari-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/icon-1024.png",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "amari",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon-512.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f8f6f3"
+      "backgroundColor": "#1a1a1a"
     },
     "ios": {
       "supportsTablet": true,
@@ -19,8 +19,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f8f6f3"
+        "foregroundImage": "./assets/adaptive-icon-fg.png",
+        "backgroundColor": "#1a1a1a"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

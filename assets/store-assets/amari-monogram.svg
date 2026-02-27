@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- AMARI Group — HD Vector Monogram (dark on light) -->
+  <rect x="16" y="16" width="288" height="288" rx="16" fill="#f8f6f3"/>
+  <g transform="translate(160,160)">
+    <polygon points="-100,120 -20,-120 5,-120 -50,120" fill="#1a1a1a"/>
+    <polygon points="0,-120 25,-120 110,120 65,120" fill="#1a1a1a"/>
+    <line x1="-80" y1="-105" x2="95" y2="115" stroke="#f8f6f3" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+</svg>

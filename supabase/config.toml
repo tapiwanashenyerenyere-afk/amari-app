@@ -18,6 +18,10 @@ enabled = true
 site_url = "amari://auth-callback"
 additional_redirect_urls = ["amari://auth-callback"]
 
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
 [auth.external.apple]
 enabled = true
 client_id = "env(SUPABASE_AUTH_APPLE_CLIENT_ID)"

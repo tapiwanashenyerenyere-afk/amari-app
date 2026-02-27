@@ -15,12 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import { C, T, S, R } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { code, tier } = useLocalSearchParams<{ code: string; tier: string }>();
+  const { code } = useLocalSearchParams<{ code: string }>();
 
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -30,6 +31,13 @@ export default function RegisterScreen() {
   const [authMethod, setAuthMethod] = useState<'email' | 'google' | 'apple' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
+  const storePendingCode = async () => {
+    await SecureStore.setItemAsync(
+      'pending_invitation_code',
+      JSON.stringify({ code, fullName, city, industry }),
+    );
+  };
+
   const handleEmailAuth = async () => {
     if (!email || !fullName) {
       Alert.alert('Required', 'Please enter your name and email.');
@@ -38,6 +46,7 @@ export default function RegisterScreen() {
 
     setIsSubmitting(true);
     try {
+      await storePendingCode();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -46,7 +55,6 @@ export default function RegisterScreen() {
             city,
             industry,
             invitation_code: code,
-            tier_grant: tier || 'member',
           },
         },
       });
@@ -67,6 +75,7 @@ export default function RegisterScreen() {
   const handleGoogleAuth = async () => {
     setIsSubmitting(true);
     try {
+      await storePendingCode();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -84,6 +93,7 @@ export default function RegisterScreen() {
   const handleAppleAuth = async () => {
     setIsSubmitting(true);
     try {
+      await storePendingCode();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -146,7 +156,7 @@ export default function RegisterScreen() {
             >
               <Text style={styles.title}>Join the Convergence</Text>
               <Text style={styles.subtitle}>
-                Code: {code} · {tier ? `${tier.charAt(0).toUpperCase() + tier.slice(1)} tier` : 'Member tier'}
+                Code: {code}
               </Text>
             </MotiView>
 

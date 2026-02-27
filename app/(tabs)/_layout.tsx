@@ -6,24 +6,28 @@ import { useAuth } from '../../providers/AuthProvider';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
-  const { tier } = useAuth();
+  const { tier, isAdmin } = useAuth();
   const tierLevel = TIER_LEVELS[tier] || 1;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: C.textPrimary,
-        tabBarInactiveTintColor: C.textSecondary,
+        tabBarActiveTintColor: C.lightPrimary,
+        tabBarInactiveTintColor: C.lightTertiary,
         tabBarStyle: {
-          backgroundColor: C.cream,
-          borderTopColor: C.border,
-          borderTopWidth: 1,
+          backgroundColor: 'rgba(26,26,26,0.92)',
+          borderTopColor: 'rgba(255,255,255,0.06)',
+          borderTopWidth: StyleSheet.hairlineWidth,
           paddingTop: S._8,
           paddingBottom: Math.max(insets.bottom, S._20),
           height: 84 + Math.max(insets.bottom - 20, 0),
+          position: 'absolute',
           elevation: 0,
-          shadowOpacity: 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
         },
         tabBarLabelStyle: {
           fontFamily: 'DMSans-SemiBold',
@@ -81,6 +85,16 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'Admin',
+          tabBarIcon: ({ focused }) => (
+            <Text style={[styles.icon, focused && styles.iconActive]}>◉</Text>
+          ),
+          href: isAdmin ? undefined : null,
+        }}
+      />
       {/* Hide legacy screens from tab bar */}
       <Tabs.Screen name="discover" options={{ href: null }} />
       <Tabs.Screen name="network" options={{ href: null }} />
@@ -92,9 +106,9 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 16,
     lineHeight: 20,
-    color: C.textTertiary,
+    color: C.lightFaint,
   },
   iconActive: {
-    color: C.textPrimary,
+    color: C.lightPrimary,
   },
 });
