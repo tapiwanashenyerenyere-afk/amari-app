@@ -34,5 +34,28 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Android Keystore
+        if: github.event.inputs.profile == 'production'
+        run: |
+          # Decode the base64 keystore from secrets
+          echo "$KEYSTORE_BASE64" | base64 -d > amari-upload.jks
+
+          # Create credentials.json for EAS local credentials
+          cat > credentials.json <<CREDS
+          {
+            "android": {
+              "keystore": {
+                "keystorePath": "./amari-upload.jks",
+                "keystorePassword": "$KEYSTORE_PASSWORD",
+                "keyAlias": "amari-key",
+                "keyPassword": "$KEYSTORE_PASSWORD"
+              }
+            }
+          }
+          CREDS
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
       - name: Build
         run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
