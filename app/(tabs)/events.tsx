@@ -13,6 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { useEvents, useRsvpToEvent } from '../../queries/events';
+import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
+import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 type EventMode = 'vibes' | 'dinners' | 'talks';
 
@@ -55,6 +57,14 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Aurora background blobs */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.07)', top: -40, right: -60, width: 260, height: 260 }]} />
+        <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.05)', bottom: 100, left: -40, width: 220, height: 220 }]} />
+        <View style={[styles.blob, { backgroundColor: 'rgba(107,107,71,0.04)', top: '45%', left: '25%', width: 180, height: 180 }]} />
+      </View>
+      <GrainOverlay opacity={0.03} />
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -63,7 +73,7 @@ export default function EventsScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={C.textPrimary}
+            tintColor={C.lightPrimary}
           />
         }
       >
@@ -97,7 +107,7 @@ export default function EventsScreen() {
                 style={[
                   styles.modeTab,
                   active && {
-                    backgroundColor: cfg.color + '08',
+                    backgroundColor: cfg.color + '15',
                     borderTopColor: cfg.color,
                     borderTopWidth: 2,
                   },
@@ -116,7 +126,7 @@ export default function EventsScreen() {
                 <Text
                   style={[
                     styles.modeSub,
-                    active ? { color: cfg.color } : { color: C.textGhost },
+                    active ? { color: cfg.color } : { color: C.lightFaint },
                   ]}
                 >
                   {cfg.sub}
@@ -135,52 +145,54 @@ export default function EventsScreen() {
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 400 }}
             >
-              <Pressable
-                style={({ pressed }) => [
-                  styles.galaCard,
-                  pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  rsvpMutation.mutate(gala.id);
-                }}
-                accessibilityLabel="AMARI Gala 2026"
-              >
-                <View style={styles.galaGradientLine} />
-
-                {/* The Event badge */}
-                <View style={styles.galaBadge}>
-                  <View style={styles.galaPulseDot} />
-                  <Text style={{ ...T.label, color: C.goldOnDark }}>The Event</Text>
-                </View>
-
-                <Text style={{ ...T.title, color: C.lightPrimary }}>AMARI</Text>
-                <Text style={styles.galaTitle}>Gala 2026</Text>
-                <Text
-                  style={{
-                    ...T.bodyItalic,
-                    color: C.lightSecondary,
-                    marginTop: S._8,
+              <LiquidGlassCard variant="dark" noPadding>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.galaCard,
+                    pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    rsvpMutation.mutate(gala.id);
                   }}
+                  accessibilityLabel="AMARI Gala 2026"
                 >
-                  Black Tie · November · Melbourne
-                </Text>
+                  <View style={styles.galaGradientLine} />
 
-                <Pressable style={styles.galaBtn}>
-                  <Text style={styles.galaBtnText}>Register Interest</Text>
+                  {/* The Event badge */}
+                  <View style={styles.galaBadge}>
+                    <View style={styles.galaPulseDot} />
+                    <Text style={{ ...T.label, color: C.goldOnDark }}>The Event</Text>
+                  </View>
+
+                  <Text style={{ ...T.title, color: C.lightPrimary }}>AMARI</Text>
+                  <Text style={styles.galaTitle}>Gala 2026</Text>
+                  <Text
+                    style={{
+                      ...T.bodyItalic,
+                      color: C.lightSecondary,
+                      marginTop: S._8,
+                    }}
+                  >
+                    Black Tie · November · Melbourne
+                  </Text>
+
+                  <Pressable style={styles.galaBtn}>
+                    <Text style={styles.galaBtnText}>Register Interest</Text>
+                  </Pressable>
                 </Pressable>
-              </Pressable>
+              </LiquidGlassCard>
             </MotiView>
           )}
 
           {/* Regular events */}
           {isLoading ? (
             <View style={styles.emptyBox}>
-              <Text style={{ ...T.body, color: C.textTertiary }}>Loading events...</Text>
+              <Text style={{ ...T.body, color: C.lightTertiary }}>Loading events...</Text>
             </View>
           ) : !events?.length && !(mode === 'vibes' && gala) ? (
             <View style={styles.emptyBox}>
-              <Text style={{ ...T.body, color: C.textTertiary }}>
+              <Text style={{ ...T.body, color: C.lightTertiary }}>
                 No upcoming {MODE_CONFIG[mode].label.toLowerCase()} events.
               </Text>
             </View>
@@ -194,114 +206,120 @@ export default function EventsScreen() {
               >
                 {mode === 'dinners' ? (
                   /* Dinner layout — date block + info */
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.dinnerCard,
-                      pressed && styles.cardPressed,
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      rsvpMutation.mutate(event.id);
-                    }}
-                    accessibilityLabel={event.title}
-                  >
-                    <View style={styles.dateBlock}>
-                      <Text style={{ ...T.stat, color: C.textPrimary }}>
-                        {formatDay(event.starts_at)}
-                      </Text>
-                      <Text style={{ ...T.label, fontSize: 11, color: C.brass }}>
-                        {formatMonth(event.starts_at)}
-                      </Text>
-                    </View>
-                    <View style={styles.dinnerInfo}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            ...T.cardTitleSm,
-                            color: C.textPrimary,
-                            marginBottom: S._4,
-                          }}
-                        >
-                          {event.title}
+                  <LiquidGlassCard variant="dark" noPadding>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.dinnerCard,
+                        pressed && styles.cardPressed,
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        rsvpMutation.mutate(event.id);
+                      }}
+                      accessibilityLabel={event.title}
+                    >
+                      <View style={styles.dateBlock}>
+                        <Text style={{ ...T.stat, color: C.lightPrimary }}>
+                          {formatDay(event.starts_at)}
                         </Text>
-                        <Text
-                          style={{
-                            ...T.bodyItalic,
-                            fontSize: 13,
-                            color: C.textSecondary,
-                          }}
-                        >
-                          {event.venue_name || 'TBA'} ·{' '}
-                          {event.capacity
-                            ? `${event.capacity} seats`
-                            : 'Open'}
+                        <Text style={{ ...T.label, fontSize: 11, color: C.goldOnDark }}>
+                          {formatMonth(event.starts_at)}
                         </Text>
                       </View>
-                      {event.min_tier && event.min_tier !== 'member' && (
-                        <View style={styles.eventTierPill}>
-                          <Text style={{ ...T.meta, color: C.textSecondary }}>
-                            {TIER_DISPLAY_NAMES[event.min_tier]}
+                      <View style={styles.dinnerInfo}>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={{
+                              ...T.cardTitleSm,
+                              color: C.lightPrimary,
+                              marginBottom: S._4,
+                            }}
+                          >
+                            {event.title}
+                          </Text>
+                          <Text
+                            style={{
+                              ...T.bodyItalic,
+                              fontSize: 13,
+                              color: C.lightSecondary,
+                            }}
+                          >
+                            {event.venue_name || 'TBA'} ·{' '}
+                            {event.capacity
+                              ? `${event.capacity} seats`
+                              : 'Open'}
                           </Text>
                         </View>
-                      )}
-                    </View>
-                  </Pressable>
+                        {event.min_tier && event.min_tier !== 'member' && (
+                          <View style={styles.eventTierPill}>
+                            <Text style={{ ...T.meta, color: C.lightTertiary }}>
+                              {TIER_DISPLAY_NAMES[event.min_tier]}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </Pressable>
+                  </LiquidGlassCard>
                 ) : mode === 'talks' ? (
                   /* Talks layout — date label + title + speaker */
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.talkCard,
-                      pressed && styles.cardPressed,
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      rsvpMutation.mutate(event.id);
-                    }}
-                    accessibilityLabel={event.title}
-                  >
-                    <Text style={{ ...T.label, color: C.olive, marginBottom: S._8 }}>
-                      {formatFullDate(event.starts_at)}
-                    </Text>
-                    <Text
-                      style={{
-                        ...T.cardTitle,
-                        color: C.textPrimary,
-                        marginBottom: S._4,
+                  <LiquidGlassCard variant="dark" noPadding>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.talkCard,
+                        pressed && styles.cardPressed,
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        rsvpMutation.mutate(event.id);
                       }}
+                      accessibilityLabel={event.title}
                     >
-                      {event.title}
-                    </Text>
-                    <Text style={{ ...T.bodyItalic, color: C.textSecondary }}>
-                      {event.description}
-                    </Text>
-                  </Pressable>
+                      <Text style={{ ...T.label, color: C.oliveOnDark, marginBottom: S._8 }}>
+                        {formatFullDate(event.starts_at)}
+                      </Text>
+                      <Text
+                        style={{
+                          ...T.cardTitle,
+                          color: C.lightPrimary,
+                          marginBottom: S._4,
+                        }}
+                      >
+                        {event.title}
+                      </Text>
+                      <Text style={{ ...T.bodyItalic, color: C.lightSecondary }}>
+                        {event.description}
+                      </Text>
+                    </Pressable>
+                  </LiquidGlassCard>
                 ) : (
                   /* Vibes layout — simple cards */
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.vibesCard,
-                      pressed && styles.cardPressed,
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      rsvpMutation.mutate(event.id);
-                    }}
-                    accessibilityLabel={event.title}
-                  >
-                    <Text
-                      style={{
-                        ...T.cardTitle,
-                        fontSize: 15,
-                        color: C.textPrimary,
-                        marginBottom: S._4,
+                  <LiquidGlassCard variant="dark" noPadding>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.vibesCard,
+                        pressed && styles.cardPressed,
+                      ]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        rsvpMutation.mutate(event.id);
                       }}
+                      accessibilityLabel={event.title}
                     >
-                      {event.title}
-                    </Text>
-                    <Text style={{ ...T.bodyItalic, color: C.textSecondary }}>
-                      {formatFullDate(event.starts_at)} · {event.venue_name || 'Culture'}
-                    </Text>
-                  </Pressable>
+                      <Text
+                        style={{
+                          ...T.cardTitle,
+                          fontSize: 15,
+                          color: C.lightPrimary,
+                          marginBottom: S._4,
+                        }}
+                      >
+                        {event.title}
+                      </Text>
+                      <Text style={{ ...T.bodyItalic, color: C.lightSecondary }}>
+                        {formatFullDate(event.starts_at)} · {event.venue_name || 'Culture'}
+                      </Text>
+                    </Pressable>
+                  </LiquidGlassCard>
                 )}
               </MotiView>
             ))
@@ -313,13 +331,14 @@ export default function EventsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: C.charcoal },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 },
+  content: { paddingBottom: S._40 + 84 },
+  blob: { position: 'absolute', borderRadius: 999 },
 
   // Header
   header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  heroText: { ...T.hero, color: C.textPrimary },
+  heroText: { ...T.hero, color: C.lightPrimary },
 
   // Mode tabs
   modeTabs: {
@@ -339,9 +358,9 @@ const styles = StyleSheet.create({
   modeLabel: {
     ...T.cardTitleSm,
     fontSize: 13,
-    color: C.textTertiary,
+    color: C.lightTertiary,
   },
-  modeLabelActive: { color: C.textPrimary },
+  modeLabelActive: { color: C.lightPrimary },
   modeSub: { ...T.label, fontSize: 11, marginTop: S._2 },
 
   // Event list
@@ -353,7 +372,6 @@ const styles = StyleSheet.create({
 
   // Gala card
   galaCard: {
-    backgroundColor: C.warmBlack,
     padding: S._24,
     paddingHorizontal: S._20,
     minHeight: 232,
@@ -408,16 +426,15 @@ const styles = StyleSheet.create({
   // Dinner cards
   dinnerCard: {
     flexDirection: 'row',
-    backgroundColor: C.creamSoft,
     overflow: 'hidden',
   },
   dateBlock: {
     width: 64,
-    backgroundColor: C.gFaint,
+    backgroundColor: 'rgba(248,246,243,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: 1,
-    borderRightColor: C.borderLight,
+    borderRightColor: 'rgba(248,246,243,0.08)',
     paddingVertical: S._12,
   },
   dinnerInfo: {
@@ -431,13 +448,12 @@ const styles = StyleSheet.create({
     paddingVertical: S._4,
     paddingHorizontal: S._12,
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.darkBorder,
     borderRadius: R.lg,
   },
 
   // Talk cards
   talkCard: {
-    backgroundColor: C.creamSoft,
     padding: S._20,
     borderLeftWidth: 3,
     borderLeftColor: C.olive + '30',
@@ -445,7 +461,6 @@ const styles = StyleSheet.create({
 
   // Vibes cards
   vibesCard: {
-    backgroundColor: C.creamSoft,
     padding: S._16,
     borderLeftWidth: 3,
     borderLeftColor: C.burgundy + '25',

@@ -7,6 +7,8 @@ import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { useCorridorOpportunities, useExpressInterest } from '../../queries/corridor';
 import { TierGate } from '../../components/TierGate';
+import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
+import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 const FILTER_MAP: Record<string, string | undefined> = {
   All: undefined,
@@ -29,12 +31,6 @@ const TYPE_COLOR: Record<string, string> = {
   procurement: C.brass,
 };
 
-const TYPE_DARK: Record<string, boolean> = {
-  co_invest: true,
-  board: false,
-  speaking: false,
-  procurement: true,
-};
 
 export default function CorridorScreen() {
   const { tier } = useAuth();
@@ -46,6 +42,13 @@ export default function CorridorScreen() {
   return (
     <TierGate minTier="silver" >
       <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Aurora background blobs */}
+        <View style={StyleSheet.absoluteFill}>
+          <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.06)', top: -30, left: -50, width: 240, height: 240 }]} />
+          <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.05)', bottom: 80, right: -40, width: 200, height: 200 }]} />
+        </View>
+        <GrainOverlay opacity={0.03} />
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -54,7 +57,7 @@ export default function CorridorScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={C.textPrimary}
+              tintColor={C.lightPrimary}
             />
           }
         >
@@ -110,16 +113,19 @@ export default function CorridorScreen() {
           <View style={styles.oppList}>
             {isLoading ? (
               <View style={styles.emptyBox}>
-                <Text style={{ ...T.body, color: C.textTertiary }}>Loading opportunities...</Text>
+                <Text style={{ ...T.body, color: C.lightTertiary }}>Loading opportunities...</Text>
               </View>
             ) : !opportunities?.length ? (
               <View style={styles.emptyBox}>
-                <Text style={{ ...T.body, color: C.textTertiary }}>No opportunities in this category.</Text>
+                <Text style={{ ...T.body, color: C.lightTertiary }}>No opportunities in this category.</Text>
               </View>
             ) : (
               opportunities.map((opp: any, i: number) => {
-                const dark = TYPE_DARK[opp.type] ?? false;
                 const color = TYPE_COLOR[opp.type] || C.olive;
+                const colorOnDark = color === C.gold ? C.goldOnDark
+                  : color === C.burgundy ? C.burgundyOnDark
+                  : color === C.olive ? C.oliveOnDark
+                  : C.goldOnDark;
                 const isUrgent = opp.closing_date &&
                   new Date(opp.closing_date).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000;
 
@@ -130,77 +136,59 @@ export default function CorridorScreen() {
                     animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'timing', duration: 400, delay: 200 + i * 80 }}
                   >
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.oppCard,
-                        dark && styles.oppCardDark,
-                        { borderLeftColor: color + (dark ? '50' : '35') },
-                        pressed && styles.oppCardPressed,
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        expressInterest.mutate({ opportunityId: opp.id });
-                      }}
-                      accessibilityLabel={`${TYPE_DISPLAY[opp.type]}: ${opp.title}`}
-                    >
-                      {/* Urgent corner */}
-                      {isUrgent && <View style={styles.urgentCorner} />}
+                    <LiquidGlassCard variant="dark" noPadding>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.oppCard,
+                          { borderLeftColor: color + '40' },
+                          pressed && styles.oppCardPressed,
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          expressInterest.mutate({ opportunityId: opp.id });
+                        }}
+                        accessibilityLabel={`${TYPE_DISPLAY[opp.type]}: ${opp.title}`}
+                      >
+                        {/* Urgent corner */}
+                        {isUrgent && <View style={styles.urgentCorner} />}
 
-                      <View style={styles.oppHeader}>
-                        <View style={styles.oppTypeRow}>
-                          <Text
-                            style={{
-                              ...T.label,
-                              color: dark
-                                ? color === C.gold
-                                  ? C.goldOnDark
-                                  : C.burgundyOnDark
-                                : color,
-                            }}
-                          >
-                            {TYPE_DISPLAY[opp.type] || opp.type.toUpperCase()}
-                          </Text>
-                          {isUrgent && (
-                            <View style={styles.closingBadge}>
-                              <Text style={styles.closingText}>CLOSING</Text>
-                            </View>
-                          )}
+                        <View style={styles.oppHeader}>
+                          <View style={styles.oppTypeRow}>
+                            <Text style={{ ...T.label, color: colorOnDark }}>
+                              {TYPE_DISPLAY[opp.type] || opp.type.toUpperCase()}
+                            </Text>
+                            {isUrgent && (
+                              <View style={styles.closingBadge}>
+                                <Text style={styles.closingText}>CLOSING</Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={[styles.tierPill, { borderColor: C.darkBorder }]}>
+                            <Text style={{ ...T.meta, color: C.lightTertiary }}>
+                              {TIER_DISPLAY_NAMES[opp.min_tier] || 'All'}
+                            </Text>
+                          </View>
                         </View>
-                        <View
-                          style={[
-                            styles.tierPill,
-                            { borderColor: dark ? C.darkBorder : C.border },
-                          ]}
+
+                        <Text
+                          style={{
+                            ...T.cardTitle,
+                            color: C.lightPrimary,
+                            marginBottom: S._6,
+                          }}
                         >
-                          <Text
-                            style={{
-                              ...T.meta,
-                              color: dark ? C.lightTertiary : C.textSecondary,
-                            }}
-                          >
-                            {TIER_DISPLAY_NAMES[opp.min_tier] || 'All'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text
-                        style={{
-                          ...T.cardTitle,
-                          color: dark ? C.lightPrimary : C.textPrimary,
-                          marginBottom: S._6,
-                        }}
-                      >
-                        {opp.title}
-                      </Text>
-                      <Text
-                        style={{
-                          ...T.bodyItalic,
-                          color: dark ? C.lightSecondary : C.textSecondary,
-                        }}
-                      >
-                        {opp.description}
-                      </Text>
-                    </Pressable>
+                          {opp.title}
+                        </Text>
+                        <Text
+                          style={{
+                            ...T.bodyItalic,
+                            color: C.lightSecondary,
+                          }}
+                        >
+                          {opp.description}
+                        </Text>
+                      </Pressable>
+                    </LiquidGlassCard>
                   </MotiView>
                 );
               })
@@ -213,23 +201,24 @@ export default function CorridorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: C.charcoal },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 },
+  content: { paddingBottom: S._40 + 84 },
+  blob: { position: 'absolute', borderRadius: 999 },
 
   // Header
   header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  heroThe: { ...T.hero, color: C.textPrimary },
-  heroCorridor: { ...T.hero, color: C.textPrimary },
+  heroThe: { ...T.hero, color: C.lightPrimary },
+  heroCorridor: { ...T.hero, color: C.lightPrimary },
   taglineRow: { flexDirection: 'row', alignItems: 'center', gap: S._12, marginTop: S._8 },
   skewBar: {
     width: 32,
     height: 4,
-    backgroundColor: C.burgundy,
+    backgroundColor: C.burgundyOnDark,
     transform: [{ skewX: '-20deg' }],
     opacity: 0.5,
   },
-  tagline: { ...T.bodyItalic, color: C.textTertiary },
+  tagline: { ...T.bodyItalic, color: C.lightTertiary },
 
   // Filter pills
   filterRow: {
@@ -244,16 +233,16 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderRadius: R.pill,
     borderWidth: 1,
-    borderColor: C.borderLight,
+    borderColor: 'rgba(248,246,243,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterPillActive: {
-    backgroundColor: 'rgba(26,26,26,0.04)',
-    borderColor: C.border,
+    backgroundColor: 'rgba(248,246,243,0.08)',
+    borderColor: 'rgba(248,246,243,0.25)',
   },
-  filterText: { ...T.label, fontSize: 11, color: C.textTertiary },
-  filterTextActive: { color: C.textPrimary, fontWeight: '700' },
+  filterText: { ...T.label, fontSize: 11, color: C.lightTertiary },
+  filterTextActive: { color: C.lightPrimary, fontWeight: '700' },
 
   // Opportunity cards
   oppList: {
@@ -261,13 +250,11 @@ const styles = StyleSheet.create({
     gap: S._8,
   },
   oppCard: {
-    backgroundColor: C.creamSoft,
     borderLeftWidth: 3,
     padding: S._16,
     position: 'relative',
     overflow: 'hidden',
   },
-  oppCardDark: { backgroundColor: C.charcoal },
   oppCardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   urgentCorner: {
     position: 'absolute',

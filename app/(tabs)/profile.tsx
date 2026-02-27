@@ -21,6 +21,8 @@ import { useMyProfile, useUpdateProfile } from '../../queries/members';
 import { useTogglePresence, useActiveCityPresence } from '../../queries/cityPresence';
 import { useBarcode } from '../../hooks/useBarcode';
 import { supabase } from '../../lib/supabase';
+import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
+import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -78,14 +80,21 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={C.charcoal} />
+          <ActivityIndicator size="large" color={C.lightPrimary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.charcoal }} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Aurora background blobs */}
+      <View style={StyleSheet.absoluteFill}>
+        <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.08)', top: -30, right: -50, width: 260, height: 260 }]} />
+        <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.05)', bottom: 120, left: -40, width: 200, height: 200 }]} />
+      </View>
+      <GrainOverlay opacity={0.03} />
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -98,107 +107,113 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Dark Header */}
+        {/* Profile Header Card */}
         <MotiView
           from={{ opacity: 0, translateY: -12 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500 }}
-          style={styles.darkHeader}
+          style={styles.headerCardWrapper}
         >
-          <View style={styles.darkGradientLine} />
+          <LiquidGlassCard variant="dark" noPadding>
+            <View style={styles.darkHeader}>
+              <View style={styles.darkGradientLine} />
 
-          <View style={styles.profileRow}>
-            {/* Avatar */}
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-              {/* Tier badge on avatar */}
-              <View style={styles.tierBadge}>
-                <Text style={styles.tierBadgeText}>
-                  {TIER_DISPLAY_NAMES[tier]?.toUpperCase() || 'MEMBER'}
-                </Text>
+              <View style={styles.profileRow}>
+                {/* Avatar */}
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{initials}</Text>
+                  {/* Tier badge on avatar */}
+                  <View style={styles.tierBadge}>
+                    <Text style={styles.tierBadgeText}>
+                      {TIER_DISPLAY_NAMES[tier]?.toUpperCase() || 'MEMBER'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Name + title */}
+                <View>
+                  {profile?.full_name?.split(' ').map((part: string, i: number) => (
+                    <Text key={i} style={styles.nameText}>
+                      {part}
+                    </Text>
+                  ))}
+                  <Text style={styles.roleText}>
+                    {profile?.title || 'Member'}
+                    {profile?.company ? `, ${profile.company}` : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Barcode */}
+              <View style={styles.barcodeSection}>
+                <View style={styles.barcodeLines}>
+                  {Array.from({ length: 34 }).map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.barcodeLine,
+                        {
+                          width: [3, 1, 2, 1, 3, 2, 1, 1, 3, 1][i % 10],
+                          backgroundColor:
+                            i % 9 === 0 ? C.gold : C.lightPrimary,
+                          opacity: 0.2 + (i % 4) * 0.12,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.barcodeId}>{displayId}</Text>
               </View>
             </View>
-
-            {/* Name + title */}
-            <View>
-              {profile?.full_name?.split(' ').map((part: string, i: number) => (
-                <Text key={i} style={styles.nameText}>
-                  {part}
-                </Text>
-              ))}
-              <Text style={styles.roleText}>
-                {profile?.title || 'Member'}
-                {profile?.company ? `, ${profile.company}` : ''}
-              </Text>
-            </View>
-          </View>
-
-          {/* Barcode */}
-          <View style={styles.barcodeSection}>
-            <View style={styles.barcodeLines}>
-              {Array.from({ length: 34 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.barcodeLine,
-                    {
-                      width: [3, 1, 2, 1, 3, 2, 1, 1, 3, 1][i % 10],
-                      backgroundColor:
-                        i % 9 === 0 ? C.gold : C.lightPrimary,
-                      opacity: 0.2 + (i % 4) * 0.12,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={styles.barcodeId}>{displayId}</Text>
-          </View>
+          </LiquidGlassCard>
         </MotiView>
 
-        {/* Light content area */}
-        <View style={styles.lightContent}>
+        {/* Content area */}
+        <View style={styles.contentArea}>
           {/* City Presence Toggle */}
           <MotiView
             from={{ opacity: 0, translateY: 16 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 500, delay: 200 }}
           >
-            <Pressable
-              style={[
-                styles.presenceCard,
-                cityPresenceActive && styles.presenceCardActive,
-              ]}
-              onPress={handleTogglePresence}
-              accessibilityLabel={`City Presence: ${cityPresenceActive ? 'On' : 'Off'}`}
-              accessibilityRole="switch"
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.presenceTitle}>City Presence</Text>
-                <Text
-                  style={[
-                    styles.presenceDesc,
-                    cityPresenceActive && styles.presenceDescActive,
-                  ]}
-                >
-                  {cityPresenceActive
-                    ? `Visible in ${profile?.city || 'your city'} · ${nearbyCount} alchemists nearby`
-                    : 'Currently hidden'}
-                </Text>
-              </View>
-              <View
+            <LiquidGlassCard variant="dark" noPadding>
+              <Pressable
                 style={[
-                  styles.toggleTrack,
-                  cityPresenceActive && styles.toggleTrackActive,
+                  styles.presenceCard,
+                  cityPresenceActive && styles.presenceCardActive,
                 ]}
+                onPress={handleTogglePresence}
+                accessibilityLabel={`City Presence: ${cityPresenceActive ? 'On' : 'Off'}`}
+                accessibilityRole="switch"
               >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.presenceTitle}>City Presence</Text>
+                  <Text
+                    style={[
+                      styles.presenceDesc,
+                      cityPresenceActive && styles.presenceDescActive,
+                    ]}
+                  >
+                    {cityPresenceActive
+                      ? `Visible in ${profile?.city || 'your city'} · ${nearbyCount} alchemists nearby`
+                      : 'Currently hidden'}
+                  </Text>
+                </View>
                 <View
                   style={[
-                    styles.toggleThumb,
-                    cityPresenceActive && styles.toggleThumbActive,
+                    styles.toggleTrack,
+                    cityPresenceActive && styles.toggleTrackActive,
                   ]}
-                />
-              </View>
-            </Pressable>
+                >
+                  <View
+                    style={[
+                      styles.toggleThumb,
+                      cityPresenceActive && styles.toggleThumbActive,
+                    ]}
+                  />
+                </View>
+              </Pressable>
+            </LiquidGlassCard>
           </MotiView>
 
           {/* Info Cards */}
@@ -212,36 +227,37 @@ export default function ProfileScreen() {
               {
                 label: 'Building',
                 value: profile?.company || 'Tap to add',
-                color: C.burgundy,
+                color: C.burgundyOnDark,
               },
               {
                 label: 'Interested In',
                 value: profile?.industry || 'Tap to add',
-                color: C.brass,
+                color: C.goldOnDark,
               },
               {
                 label: 'Open To',
                 value: profile?.bio || 'Tap to add',
-                color: C.olive,
+                color: C.oliveOnDark,
               },
             ].map((card, i) => (
-              <Pressable
-                key={i}
-                style={({ pressed }) => [
-                  styles.infoCard,
-                  { borderLeftColor: card.color + '30' },
-                  pressed && styles.cardPressed,
-                ]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  // Future: open edit modal
-                }}
-              >
-                <Text style={{ ...T.label, color: card.color, marginBottom: S._8 }}>
-                  {card.label}
-                </Text>
-                <Text style={{ ...T.body, color: C.textSecondary }}>{card.value}</Text>
-              </Pressable>
+              <LiquidGlassCard key={i} variant="dark" noPadding>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.infoCard,
+                    { borderLeftColor: card.color + '30' },
+                    pressed && styles.cardPressed,
+                  ]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    // Future: open edit modal
+                  }}
+                >
+                  <Text style={{ ...T.label, color: card.color, marginBottom: S._8 }}>
+                    {card.label}
+                  </Text>
+                  <Text style={{ ...T.body, color: C.lightSecondary }}>{card.value}</Text>
+                </Pressable>
+              </LiquidGlassCard>
             ))}
           </MotiView>
 
@@ -257,7 +273,7 @@ export default function ProfileScreen() {
               accessibilityLabel="Sign out"
             >
               {isLoggingOut ? (
-                <ActivityIndicator size="small" color={C.burgundy} />
+                <ActivityIndicator size="small" color={C.burgundyOnDark} />
               ) : (
                 <Text style={styles.logoutText}>Sign Out</Text>
               )}
@@ -270,19 +286,25 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: C.charcoal },
   scroll: { flex: 1 },
-  content: {},
+  content: { paddingBottom: S._40 + 84 },
+  blob: { position: 'absolute', borderRadius: 999 },
   loadingBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: C.cream,
+    backgroundColor: C.charcoal,
+  },
+
+  // Header card wrapper
+  headerCardWrapper: {
+    paddingHorizontal: S._12,
+    paddingTop: S._12,
   },
 
   // Dark header
   darkHeader: {
-    backgroundColor: C.charcoal,
     paddingHorizontal: S._20,
     paddingTop: S._12,
     paddingBottom: S._24,
@@ -365,12 +387,10 @@ const styles = StyleSheet.create({
     color: C.lightSecondary,
   },
 
-  // Light content
-  lightContent: {
-    backgroundColor: C.cream,
+  // Content area (formerly light, now dark)
+  contentArea: {
     paddingHorizontal: S._12,
     paddingTop: S._12,
-    paddingBottom: S._40,
   },
 
   // Presence card
@@ -379,33 +399,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: S._16,
-    backgroundColor: C.creamSoft,
     borderLeftWidth: 3,
     borderLeftColor: 'transparent',
   },
   presenceCardActive: {
-    backgroundColor: C.gFaint,
     borderLeftColor: 'rgba(201,169,98,0.35)',
   },
   presenceTitle: {
     ...T.cardTitleSm,
     fontSize: 13,
-    color: C.textPrimary,
+    color: C.lightPrimary,
   },
   presenceDesc: {
     ...T.bodyItalic,
     fontSize: 13,
-    color: C.textTertiary,
+    color: C.lightTertiary,
     marginTop: S._2,
   },
-  presenceDescActive: { color: C.brass },
+  presenceDescActive: { color: C.goldOnDark },
 
   // Toggle
   toggleTrack: {
     width: 48,
     height: 28,
     padding: 3,
-    backgroundColor: C.border,
+    backgroundColor: 'rgba(248,246,243,0.12)',
     borderRadius: R.lg,
     justifyContent: 'center',
   },
@@ -413,7 +431,7 @@ const styles = StyleSheet.create({
   toggleThumb: {
     width: 22,
     height: 22,
-    backgroundColor: C.cream,
+    backgroundColor: C.lightPrimary,
     borderRadius: 11,
   },
   toggleThumbActive: { alignSelf: 'flex-end' },
@@ -424,7 +442,6 @@ const styles = StyleSheet.create({
     gap: S._8,
   },
   infoCard: {
-    backgroundColor: C.creamSoft,
     padding: S._16,
     borderLeftWidth: 3,
   },
@@ -433,9 +450,10 @@ const styles = StyleSheet.create({
   // Logout
   logoutSection: { marginTop: S._24 },
   logoutBtn: {
-    backgroundColor: C.creamSoft,
+    backgroundColor: 'rgba(114,47,55,0.15)',
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: 'rgba(114,47,55,0.3)',
+    borderRadius: 20,
     padding: S._16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -445,6 +463,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans-SemiBold',
     fontSize: 14,
     fontWeight: '500',
-    color: C.burgundy,
+    color: C.burgundyOnDark,
   },
 });

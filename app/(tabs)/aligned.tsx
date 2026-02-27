@@ -7,6 +7,8 @@ import { C, T, S, R } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { useCurrentMatch, useAlignedDecide } from '../../queries/aligned';
 import { TierGate } from '../../components/TierGate';
+import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
+import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -42,6 +44,13 @@ export default function AlignedScreen() {
   return (
     <TierGate minTier="platinum" >
       <SafeAreaView style={styles.container} edges={['top']}>
+        {/* Aurora background blobs */}
+        <View style={StyleSheet.absoluteFill}>
+          <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.07)', top: -30, left: -50, width: 240, height: 240 }]} />
+          <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.06)', bottom: 60, right: -40, width: 200, height: 200 }]} />
+        </View>
+        <GrainOverlay opacity={0.03} />
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -50,7 +59,7 @@ export default function AlignedScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={C.textPrimary}
+              tintColor={C.lightPrimary}
             />
           }
         >
@@ -75,6 +84,7 @@ export default function AlignedScreen() {
             transition={{ type: 'timing', duration: 600, delay: 150 }}
             style={styles.mainCard}
           >
+            <LiquidGlassCard variant="dark" noPadding>
             {/* Portrait Zone */}
             <View style={styles.portraitZone}>
               <View style={styles.portraitGradientLine} />
@@ -225,6 +235,7 @@ export default function AlignedScreen() {
                 )}
               </View>
             </View>
+            </LiquidGlassCard>
           </MotiView>
         </ScrollView>
       </SafeAreaView>
@@ -233,29 +244,28 @@ export default function AlignedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: C.charcoal },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 },
+  content: { paddingBottom: S._40 + 84 },
+  blob: { position: 'absolute', borderRadius: 999 },
 
   // Header
   header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  heroText: { ...T.hero, color: C.textPrimary },
+  heroText: { ...T.hero, color: C.lightPrimary },
   taglineRow: { flexDirection: 'row', alignItems: 'center', gap: S._12, marginTop: S._8 },
   skewBar: {
     width: 32,
     height: 4,
-    backgroundColor: C.gold,
+    backgroundColor: C.goldOnDark,
     transform: [{ skewX: '-20deg' }],
     opacity: 0.5,
   },
-  tagline: { ...T.bodyItalic, color: C.textTertiary },
+  tagline: { ...T.bodyItalic, color: C.lightTertiary },
 
   // Main card
   mainCard: {
     marginHorizontal: S._12,
     marginTop: S._20,
-    overflow: 'hidden',
-    borderRadius: R.sm,
   },
 
   // Portrait zone
