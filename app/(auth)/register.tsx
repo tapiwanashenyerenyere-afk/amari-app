@@ -18,6 +18,7 @@ import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import { C, T, S, R } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
+import { signInWithGoogle } from '../../lib/googleAuth';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function RegisterScreen() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
+          emailRedirectTo: 'amari://auth-callback',
           data: {
             full_name: fullName,
             city,
@@ -76,13 +78,7 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       await storePendingCode();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'amari://auth-callback',
-        },
-      });
-      if (error) throw error;
+      await signInWithGoogle();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Google sign-in failed.');
     } finally {

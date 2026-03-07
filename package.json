@@ -13,6 +13,7 @@
     "@expo-google-fonts/eb-garamond": "^0.4.2",
     "@expo-google-fonts/syne": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "^16.1.2",
     "@supabase/supabase-js": "^2.49.0",
     "@tanstack/react-query": "^5.90.20",
     "expo": "~54.0.33",
