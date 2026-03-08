@@ -225,17 +225,21 @@ export default function RootLayout() {
       const refreshToken = params.get('refresh_token');
 
       if (accessToken && refreshToken) {
-        await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+        try {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+        } catch (err) {
+          console.error('Deep link session error:', err);
+        }
       }
     };
 
     // Handle URL that opened the app
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink({ url });
-    });
+    }).catch((err) => console.error('Initial URL error:', err));
 
     // Handle URLs while app is running
     const subscription = Linking.addEventListener('url', handleDeepLink);

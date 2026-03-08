@@ -167,17 +167,6 @@ export default function RegisterScreen() {
                 <Pressable
                   style={({ pressed }) => [
                     styles.methodBtn,
-                    styles.methodBtnDark,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                  onPress={handleAppleAuth}
-                >
-                  <Text style={styles.methodBtnTextLight}>Continue with Apple</Text>
-                </Pressable>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.methodBtn,
                     pressed && { opacity: 0.85 },
                   ]}
                   onPress={handleGoogleAuth}

@@ -65,11 +65,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (!state.user || state.isLoading || redeemingRef.current) return;
 
     const redeemPendingCode = async () => {
+      redeemingRef.current = true;
       try {
         const pending = await SecureStore.getItemAsync('pending_invitation_code');
-        if (!pending) return;
-
-        redeemingRef.current = true;
+        if (!pending) { redeemingRef.current = false; return; }
         const { code, fullName, city, industry } = JSON.parse(pending);
         if (!code) return;
 
