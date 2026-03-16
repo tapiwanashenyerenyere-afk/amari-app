@@ -406,8 +406,8 @@ const stepStyles = StyleSheet.create({
   },
   forAlchemists: {
     fontFamily: typography.mono.regular,
-    fontSize: 10,
-    color: colors.sand,
+    fontSize: 11,
+    color: colors.sandOnDark,
     letterSpacing: 4,
     textAlign: 'center',
   },
@@ -423,7 +423,7 @@ const stepStyles = StyleSheet.create({
   manifestoSub: {
     fontFamily: typography.body.regular,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.45)',
     lineHeight: 24,
     marginTop: 18,
     textAlign: 'left',
@@ -455,7 +455,7 @@ const stepStyles = StyleSheet.create({
   featureLetter: {
     fontFamily: typography.serif.medium,
     fontSize: 17,
-    color: colors.sand,
+    color: colors.sandOnDark,
     fontWeight: '500',
   },
   featureName: {
@@ -467,7 +467,7 @@ const stepStyles = StyleSheet.create({
   featureDesc: {
     fontFamily: typography.body.regular,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.25)',
+    color: 'rgba(255,255,255,0.4)',
     marginTop: 2,
     lineHeight: 17,
   },
@@ -482,7 +482,7 @@ const stepStyles = StyleSheet.create({
   inviteSub: {
     fontFamily: typography.body.regular,
     fontSize: 13,
-    color: 'rgba(255,255,255,0.25)',
+    color: 'rgba(255,255,255,0.45)',
     marginBottom: 28,
   },
   codeRow: {

@@ -28,7 +28,7 @@ export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarPro
   );
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) }]} accessibilityRole="tablist">
       {visibleRoutes.map((route: any) => {
         const tabConfig = TAB_CONFIG.find((tab) => tab.name === route.name);
         if (!tabConfig) return null;
@@ -52,7 +52,15 @@ export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarPro
         };
 
         return (
-          <Pressable key={route.key} onPress={onPress} style={styles.tab}>
+          <Pressable
+            key={route.key}
+            onPress={onPress}
+            style={styles.tab}
+            accessibilityRole="tab"
+            accessibilityLabel={label}
+            accessibilityState={{ selected: isFocused }}
+            accessibilityHint={`Navigate to ${label} tab`}
+          >
             {isFocused && <View style={styles.activeDot} />}
             <Icon color={color} size={18} />
             <Text style={[styles.label, { color }]}>{label}</Text>
@@ -93,7 +101,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: typography.geo.medium,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '500',
     letterSpacing: 0.5,
   },

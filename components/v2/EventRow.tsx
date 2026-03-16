@@ -15,7 +15,7 @@ interface EventRowProps {
 
 export function EventRow({ day, month, title, meta, tier, dimDate, onPress }: EventRowProps) {
   return (
-    <WhiteCard onPress={onPress}>
+    <WhiteCard onPress={onPress} accessibilityLabel={`${title}, ${month} ${day}. ${meta}`} accessibilityHint="Tap to view event details">
       <View style={styles.row}>
         <View style={styles.dateBlock}>
           <Text style={[styles.day, dimDate && styles.dayDim]}>{day}</Text>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   },
   month: {
     fontFamily: typography.mono.regular,
-    fontSize: 8,
+    fontSize: 9,
     color: colors.sand,
     letterSpacing: 1,
     marginTop: 2,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   tierBadge: {
     fontFamily: typography.mono.regular,
-    fontSize: 8,
+    fontSize: 9,
     color: colors.sand,
     backgroundColor: colors.sandLight,
     paddingVertical: 3,

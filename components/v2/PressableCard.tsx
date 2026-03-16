@@ -20,6 +20,8 @@ interface PressableCardProps {
   style?: ViewStyle;
   dark?: boolean;
   borderRadius?: number;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export function PressableCard({
@@ -28,6 +30,8 @@ export function PressableCard({
   style,
   dark = false,
   borderRadius = radius.md,
+  accessibilityLabel,
+  accessibilityHint,
 }: PressableCardProps) {
   const pressed = useSharedValue(0);
 
@@ -56,6 +60,9 @@ export function PressableCard({
       onPressOut={() => {
         pressed.value = withSpring(0, SPRING_CONFIG);
       }}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       style={[
         {
           backgroundColor: dark ? colors.black : colors.white,

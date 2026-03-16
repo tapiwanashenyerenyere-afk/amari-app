@@ -48,9 +48,9 @@ const styles = StyleSheet.create({
   },
   id: {
     fontFamily: typography.mono.regular,
-    fontSize: 8,
+    fontSize: 9,
     letterSpacing: 3,
-    color: '#D0D0D0',
+    color: colors.grayLight,
     textAlign: 'center',
   },
 });

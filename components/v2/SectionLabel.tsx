@@ -7,7 +7,7 @@ interface SectionLabelProps {
 }
 
 export function SectionLabel({ children }: SectionLabelProps) {
-  return <Text style={styles.label}>{children}</Text>;
+  return <Text style={styles.label} accessibilityRole="header">{children}</Text>;
 }
 
 const styles = StyleSheet.create({

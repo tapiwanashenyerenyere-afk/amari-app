@@ -19,7 +19,7 @@ export function InfoRow({ label, value, rightElement = 'chevron', isLast }: Info
       </View>
       {rightElement === 'chevron' && <ChevronRight color="#DDDDDD" />}
       {rightElement === 'toggle' && (
-        <View style={styles.toggle}>
+        <View style={styles.toggle} accessibilityRole="switch" accessibilityLabel={`${label} toggle`} accessibilityState={{ checked: true }}>
           <View style={styles.toggleThumb} />
         </View>
       )}
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: typography.geo.medium,
-    fontSize: 9,
+    fontSize: 10,
     color: colors.sand,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
   toggle: {
-    width: 40,
-    height: 24,
-    borderRadius: 12,
+    width: 48,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.sand,
     padding: 2,
     flexDirection: 'row',

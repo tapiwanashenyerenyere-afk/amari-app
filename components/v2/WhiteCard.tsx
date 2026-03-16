@@ -15,9 +15,11 @@ interface WhiteCardProps {
   onPress?: () => void;
   style?: ViewStyle;
   static?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
-export function WhiteCard({ children, onPress, style, static: isStatic }: WhiteCardProps) {
+export function WhiteCard({ children, onPress, style, static: isStatic, accessibilityLabel, accessibilityHint }: WhiteCardProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -48,6 +50,9 @@ export function WhiteCard({ children, onPress, style, static: isStatic }: WhiteC
       onPressOut={handlePressOut}
       style={[styles.card, animatedStyle, style]}
       disabled={isStatic && !onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
       {children}
     </AnimatedPressable>

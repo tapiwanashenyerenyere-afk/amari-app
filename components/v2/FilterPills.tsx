@@ -22,6 +22,9 @@ export function FilterPills({ options, selected, onSelect }: FilterPillsProps) {
               onSelect(option);
             }}
             style={[styles.pill, active && styles.pillActive]}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by ${option}`}
+            accessibilityState={{ selected: active }}
           >
             <Text style={[styles.label, active && styles.labelActive]}>
               {option}
@@ -40,8 +43,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   pill: {
-    paddingVertical: 5,
+    paddingVertical: 8,
     paddingHorizontal: 14,
+    minHeight: 36,
+    justifyContent: 'center' as const,
     borderRadius: radius.xl,
     backgroundColor: colors.ghost,
     borderWidth: 1,

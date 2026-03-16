@@ -76,7 +76,7 @@ export default function PulseScreen() {
           {/* Greeting */}
           <View>
             <Text style={styles.date}>{formatDate()}</Text>
-            <Text style={styles.greeting}>{getGreeting()}, {firstName}</Text>
+            <Text style={styles.greeting} accessibilityRole="header">{getGreeting()}, {firstName}</Text>
             <Badge>{tierLabel}</Badge>
           </View>
 
@@ -168,26 +168,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: 88 },
-  date: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sand, letterSpacing: 1.5, marginBottom: 3 },
+  date: { fontFamily: typography.mono.regular, fontSize: 11, color: colors.sand, letterSpacing: 1.5, marginBottom: 3 },
   greeting: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, lineHeight: 30, letterSpacing: -0.3 },
   rule: { height: 1, backgroundColor: colors.rule, marginVertical: 14 },
   pulseIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   pulseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.sand },
-  pulseLabel: { fontFamily: typography.mono.regular, fontSize: 9, color: colors.sand, letterSpacing: 1.5 },
+  pulseLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 1.5 },
   pulseHeadline: { fontFamily: typography.serif.medium, fontSize: 21, fontWeight: '500', color: colors.white, lineHeight: 26, marginBottom: 8, letterSpacing: -0.3 },
-  pulseDesc: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 19, marginBottom: 12 },
+  pulseDesc: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 19, marginBottom: 12 },
   pulseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pulseRead: { fontFamily: typography.mono.regular, fontSize: 9, color: 'rgba(255,255,255,0.15)' },
-  pulseLink: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.sand },
+  pulseRead: { fontFamily: typography.mono.regular, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
+  pulseLink: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.sandOnDark },
   featuredInner: { backgroundColor: colors.black, borderRadius: radius.md, padding: 18 },
-  featuredLabel: { fontFamily: typography.mono.regular, fontSize: 9, color: colors.sand, letterSpacing: 2, marginBottom: 8 },
+  featuredLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 2, marginBottom: 8 },
   featuredTitle: { fontFamily: typography.serif.medium, fontSize: 19, fontWeight: '500', color: colors.white, marginBottom: 4, letterSpacing: -0.3 },
-  featuredMeta: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.35)' },
+  featuredMeta: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   featuredFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-  featuredLink: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sand },
+  featuredLink: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sandOnDark },
   profileNudge: { padding: 14, paddingHorizontal: 16 },
   profileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   profilePercent: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.black },
   profileEdit: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sand },
-  profileHint: { fontFamily: typography.body.regular, fontSize: 11, fontStyle: 'italic', color: '#BBB', marginTop: 6 },
+  profileHint: { fontFamily: typography.body.regular, fontSize: 11, fontStyle: 'italic', color: colors.gray, marginTop: 6 },
 });

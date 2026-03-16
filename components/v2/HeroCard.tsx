@@ -15,9 +15,10 @@ interface HeroCardProps {
   children: React.ReactNode;
   onPress?: () => void;
   style?: ViewStyle;
+  accessibilityLabel?: string;
 }
 
-export function HeroCard({ children, onPress, style }: HeroCardProps) {
+export function HeroCard({ children, onPress, style, accessibilityLabel }: HeroCardProps) {
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -39,6 +40,8 @@ export function HeroCard({ children, onPress, style }: HeroCardProps) {
         scale.value = withSpring(1, { damping: 15, stiffness: 300 });
       }}
       style={[styles.card, animatedStyle, style]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
       {/* Ambient gradient overlay */}
       <View style={styles.ambient}>

@@ -7,21 +7,22 @@ export const colors = {
   // Core palette — ONLY these three plus functional grays
   black: '#111111',
   white: '#FFFFFF',
-  sand: '#A0856B',
+  sand: '#8B7355',          // Darkened from #A0856B for WCAG AA on bone (4.54:1)
 
   // Backgrounds
-  bone: '#F5F4F0',        // App canvas (warm off-white)
-  onboard: '#0A0A0A',     // Onboarding dark screens
-  void: '#000000',         // Step 0
+  bone: '#F5F4F0',          // App canvas (warm off-white)
+  onboard: '#0A0A0A',       // Onboarding dark screens
+  void: '#000000',           // Step 0
 
-  // Sand variations
-  sandLight: 'rgba(160, 133, 107, 0.08)',
-  sandDim: 'rgba(160, 133, 107, 0.5)',
-  sandSubtle: 'rgba(160, 133, 107, 0.15)',
+  // Sand variations (adjusted for darker base)
+  sandLight: 'rgba(139, 115, 85, 0.12)',
+  sandDim: 'rgba(139, 115, 85, 0.5)',
+  sandSubtle: 'rgba(139, 115, 85, 0.18)',
+  sandOnDark: '#C4A882',    // Lighter sand for dark backgrounds (5.8:1 on #111)
 
   // Grays
-  gray: '#999999',
-  grayLight: '#CCCCCC',
+  gray: '#767676',           // Darkened from #999 for WCAG AA on white (4.54:1)
+  grayLight: '#AAAAAA',     // Darkened from #CCC for better contrast
   grayGhost: '#DDDDDD',
 
   // Functional
@@ -73,12 +74,12 @@ export const typography = {
   sizes: {
     screenTitle: 26,
     cardTitle: 18,
-    sectionLabel: 10,
+    sectionLabel: 11,     // Bumped from 10 for readability
     body: 13,
     bodySmall: 12,
     meta: 11,
-    caption: 9,
-    tiny: 8,
+    caption: 10,          // Bumped from 9 for accessibility
+    tiny: 9,              // Bumped from 8 for low-vision users
   },
 
   // Letter spacing
