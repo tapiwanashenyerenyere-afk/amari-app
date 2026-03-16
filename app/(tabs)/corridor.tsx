@@ -1,303 +1,142 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
-import { useAuth } from '../../providers/AuthProvider';
-import { useCorridorOpportunities, useExpressInterest } from '../../queries/corridor';
-import { TierGate } from '../../components/TierGate';
-import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
-import { GrainOverlay } from '../../components/ui/GrainOverlay';
+import { MotiView } from 'moti';
+import { useCorridorOpportunities } from '../../queries/corridor';
+import { colors, typography, spacing, radius } from '../../lib/theme';
+import {
+  WhiteCard,
+  SectionLabel,
+  Tag,
+  KeyholeSmall,
+  MicIcon,
+  MentorIcon,
+  VennIcon,
+  StaggerReveal,
+} from '../../components/v2';
 
-const FILTER_MAP: Record<string, string | undefined> = {
-  All: undefined,
-  'Co-Invest': 'co_invest',
-  Boards: 'board',
-  Speaking: 'speaking',
-};
+const MORE_OPPS = [
+  { icon: 'mic', title: 'Speaking Slot — Tech Summit', meta: 'Silver+ · 12 days left' },
+  { icon: 'mentor', title: 'Mentorship — First-Gen Founders', meta: 'All members · Ongoing' },
+  { icon: 'venn', title: 'Co-Founder Match — EdTech', meta: 'Platinum+ · 3 days left' },
+];
 
-const TYPE_DISPLAY: Record<string, string> = {
-  co_invest: 'CO-INVEST',
-  board: 'BOARD SEAT',
-  speaking: 'KEYNOTE',
-  procurement: 'PROCUREMENT',
-};
-
-const TYPE_COLOR: Record<string, string> = {
-  co_invest: C.gold,
-  board: C.burgundy,
-  speaking: C.olive,
-  procurement: C.brass,
-};
-
+function OpportunityIcon({ type }: { type: string }) {
+  const iconColor = '#999';
+  switch (type) {
+    case 'mic': return <MicIcon color={iconColor} size={12} />;
+    case 'mentor': return <MentorIcon color={iconColor} size={12} />;
+    case 'venn': return <VennIcon color={iconColor} size={12} />;
+    default: return <KeyholeSmall color={iconColor} size={12} />;
+  }
+}
 
 export default function CorridorScreen() {
-  const { tier } = useAuth();
-  const [filter, setFilter] = useState('All');
-  const filterType = FILTER_MAP[filter];
-  const { data: opportunities, isLoading, refetch, isRefetching } = useCorridorOpportunities(filterType);
-  const expressInterest = useExpressInterest();
+  const insets = useSafeAreaInsets();
+  const { data: opportunities } = useCorridorOpportunities();
 
   return (
-    <TierGate minTier="silver" >
-      <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Aurora background blobs */}
-        <View style={StyleSheet.absoluteFill}>
-          <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.06)', top: -30, left: -50, width: 240, height: 240 }]} />
-          <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.05)', bottom: 80, right: -40, width: 200, height: 200 }]} />
-        </View>
-        <GrainOverlay opacity={0.03} />
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={C.lightPrimary}
-            />
-          }
-        >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <StaggerReveal delay={50}>
           {/* Header */}
-          <MotiView
-            from={{ opacity: 0, translateY: -12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 500 }}
-            style={styles.header}
-          >
-            <Text style={styles.heroThe}>The</Text>
-            <Text style={styles.heroCorridor}>Corridor</Text>
-            <View style={styles.taglineRow}>
-              <View style={styles.skewBar} />
-              <Text style={styles.tagline}>Where real deals happen</Text>
-            </View>
-          </MotiView>
-
-          {/* Filter Pills */}
-          <MotiView
-            from={{ opacity: 0, translateY: 8 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 400, delay: 100 }}
-            style={styles.filterRow}
-          >
-            {Object.keys(FILTER_MAP).map((f) => {
-              const active = filter === f;
-              return (
-                <Pressable
-                  key={f}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setFilter(f);
-                  }}
-                  style={[styles.filterPill, active && styles.filterPillActive]}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                >
-                  <Text
-                    style={[
-                      styles.filterText,
-                      active && styles.filterTextActive,
-                    ]}
-                  >
-                    {f}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </MotiView>
-
-          {/* Opportunities */}
-          <View style={styles.oppList}>
-            {isLoading ? (
-              <View style={styles.emptyBox}>
-                <Text style={{ ...T.body, color: C.lightTertiary }}>Loading opportunities...</Text>
-              </View>
-            ) : !opportunities?.length ? (
-              <View style={styles.emptyBox}>
-                <Text style={{ ...T.body, color: C.lightTertiary }}>No opportunities in this category.</Text>
-              </View>
-            ) : (
-              opportunities.map((opp: any, i: number) => {
-                const color = TYPE_COLOR[opp.type] || C.olive;
-                const colorOnDark = color === C.gold ? C.goldOnDark
-                  : color === C.burgundy ? C.burgundyOnDark
-                  : color === C.olive ? C.oliveOnDark
-                  : C.goldOnDark;
-                const isUrgent = opp.closing_date &&
-                  new Date(opp.closing_date).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000;
-
-                return (
-                  <MotiView
-                    key={opp.id}
-                    from={{ opacity: 0, translateY: 16 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    transition={{ type: 'timing', duration: 400, delay: 200 + i * 80 }}
-                  >
-                    <LiquidGlassCard variant="dark" noPadding>
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.oppCard,
-                          { borderLeftColor: color + '40' },
-                          pressed && styles.oppCardPressed,
-                        ]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          expressInterest.mutate({ opportunityId: opp.id });
-                        }}
-                        accessibilityLabel={`${TYPE_DISPLAY[opp.type]}: ${opp.title}`}
-                      >
-                        {/* Urgent corner */}
-                        {isUrgent && <View style={styles.urgentCorner} />}
-
-                        <View style={styles.oppHeader}>
-                          <View style={styles.oppTypeRow}>
-                            <Text style={{ ...T.label, color: colorOnDark }}>
-                              {TYPE_DISPLAY[opp.type] || opp.type.toUpperCase()}
-                            </Text>
-                            {isUrgent && (
-                              <View style={styles.closingBadge}>
-                                <Text style={styles.closingText}>CLOSING</Text>
-                              </View>
-                            )}
-                          </View>
-                          <View style={[styles.tierPill, { borderColor: C.darkBorder }]}>
-                            <Text style={{ ...T.meta, color: C.lightTertiary }}>
-                              {TIER_DISPLAY_NAMES[opp.min_tier] || 'All'}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <Text
-                          style={{
-                            ...T.cardTitle,
-                            color: C.lightPrimary,
-                            marginBottom: S._6,
-                          }}
-                        >
-                          {opp.title}
-                        </Text>
-                        <Text
-                          style={{
-                            ...T.bodyItalic,
-                            color: C.lightSecondary,
-                          }}
-                        >
-                          {opp.description}
-                        </Text>
-                      </Pressable>
-                    </LiquidGlassCard>
-                  </MotiView>
-                );
-              })
-            )}
+          <View>
+            <Text style={styles.title}>The Corridor</Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </TierGate>
+          <Text style={styles.subtitle}>
+            Where opportunity is exchanged. The private room, the quiet introduction, the door that opens.
+          </Text>
+
+          {/* Featured opportunity */}
+          <WhiteCard static>
+            <View style={styles.featuredCard}>
+              {/* Header row */}
+              <View style={styles.featuredHeader}>
+                <View style={styles.featuredIconBox}>
+                  <KeyholeSmall color={colors.sand} size={12} />
+                </View>
+                <Text style={styles.featuredBadge}>FEATURED</Text>
+                <Text style={styles.featuredTimer}>5d left</Text>
+              </View>
+
+              <Text style={styles.featuredTitle}>
+                Board Advisor — Series A FinTech
+              </Text>
+              <Text style={styles.featuredDesc}>
+                Seeking experienced operators for advisory board. Equity-based compensation. Melbourne HQ.
+              </Text>
+
+              <View style={styles.featuredTags}>
+                <Tag variant="sand">Finance</Tag>
+                <Tag variant="ghost">Advisory</Tag>
+                <Tag variant="ghost">Equity</Tag>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.ctaDark,
+                  pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+                ]}
+                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+              >
+                <Text style={styles.ctaDarkText}>Express Interest</Text>
+              </Pressable>
+            </View>
+          </WhiteCard>
+
+          {/* More opportunities */}
+          <SectionLabel>More opportunities</SectionLabel>
+          {MORE_OPPS.map((opp, i) => (
+            <MotiView
+              key={i}
+              from={{ opacity: 0, translateX: -8 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: 'timing', duration: 350, delay: 400 + i * 80 }}
+            >
+              <WhiteCard static>
+                <View style={styles.oppRow}>
+                  <View style={styles.oppIcon}>
+                    <OpportunityIcon type={opp.icon} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.oppTitle}>{opp.title}</Text>
+                    <Text style={styles.oppMeta}>{opp.meta}</Text>
+                  </View>
+                </View>
+              </WhiteCard>
+            </MotiView>
+          ))}
+        </StaggerReveal>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.charcoal },
+  container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 + 84 },
-  blob: { position: 'absolute', borderRadius: 999 },
-
-  // Header
-  header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  heroThe: { ...T.hero, color: C.lightPrimary },
-  heroCorridor: { ...T.hero, color: C.lightPrimary },
-  taglineRow: { flexDirection: 'row', alignItems: 'center', gap: S._12, marginTop: S._8 },
-  skewBar: {
-    width: 32,
-    height: 4,
-    backgroundColor: C.burgundyOnDark,
-    transform: [{ skewX: '-20deg' }],
-    opacity: 0.5,
-  },
-  tagline: { ...T.bodyItalic, color: C.lightTertiary },
-
-  // Filter pills
-  filterRow: {
-    flexDirection: 'row',
-    gap: S._8,
-    paddingHorizontal: S._20,
-    paddingVertical: S._16,
-  },
-  filterPill: {
-    paddingVertical: S._8,
-    paddingHorizontal: S._16,
-    minHeight: 40,
-    borderRadius: R.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(248,246,243,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterPillActive: {
-    backgroundColor: 'rgba(248,246,243,0.08)',
-    borderColor: 'rgba(248,246,243,0.25)',
-  },
-  filterText: { ...T.label, fontSize: 11, color: C.lightTertiary },
-  filterTextActive: { color: C.lightPrimary, fontWeight: '700' },
-
-  // Opportunity cards
-  oppList: {
-    paddingHorizontal: S._12,
-    gap: S._8,
-  },
-  oppCard: {
-    borderLeftWidth: 3,
-    padding: S._16,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  oppCardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-  urgentCorner: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 0,
-    height: 0,
-    borderTopWidth: 28,
-    borderTopColor: C.gold,
-    borderLeftWidth: 28,
-    borderLeftColor: 'transparent',
-  },
-  oppHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: S._12,
-  },
-  oppTypeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S._8,
-  },
-  closingBadge: {
-    backgroundColor: C.gold,
-    paddingVertical: S._2,
-    paddingHorizontal: S._8,
-    borderRadius: R.lg,
-  },
-  closingText: {
-    ...T.label,
-    fontSize: 11,
-    letterSpacing: 1,
-    color: C.warmBlack,
-  },
-  tierPill: {
-    paddingVertical: S._4,
-    paddingHorizontal: S._12,
-    borderWidth: 1,
-    borderRadius: R.lg,
-  },
-  emptyBox: {
-    padding: S._24,
-    alignItems: 'center',
-  },
+  content: { padding: spacing.xl, paddingBottom: 88 },
+  title: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, letterSpacing: -0.3 },
+  subtitle: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, marginTop: 4, marginBottom: 16, lineHeight: 18 },
+  // Featured
+  featuredCard: { padding: 18, paddingHorizontal: 16 },
+  featuredHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  featuredIconBox: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.sandLight, alignItems: 'center', justifyContent: 'center' },
+  featuredBadge: { fontFamily: typography.geo.medium, fontSize: 9, color: colors.sand, letterSpacing: 1.5 },
+  featuredTimer: { marginLeft: 'auto', fontFamily: typography.mono.regular, fontSize: 9, color: '#ccc' },
+  featuredTitle: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.black, marginBottom: 6, letterSpacing: -0.2 },
+  featuredDesc: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, lineHeight: 19, marginBottom: 10 },
+  featuredTags: { flexDirection: 'row', marginBottom: 14 },
+  ctaDark: { paddingVertical: 13, borderRadius: radius.md, backgroundColor: colors.black, alignItems: 'center' },
+  ctaDarkText: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.white },
+  // More opportunities
+  oppRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  oppIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.ghost, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  oppTitle: { fontFamily: typography.body.medium, fontSize: 13, fontWeight: '500', color: colors.black },
+  oppMeta: { fontFamily: typography.body.regular, fontSize: 11, color: colors.gray, marginTop: 2 },
 });

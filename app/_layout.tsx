@@ -24,12 +24,18 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+} from '@expo-google-fonts/ibm-plex-mono';
 import * as Linking from 'expo-linking';
-import { C, T, S, R } from '../lib/constants';
+import { colors } from '../lib/theme';
 import { AuthProvider, useAuth } from '../providers/AuthProvider';
 import { QueryProvider } from '../providers/QueryProvider';
 import { configureGoogleSignIn } from '../lib/googleAuth';
 import { supabase } from '../lib/supabase';
+import { Onboarding } from '../components/v2/Onboarding';
+import { AmariEmblem } from '../components/v2/AmariEmblem';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,26 +74,23 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
 
   return (
     <View style={splashStyles.container}>
-      {/* Logo */}
       <MotiView
         from={{ opacity: 0, scale: 0.7, translateY: 10 }}
         animate={{ opacity: phase >= 1 ? 1 : 0, scale: phase >= 1 ? 1 : 0.7, translateY: 0 }}
         transition={{ type: 'spring', damping: 15 }}
-        style={splashStyles.logoBox}
+        style={{ marginBottom: 24 }}
       >
-        <Text style={splashStyles.logoText}>A</Text>
+        <AmariEmblem variant="dark" size={88} />
       </MotiView>
 
-      {/* AMARI GROUP */}
       <MotiView
         from={{ opacity: 0, translateY: 10 }}
         animate={{ opacity: phase >= 2 ? 1 : 0, translateY: phase >= 2 ? 0 : 10 }}
         transition={{ type: 'timing', duration: 700 }}
       >
-        <Text style={splashStyles.wordmark}>AMARI GROUP</Text>
+        <Text style={splashStyles.wordmark}>AMARI</Text>
       </MotiView>
 
-      {/* Divider */}
       <MotiView
         from={{ opacity: 0 }}
         animate={{ opacity: phase >= 2 ? 1 : 0 }}
@@ -95,7 +98,6 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
         style={splashStyles.divider}
       />
 
-      {/* Tagline */}
       <MotiView
         from={{ opacity: 0, translateY: 14 }}
         animate={{ opacity: phase >= 3 ? 1 : 0, translateY: phase >= 3 ? 0 : 14 }}
@@ -106,14 +108,13 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
         <Text style={splashStyles.taglineAlchemists}>Alchemists</Text>
       </MotiView>
 
-      {/* Bottom */}
       <MotiView
         from={{ opacity: 0 }}
         animate={{ opacity: phase >= 3 ? 1 : 0 }}
         transition={{ type: 'timing', duration: 1000 }}
         style={splashStyles.bottomLabel}
       >
-        <Text style={{ ...T.label, color: C.textTertiary }}>Australia's Black Diaspora</Text>
+        <Text style={splashStyles.bottomText}>Australia's Black Diaspora</Text>
       </MotiView>
     </View>
   );
@@ -122,56 +123,49 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: C.cream,
+    backgroundColor: colors.bone,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logoBox: {
-    width: 88,
-    height: 88,
-    backgroundColor: C.charcoal,
-    borderRadius: R.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: S._24,
-  },
-  logoText: {
-    fontFamily: 'Syne-ExtraBold',
-    fontSize: 40,
-    fontWeight: '800',
-    color: C.cream,
   },
   wordmark: {
     fontFamily: 'DMSans-SemiBold',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 8,
-    color: C.textPrimary,
+    color: colors.black,
   },
   divider: {
     width: 32,
     height: 2,
-    backgroundColor: C.burgundy,
-    marginTop: S._20,
+    backgroundColor: colors.sand,
+    marginTop: 20,
   },
   taglineRow: {
     flexDirection: 'row',
-    marginTop: S._20,
+    marginTop: 20,
   },
   taglineFor: {
     fontFamily: 'EBGaramond-Regular',
     fontSize: 28,
-    color: C.textPrimary,
+    color: colors.black,
   },
   taglineAlchemists: {
     fontFamily: 'EBGaramond-Regular',
     fontSize: 28,
-    color: C.burgundy,
+    color: colors.sand,
     fontStyle: 'italic',
   },
   bottomLabel: {
     position: 'absolute',
-    bottom: S._48,
+    bottom: 48,
+  },
+  bottomText: {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: colors.gray,
+    textTransform: 'uppercase',
   },
 });
 
@@ -193,6 +187,8 @@ export default function RootLayout() {
     'DMSans-Medium': DMSans_500Medium,
     'DMSans-SemiBold': DMSans_600SemiBold,
     'DMSans-Bold': DMSans_700Bold,
+    'IBMPlexMono-Regular': IBMPlexMono_400Regular,
+    'IBMPlexMono-Medium': IBMPlexMono_500Medium,
   });
 
   const onLayoutRootView = useCallback(async () => {
@@ -209,13 +205,12 @@ export default function RootLayout() {
     configureGoogleSignIn();
   }, []);
 
-  // Handle deep link auth callbacks (magic links from Supabase)
+  // Handle deep link auth callbacks
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
       const url = event.url;
       if (!url.includes('auth-callback')) return;
 
-      // Supabase redirects with hash fragments: #access_token=...&refresh_token=...
       const hashIndex = url.indexOf('#');
       if (hashIndex === -1) return;
 
@@ -236,12 +231,10 @@ export default function RootLayout() {
       }
     };
 
-    // Handle URL that opened the app
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink({ url });
     }).catch((err) => console.error('Initial URL error:', err));
 
-    // Handle URLs while app is running
     const subscription = Linking.addEventListener('url', handleDeepLink);
     return () => subscription.remove();
   }, []);
@@ -249,7 +242,7 @@ export default function RootLayout() {
   if (!fontsLoaded && !fontError) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={C.charcoal} />
+        <ActivityIndicator size="large" color={colors.black} />
       </View>
     );
   }
@@ -261,13 +254,13 @@ export default function RootLayout() {
   return (
     <QueryProvider>
       <AuthProvider>
-        <StatusBar style="dark" backgroundColor={C.cream} />
+        <StatusBar style="dark" backgroundColor={colors.bone} />
         <AuthGuard>
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: C.cream },
-              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: colors.bone },
+              animation: 'fade',
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -285,6 +278,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: C.cream,
+    backgroundColor: colors.bone,
   },
 });
