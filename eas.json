@@ -29,7 +29,7 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "credentialsSource": "local"
+        "credentialsSource": "remote"
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
