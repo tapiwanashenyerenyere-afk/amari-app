@@ -17,12 +17,29 @@ import {
   Badge,
   StaggerReveal,
 } from '../../components/v2';
+import { EditFieldModal } from '../../components/EditFieldModal';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { session, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const updateProfile = useUpdateProfile();
+  const [editField, setEditField] = useState<{ label: string; key: string; value: string } | null>(null);
+
+  const handleSave = useCallback(
+    (value: string) => {
+      if (!editField) return;
+      updateProfile.mutate(
+        { [editField.key]: value },
+        {
+          onSuccess: () => {
+            setEditField(null);
+          },
+        },
+      );
+    },
+    [editField, updateProfile],
+  );
 
   const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
 
@@ -118,20 +135,31 @@ export default function ProfileScreen() {
             <InfoRow
               label="City Presence"
               value={profile?.city || 'Melbourne'}
-              rightElement="toggle"
+              onPress={() =>
+                setEditField({ label: 'City', key: 'city', value: profile?.city || '' })
+              }
             />
             <InfoRow
               label="Building"
               value={profile?.company || 'Foundry Labs'}
+              onPress={() =>
+                setEditField({ label: 'Building', key: 'company', value: profile?.company || '' })
+              }
             />
             <InfoRow
               label="Interests"
               value={profile?.industry || 'Technology & Innovation'}
+              onPress={() =>
+                setEditField({ label: 'Interests', key: 'industry', value: profile?.industry || '' })
+              }
             />
             <InfoRow
               label="Open To"
               value={profile?.bio || 'Connecting founders'}
               isLast
+              onPress={() =>
+                setEditField({ label: 'Open To', key: 'bio', value: profile?.bio || '' })
+              }
             />
           </WhiteCard>
 
@@ -147,6 +175,16 @@ export default function ProfileScreen() {
           </Pressable>
         </StaggerReveal>
       </ScrollView>
+
+      <EditFieldModal
+        visible={!!editField}
+        onClose={() => setEditField(null)}
+        onSave={handleSave}
+        label={editField?.label || ''}
+        currentValue={editField?.value || ''}
+        multiline={editField?.key === 'bio'}
+        isSaving={updateProfile.isPending}
+      />
     </View>
   );
 }

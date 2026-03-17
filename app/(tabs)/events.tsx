@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { useEvents } from '../../queries/events';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import {
@@ -10,6 +11,8 @@ import {
   AvatarStack,
   StaggerReveal,
 } from '../../components/v2';
+
+const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
 
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
@@ -40,14 +43,23 @@ export default function EventsScreen() {
           />
 
           {/* Featured Event */}
-          <WhiteCard onPress={() => {}}>
+          <WhiteCard onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Linking.openURL(GALA_URL);
+          }}>
             <View style={styles.featuredInner}>
               <Text style={styles.featuredLabel}>FEATURED</Text>
               <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
               <Text style={styles.featuredMeta}>
                 May 2 · Plaza Ballroom, 191 Collins St · Black Tie
               </Text>
-              <Pressable style={styles.viewDetailsBtn}>
+              <Pressable
+                style={styles.viewDetailsBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  Linking.openURL(GALA_URL);
+                }}
+              >
                 <Text style={styles.viewDetailsText}>View Details</Text>
               </Pressable>
             </View>

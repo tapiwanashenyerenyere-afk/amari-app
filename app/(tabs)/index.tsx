@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -20,6 +20,8 @@ import {
   StaggerReveal,
 } from '../../components/v2';
 import { BreathingDot } from '../../components/v2/BreathingDot';
+
+const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -91,13 +93,13 @@ export default function PulseScreen() {
               <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
             </View>
             <Text style={styles.pulseHeadline}>
-              {pulse?.headline || 'The Architecture of\nAustralian Innovation'}
+              {pulse?.headline || 'What It Means to\nBe an Alchemist'}
             </Text>
             <Text style={styles.pulseDesc}>
-              {pulse?.summary_content || 'How three AMARI members are reshaping enterprise infrastructure from Melbourne.'}
+              {pulse?.summary_content || 'AMARI exists for the people who refuse to wait for permission. Not the loudest in the room — the ones who change what the room looks like. We call them alchemists. Founders who build before the market believes. Operators who turn disorder into systems. The ones who define what comes next, not what came before.'}
             </Text>
             <View style={styles.pulseFooter}>
-              <Text style={styles.pulseRead}>4 min read</Text>
+              <Text style={styles.pulseRead}>3 min read</Text>
               <Text style={styles.pulseLink}>Read →</Text>
             </View>
           </HeroCard>
@@ -127,7 +129,10 @@ export default function PulseScreen() {
           )}
 
           {/* Featured Event — Dark card inside white card */}
-          <WhiteCard onPress={() => {}}>
+          <WhiteCard onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Linking.openURL(GALA_URL);
+          }}>
             <View style={styles.featuredInner}>
               <Text style={styles.featuredLabel}>FEATURED</Text>
               <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>

@@ -90,9 +90,9 @@ export default function CorridorScreen() {
                 <View style={styles.featuredIconBox}>
                   <KeyholeSmall color={colors.sand} size={12} />
                 </View>
-                <Text style={styles.emptyTitle}>Opportunities coming soon</Text>
+                <Text style={styles.emptyTitle}>Coming Soon</Text>
                 <Text style={styles.emptyDesc}>
-                  The Corridor opens as the network grows. Featured opportunities will appear here.
+                  This feature is launching soon. The Corridor opens as the network grows.
                 </Text>
               </View>
             </WhiteCard>
@@ -102,7 +102,7 @@ export default function CorridorScreen() {
           <SectionLabel>More opportunities</SectionLabel>
           {MORE_OPPS.length === 0 ? (
             <WhiteCard static>
-              <Text style={styles.emptySmall}>New opportunities will be listed here as they become available.</Text>
+              <Text style={styles.emptySmall}>Coming soon. New opportunities will be listed here.</Text>
             </WhiteCard>
           ) : null}
           {MORE_OPPS.map((opp, i) => (
