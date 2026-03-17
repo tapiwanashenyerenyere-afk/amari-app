@@ -29,7 +29,7 @@ export default function RegisterScreen() {
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'email' | 'google' | 'apple' | null>(null);
+  const [authMethod, setAuthMethod] = useState<'email' | 'google' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const storePendingCode = async () => {
