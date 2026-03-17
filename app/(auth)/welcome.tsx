@@ -19,7 +19,7 @@ export default function WelcomeScreen() {
           transition={{ type: 'spring', damping: 15 }}
           style={styles.welcomeBox}
         >
-          <AmariEmblem variant="onLight" size={72} />
+          <AmariEmblem variant="light" size={72} />
 
           <Text style={styles.title}>Welcome to AMARI</Text>
           <View style={styles.divider} />

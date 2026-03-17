@@ -32,7 +32,8 @@ function OpportunityIcon({ type }: { type: string }) {
 
 export default function CorridorScreen() {
   const insets = useSafeAreaInsets();
-  const { data: opportunities } = useCorridorOpportunities();
+  const { data: opportunitiesData } = useCorridorOpportunities();
+  const opportunities = opportunitiesData as any;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
