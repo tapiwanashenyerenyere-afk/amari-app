@@ -5,9 +5,9 @@ dist/
 preview/
 *.aab
 *.apk
-*.jks
 *.b64
 *.csv
+# NOTE: *.jks intentionally NOT excluded — needed for local credential builds
 __tests__/
 .claude/
 SESSION-RESUME.md
