@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'expo-router';
-import { C, S } from '@/lib/constants';
+import { colors, typography, spacing } from '@/lib/theme';
 
 const TIER_LEVELS = { member: 1, silver: 2, platinum: 3, laureate: 4 };
 const TIER_NAMES = { member: 'Member', silver: 'Silver', platinum: 'Platinum', laureate: 'Laureate' };
@@ -30,6 +30,8 @@ export function TierGate({ minTier, children, fallback }: TierGateProps) {
       <Pressable
         onPress={() => router.push('/profile' as any)}
         style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Learn more about ${TIER_NAMES[minTier]} features`}
       >
         <Text style={styles.buttonText}>Learn more</Text>
       </Pressable>
@@ -39,23 +41,25 @@ export function TierGate({ minTier, children, fallback }: TierGateProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: S._24,
+    padding: spacing.xxl,
     alignItems: 'center',
     opacity: 0.6,
   },
   tierText: {
-    fontFamily: 'Syne_700Bold',
+    fontFamily: typography.geo.bold,
     fontSize: 14,
-    color: C.burgundy,
+    fontWeight: '700',
+    color: colors.sand,
   },
   button: {
-    marginTop: S._8,
-    paddingHorizontal: S._16,
-    paddingVertical: S._8,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   buttonText: {
-    fontFamily: 'DMSans_500Medium',
+    fontFamily: typography.body.medium,
     fontSize: 12,
-    color: C.textTertiary,
+    fontWeight: '500',
+    color: colors.gray,
   },
 });

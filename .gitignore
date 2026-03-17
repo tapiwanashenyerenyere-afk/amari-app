@@ -64,8 +64,15 @@ SESSION-RESUME.md
 keystore.b64
 SECURE-CODES-DO-NOT-COMMIT.csv
 
+# Build artifacts
+*.aab
+*.apk
+
 # Build docs (generated, not source)
 AMARI-FRESH-BUILD.md
 ARCHITECTURE.md
 BETA_TESTING.md
 BUILD_ANDROID.md
+
+# Design preview (local only)
+preview/

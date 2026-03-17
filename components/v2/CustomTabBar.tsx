@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: typography.geo.medium,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '500',
     letterSpacing: 0.5,
   },
