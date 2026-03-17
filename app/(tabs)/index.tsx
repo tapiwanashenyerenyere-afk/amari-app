@@ -121,18 +121,17 @@ export default function PulseScreen() {
               );
             })
           ) : (
-            <>
-              <EventRow day="28" month="MAR" title="Founders' Dinner" meta="The Langham · 24 seats" tier="PLAT" onPress={() => {}} />
-              <EventRow day="05" month="APR" title="Innovation Talk" meta="AMARI House" dimDate onPress={() => {}} />
-            </>
+            <WhiteCard static>
+              <Text style={styles.emptyText}>No upcoming events yet. Stay tuned.</Text>
+            </WhiteCard>
           )}
 
           {/* Featured Event — Dark card inside white card */}
           <WhiteCard onPress={() => {}}>
             <View style={styles.featuredInner}>
               <Text style={styles.featuredLabel}>FEATURED</Text>
-              <Text style={styles.featuredTitle}>Annual Gala 2026</Text>
-              <Text style={styles.featuredMeta}>April 19 · Crown Palladium · Black Tie</Text>
+              <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
+              <Text style={styles.featuredMeta}>May 2 · Plaza Ballroom, 191 Collins St · Black Tie</Text>
               <View style={styles.featuredFooter}>
                 <AvatarStack initials={['A', 'K', 'N']} extra={12} />
                 <Text style={styles.featuredLink}>Details →</Text>
@@ -190,4 +189,5 @@ const styles = StyleSheet.create({
   profilePercent: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.black },
   profileEdit: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sand },
   profileHint: { fontFamily: typography.body.regular, fontSize: 11, fontStyle: 'italic', color: colors.gray, marginTop: 6 },
+  emptyText: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray, textAlign: 'center', paddingVertical: 16 },
 });

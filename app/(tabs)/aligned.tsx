@@ -80,43 +80,34 @@ export default function AlignedScreen() {
           </WhiteCard>
 
           {/* Why this match */}
-          <SectionLabel>Why this match</SectionLabel>
-          <WhiteCard static>
-            <View style={styles.whyCard}>
-              <Text style={styles.whyText}>
-                You both listed{' '}
-                <Text style={styles.whyBold}>Technology & Innovation</Text> and share
-                connections through{' '}
-                <Text style={styles.whyBold}>Incubate Foundation</Text>.
-              </Text>
-            </View>
-          </WhiteCard>
+          {match && (
+            <>
+              <SectionLabel>Why this match</SectionLabel>
+              <WhiteCard static>
+                <View style={styles.whyCard}>
+                  <Text style={styles.whyText}>
+                    {match.match_reason || 'Based on shared interests and complementary expertise.'}
+                  </Text>
+                </View>
+              </WhiteCard>
+            </>
+          )}
 
           {/* Recent connections */}
           <SectionLabel>Recent connections</SectionLabel>
-          <WhiteCard static>
-            <View style={styles.connectionRow}>
-              <View style={styles.connAvatar}>
-                <Text style={styles.connAvatarText}>NK</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.connName}>Nadia Kwame</Text>
-                <Text style={styles.connDate}>Connected 3 days ago</Text>
-              </View>
-              <Tag variant="sand">Active</Tag>
-            </View>
-          </WhiteCard>
-          <WhiteCard static>
-            <View style={styles.connectionRow}>
-              <View style={styles.connAvatar}>
-                <Text style={styles.connAvatarText}>JM</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.connName}>James Mensah</Text>
-                <Text style={styles.connDate}>Connected 2 weeks ago</Text>
-              </View>
-            </View>
-          </WhiteCard>
+          {!match ? (
+            <WhiteCard static>
+              <Text style={styles.emptyText}>
+                Your connections will appear here once you start matching.
+              </Text>
+            </WhiteCard>
+          ) : (
+            <WhiteCard static>
+              <Text style={styles.emptyText}>
+                No connections yet. Express interest to start building your network.
+              </Text>
+            </WhiteCard>
+          )}
         </StaggerReveal>
       </ScrollView>
     </View>
@@ -154,4 +145,5 @@ const styles = StyleSheet.create({
   connAvatarText: { fontFamily: typography.serif.medium, fontSize: 13, fontWeight: '500', color: colors.black },
   connName: { fontFamily: typography.body.medium, fontSize: 13, fontWeight: '500', color: colors.black },
   connDate: { fontFamily: typography.body.regular, fontSize: 10, color: '#bbb' },
+  emptyText: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray, textAlign: 'center', paddingVertical: 16, paddingHorizontal: 16 },
 });

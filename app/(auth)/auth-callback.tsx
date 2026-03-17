@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
-import { C, T, S } from '../../lib/constants';
+import { colors, typography, spacing } from '../../lib/theme';
 
 export default function AuthCallbackScreen() {
   const params = useLocalSearchParams<{ token_hash?: string; type?: string }>();
@@ -43,6 +43,7 @@ export default function AuthCallbackScreen() {
         <Text
           style={styles.link}
           onPress={() => router.replace('/(auth)')}
+          accessibilityRole="link"
         >
           Back to Sign Up
         </Text>
@@ -52,7 +53,7 @@ export default function AuthCallbackScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={C.charcoal} />
+      <ActivityIndicator size="large" color={colors.black} />
       <Text style={styles.message}>Verifying your account...</Text>
     </View>
   );
@@ -61,25 +62,32 @@ export default function AuthCallbackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: C.cream,
+    backgroundColor: colors.bone,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: S._24,
+    paddingHorizontal: spacing.xxl,
   },
   title: {
-    ...T.title,
-    color: C.textPrimary,
-    marginBottom: S._12,
+    fontFamily: typography.serif.medium,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.black,
+    marginBottom: spacing.md,
+    letterSpacing: -0.3,
   },
   message: {
-    ...T.body,
-    color: C.textSecondary,
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.gray,
     textAlign: 'center',
-    marginTop: S._16,
+    marginTop: spacing.lg,
   },
   link: {
-    ...T.btn,
-    color: C.burgundy,
-    marginTop: S._24,
+    fontFamily: typography.body.medium,
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.sand,
+    marginTop: spacing.xxl,
+    letterSpacing: 0.3,
   },
 });

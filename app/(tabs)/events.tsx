@@ -43,9 +43,9 @@ export default function EventsScreen() {
           <WhiteCard onPress={() => {}}>
             <View style={styles.featuredInner}>
               <Text style={styles.featuredLabel}>FEATURED</Text>
-              <Text style={styles.featuredTitle}>Annual Gala 2026</Text>
+              <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
               <Text style={styles.featuredMeta}>
-                April 19 · Crown Palladium · Black Tie
+                May 2 · Plaza Ballroom, 191 Collins St · Black Tie
               </Text>
               <Pressable style={styles.viewDetailsBtn}>
                 <Text style={styles.viewDetailsText}>View Details</Text>
@@ -71,11 +71,10 @@ export default function EventsScreen() {
               );
             })
           ) : (
-            <>
-              <EventRow day="28" month="MAR" title="Founders' Dinner" meta="The Langham · Dinner · 24 seats" tier="PLAT" onPress={() => {}} />
-              <EventRow day="05" month="APR" title="Innovation Talk" meta="AMARI House · Talk" dimDate onPress={() => {}} />
-              <EventRow day="26" month="APR" title="Melbourne Mixer" meta="Arbory Afloat · Social" dimDate onPress={() => {}} />
-            </>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No additional events right now.</Text>
+              <Text style={styles.emptyHint}>New events will appear here as they're announced.</Text>
+            </View>
           )}
         </StaggerReveal>
       </ScrollView>
@@ -96,4 +95,7 @@ const styles = StyleSheet.create({
   featuredMeta: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.35)' },
   viewDetailsBtn: { marginTop: 12, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
   viewDetailsText: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.white },
+  emptyState: { alignItems: 'center', paddingVertical: 24 },
+  emptyText: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray },
+  emptyHint: { fontFamily: typography.body.regular, fontSize: 11, color: colors.grayLight, marginTop: 4 },
 });

@@ -3,7 +3,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
-import { C, T, S, R } from '../../lib/constants';
+import { colors, typography, spacing, radius } from '../../lib/theme';
+import { AmariEmblem } from '../../components/v2/AmariEmblem';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -18,9 +19,7 @@ export default function WelcomeScreen() {
           transition={{ type: 'spring', damping: 15 }}
           style={styles.welcomeBox}
         >
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>A</Text>
-          </View>
+          <AmariEmblem variant="onLight" size={72} />
 
           <Text style={styles.title}>Welcome to AMARI</Text>
           <View style={styles.divider} />
@@ -54,6 +53,7 @@ export default function WelcomeScreen() {
               params: { code },
             });
           }}
+          accessibilityRole="button"
           accessibilityLabel="Continue to registration"
         >
           <Text style={styles.continueBtnText}>Continue</Text>
@@ -64,57 +64,61 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
+  container: { flex: 1, backgroundColor: colors.bone },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: S._24,
+    paddingHorizontal: spacing.xxl,
   },
   welcomeBox: { alignItems: 'center' },
-  logoBox: {
-    width: 72,
-    height: 72,
-    backgroundColor: C.charcoal,
-    borderRadius: R.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: S._24,
+  title: {
+    fontFamily: typography.serif.medium,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.black,
+    textAlign: 'center',
+    marginTop: spacing.xxl,
+    letterSpacing: -0.3,
   },
-  logoText: {
-    fontFamily: 'Syne-ExtraBold',
-    fontSize: 32,
-    fontWeight: '800',
-    color: C.cream,
-  },
-  title: { ...T.title, color: C.textPrimary, textAlign: 'center' },
   divider: {
     width: 32,
-    height: 2,
-    backgroundColor: C.burgundy,
-    marginVertical: S._16,
+    height: 1,
+    backgroundColor: colors.sand,
+    marginVertical: spacing.lg,
   },
   subtitle: {
-    ...T.body,
-    color: C.textSecondary,
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.gray,
     textAlign: 'center',
     maxWidth: 280,
+    lineHeight: 22,
   },
   inviterText: {
-    ...T.bodyItalic,
-    color: C.brass,
-    marginTop: S._16,
+    fontFamily: typography.serif.italic,
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: colors.sand,
+    marginTop: spacing.lg,
   },
   bottom: {
-    paddingHorizontal: S._24,
-    paddingBottom: S._32,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   continueBtn: {
-    backgroundColor: C.charcoal,
-    paddingVertical: S._16,
+    backgroundColor: colors.black,
+    paddingVertical: spacing.lg,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
   },
-  continueBtnText: { ...T.btn, color: C.lightPrimary },
+  continueBtnText: {
+    fontFamily: typography.body.medium,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
 });

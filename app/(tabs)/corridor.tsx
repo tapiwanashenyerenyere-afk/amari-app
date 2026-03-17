@@ -16,11 +16,9 @@ import {
   StaggerReveal,
 } from '../../components/v2';
 
-const MORE_OPPS = [
-  { icon: 'mic', title: 'Speaking Slot — Tech Summit', meta: 'Silver+ · 12 days left' },
-  { icon: 'mentor', title: 'Mentorship — First-Gen Founders', meta: 'All members · Ongoing' },
-  { icon: 'venn', title: 'Co-Founder Match — EdTech', meta: 'Platinum+ · 3 days left' },
-];
+// Opportunities populated from API via useCorridorOpportunities()
+// Empty array = show empty state, real data flows in from Supabase
+const MORE_OPPS: { icon: string; title: string; meta: string }[] = [];
 
 function OpportunityIcon({ type }: { type: string }) {
   const iconColor = '#999';
@@ -52,45 +50,60 @@ export default function CorridorScreen() {
             Where opportunity is exchanged. The private room, the quiet introduction, the door that opens.
           </Text>
 
-          {/* Featured opportunity */}
-          <WhiteCard static>
-            <View style={styles.featuredCard}>
-              {/* Header row */}
-              <View style={styles.featuredHeader}>
+          {/* Featured opportunity — from API or empty state */}
+          {opportunities?.featured ? (
+            <WhiteCard static>
+              <View style={styles.featuredCard}>
+                <View style={styles.featuredHeader}>
+                  <View style={styles.featuredIconBox}>
+                    <KeyholeSmall color={colors.sand} size={12} />
+                  </View>
+                  <Text style={styles.featuredBadge}>FEATURED</Text>
+                  {opportunities.featured.days_left && (
+                    <Text style={styles.featuredTimer}>{opportunities.featured.days_left}d left</Text>
+                  )}
+                </View>
+                <Text style={styles.featuredTitle}>{opportunities.featured.title}</Text>
+                <Text style={styles.featuredDesc}>{opportunities.featured.description}</Text>
+                {opportunities.featured.tags && (
+                  <View style={styles.featuredTags}>
+                    {opportunities.featured.tags.map((tag: string, i: number) => (
+                      <Tag key={i} variant={i === 0 ? 'sand' : 'ghost'}>{tag}</Tag>
+                    ))}
+                  </View>
+                )}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.ctaDark,
+                    pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+                  ]}
+                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                >
+                  <Text style={styles.ctaDarkText}>Express Interest</Text>
+                </Pressable>
+              </View>
+            </WhiteCard>
+          ) : (
+            <WhiteCard static>
+              <View style={styles.emptyCard}>
                 <View style={styles.featuredIconBox}>
                   <KeyholeSmall color={colors.sand} size={12} />
                 </View>
-                <Text style={styles.featuredBadge}>FEATURED</Text>
-                <Text style={styles.featuredTimer}>5d left</Text>
+                <Text style={styles.emptyTitle}>Opportunities coming soon</Text>
+                <Text style={styles.emptyDesc}>
+                  The Corridor opens as the network grows. Featured opportunities will appear here.
+                </Text>
               </View>
-
-              <Text style={styles.featuredTitle}>
-                Board Advisor — Series A FinTech
-              </Text>
-              <Text style={styles.featuredDesc}>
-                Seeking experienced operators for advisory board. Equity-based compensation. Melbourne HQ.
-              </Text>
-
-              <View style={styles.featuredTags}>
-                <Tag variant="sand">Finance</Tag>
-                <Tag variant="ghost">Advisory</Tag>
-                <Tag variant="ghost">Equity</Tag>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.ctaDark,
-                  pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-                ]}
-                onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-              >
-                <Text style={styles.ctaDarkText}>Express Interest</Text>
-              </Pressable>
-            </View>
-          </WhiteCard>
+            </WhiteCard>
+          )}
 
           {/* More opportunities */}
           <SectionLabel>More opportunities</SectionLabel>
+          {MORE_OPPS.length === 0 ? (
+            <WhiteCard static>
+              <Text style={styles.emptySmall}>New opportunities will be listed here as they become available.</Text>
+            </WhiteCard>
+          ) : null}
           {MORE_OPPS.map((opp, i) => (
             <MotiView
               key={i}
@@ -139,4 +152,9 @@ const styles = StyleSheet.create({
   oppIcon: { width: 24, height: 24, borderRadius: 8, backgroundColor: colors.ghost, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   oppTitle: { fontFamily: typography.body.medium, fontSize: 13, fontWeight: '500', color: colors.black },
   oppMeta: { fontFamily: typography.body.regular, fontSize: 11, color: colors.gray, marginTop: 2 },
+  // Empty states
+  emptyCard: { padding: 18, paddingHorizontal: 16, alignItems: 'center' },
+  emptyTitle: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.black, marginTop: 12, marginBottom: 6 },
+  emptyDesc: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, textAlign: 'center', lineHeight: 19 },
+  emptySmall: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray, textAlign: 'center', paddingVertical: 16, paddingHorizontal: 16 },
 });
