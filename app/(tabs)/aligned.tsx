@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useCurrentMatch } from '../../queries/aligned';
@@ -65,13 +65,19 @@ export default function AlignedScreen() {
               <View style={styles.actions}>
                 <Pressable
                   style={styles.btnOutlined}
-                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    Alert.alert('Coming Soon', 'This feature is coming soon.');
+                  }}
                 >
                   <Text style={styles.btnOutlinedText}>Not Now</Text>
                 </Pressable>
                 <Pressable
                   style={styles.btnDark}
-                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    Alert.alert('Coming Soon', 'Aligned matching will be available once the network grows. Stay tuned.');
+                  }}
                 >
                   <Text style={styles.btnDarkText}>Express Interest</Text>
                 </Pressable>
@@ -98,13 +104,13 @@ export default function AlignedScreen() {
           {!match ? (
             <WhiteCard static>
               <Text style={styles.emptyText}>
-                Your connections will appear here once you start matching.
+                Coming soon. Your connections will appear here as the network grows.
               </Text>
             </WhiteCard>
           ) : (
             <WhiteCard static>
               <Text style={styles.emptyText}>
-                No connections yet. Express interest to start building your network.
+                Coming soon. Your connections will appear here as the network grows.
               </Text>
             </WhiteCard>
           )}

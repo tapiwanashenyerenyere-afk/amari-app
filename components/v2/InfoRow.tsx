@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { ChevronRight } from './TabIcons';
 import { colors, typography } from '../../lib/theme';
 
@@ -8,10 +9,11 @@ interface InfoRowProps {
   value: string;
   rightElement?: 'chevron' | 'toggle' | React.ReactNode;
   isLast?: boolean;
+  onPress?: () => void;
 }
 
-export function InfoRow({ label, value, rightElement = 'chevron', isLast }: InfoRowProps) {
-  return (
+export function InfoRow({ label, value, rightElement = 'chevron', isLast, onPress }: InfoRowProps) {
+  const content = (
     <View style={[styles.row, !isLast && styles.border]}>
       <View style={styles.left}>
         <Text style={styles.label}>{label}</Text>
@@ -26,6 +28,24 @@ export function InfoRow({ label, value, rightElement = 'chevron', isLast }: Info
       {rightElement !== 'chevron' && rightElement !== 'toggle' && rightElement}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
+        style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${label}`}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
