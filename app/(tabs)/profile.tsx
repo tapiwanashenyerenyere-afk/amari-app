@@ -106,7 +106,7 @@ export default function ProfileScreen() {
                   {nameParts.length > 1 && `\n${nameParts.slice(1).join(' ')}`}
                 </Text>
                 <Text style={styles.role}>
-                  {profile?.company || 'Founder & CEO'}
+                  {profile?.company || 'Tap to set your role'}
                 </Text>
               </View>
             </View>
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Barcode */}
-          <Barcode memberId={`AMARI-2026-${String(profile?.id || '4821').padStart(4, '0')}`} />
+          <Barcode memberId={`AMARI-2026-${profile?.id ? profile.id.slice(-4).toUpperCase() : '0000'}`} />
 
           {/* Profile completion */}
           <View style={styles.completionRow}>
@@ -134,28 +134,28 @@ export default function ProfileScreen() {
           <WhiteCard static>
             <InfoRow
               label="City Presence"
-              value={profile?.city || 'Melbourne'}
+              value={profile?.city || 'Tap to add'}
               onPress={() =>
                 setEditField({ label: 'City', key: 'city', value: profile?.city || '' })
               }
             />
             <InfoRow
               label="Building"
-              value={profile?.company || 'Foundry Labs'}
+              value={profile?.company || 'Tap to add'}
               onPress={() =>
                 setEditField({ label: 'Building', key: 'company', value: profile?.company || '' })
               }
             />
             <InfoRow
               label="Interests"
-              value={profile?.industry || 'Technology & Innovation'}
+              value={profile?.industry || 'Tap to add'}
               onPress={() =>
                 setEditField({ label: 'Interests', key: 'industry', value: profile?.industry || '' })
               }
             />
             <InfoRow
               label="Open To"
-              value={profile?.bio || 'Connecting founders'}
+              value={profile?.bio || 'Tap to add'}
               isLast
               onPress={() =>
                 setEditField({ label: 'Open To', key: 'bio', value: profile?.bio || '' })
