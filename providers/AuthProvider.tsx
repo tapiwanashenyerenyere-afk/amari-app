@@ -59,6 +59,63 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Sync profile data from user_metadata / SecureStore to the members table.
+  // Covers cases where the member row exists but has empty fields:
+  //   - already_member (returning user with pending code)
+  //   - Google sign-in (name from Google, city/industry empty)
+  //   - Magic link opened on a different device (no SecureStore, but user_metadata has data)
+  const syncProfileData = async (
+    userId: string,
+    pendingData?: { fullName?: string; city?: string; industry?: string },
+  ) => {
+    try {
+      // Fetch current member row
+      const { data: member, error: fetchError } = await supabase
+        .from('members')
+        .select('full_name, city, industry')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !member) return;
+
+      const userMeta = state.user?.user_metadata;
+
+      // Build updates only for fields that are empty in the DB but available from sources
+      const updates: Record<string, string> = {};
+
+      if (!member.full_name || member.full_name === 'AMARI Member') {
+        const name = pendingData?.fullName || userMeta?.full_name || userMeta?.name;
+        if (name) updates.full_name = name;
+      }
+
+      if (!member.city) {
+        const city = pendingData?.city || userMeta?.city;
+        if (city) updates.city = city;
+      }
+
+      if (!member.industry) {
+        const industry = pendingData?.industry || userMeta?.industry;
+        if (industry) updates.industry = industry;
+      }
+
+      if (Object.keys(updates).length === 0) return;
+
+      const { error: updateError } = await supabase
+        .from('members')
+        .update(updates)
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('Profile sync error:', updateError);
+      } else {
+        // Invalidate cached profile so the UI picks up the new data
+        queryClient.invalidateQueries({ queryKey: queryKeys.member.me });
+      }
+    } catch (err) {
+      console.error('Profile sync error:', err);
+    }
+  };
+
   // Redeem pending invitation code after sign-in
   const redeemingRef = useRef(false);
   useEffect(() => {
@@ -68,9 +125,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       redeemingRef.current = true;
       try {
         const pending = await SecureStore.getItemAsync('pending_invitation_code');
-        if (!pending) { redeemingRef.current = false; return; }
+        if (!pending) {
+          // No pending code — still sync user_metadata to profile in case fields are empty
+          await syncProfileData(state.user!.id);
+          redeemingRef.current = false;
+          return;
+        }
         const { code, fullName, city, industry } = JSON.parse(pending);
-        if (!code) return;
+        if (!code) {
+          await syncProfileData(state.user!.id, { fullName, city, industry });
+          redeemingRef.current = false;
+          return;
+        }
 
         const { data, error } = await supabase.rpc('redeem_invitation_code', {
           p_code: code,
@@ -90,8 +156,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
           await SecureStore.deleteItemAsync('pending_invitation_code');
           // Refresh session so JWT reflects new tier + admin status
           await supabase.auth.refreshSession();
+          // Invalidate profile cache so UI shows the new data immediately
+          queryClient.invalidateQueries({ queryKey: queryKeys.member.me });
         } else {
-          if (data?.error === 'already_member' || data?.error === 'invalid_or_expired') {
+          if (data?.error === 'already_member') {
+            // Member exists but might have empty profile fields — sync from SecureStore/user_metadata
+            await syncProfileData(state.user!.id, { fullName, city, industry });
+            await SecureStore.deleteItemAsync('pending_invitation_code');
+          } else if (data?.error === 'invalid_or_expired') {
             await SecureStore.deleteItemAsync('pending_invitation_code');
           }
           console.warn('Code redemption failed:', data?.error);

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -25,6 +26,7 @@ import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, radius, spacing } from '../../lib/theme';
+import { supabase } from '../../lib/supabase';
 import { AmariEmblem } from './AmariEmblem';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -214,20 +216,57 @@ function Step3() {
 }
 
 interface Step4Props {
-  onEnter: () => void;
+  onEnter: (validatedCode: string) => void;
   onSignIn: () => void;
 }
 
 function Step4({ onEnter, onSignIn }: Step4Props) {
-  const [code, setCode] = useState(['', '', '', '', '']);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const [code, setCode] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState('');
+  const [isValid, setIsValid] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
-  const handleCodeChange = (text: string, index: number) => {
-    const newCode = [...code];
-    newCode[index] = text.toUpperCase();
-    setCode(newCode);
-    if (text && index < 4) {
-      inputRefs.current[index + 1]?.focus();
+  const handleValidate = async () => {
+    if (code.length < 4) {
+      setError('Please enter a valid invite code');
+      return;
+    }
+
+    setError('');
+    setIsValidating(true);
+
+    try {
+      const { data, error: rpcError } = await supabase.rpc('validate_invitation_code', {
+        p_code: code.toUpperCase(),
+      });
+
+      if (rpcError) throw rpcError;
+
+      if (data?.error === 'rate_limited') {
+        setError('Too many attempts. Please wait an hour.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      if (!data?.valid) {
+        setError('Invalid or expired invitation code');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      setIsValid(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      setTimeout(() => {
+        onEnter(code.toUpperCase());
+      }, 600);
+    } catch (err) {
+      console.error('Validation failed:', err);
+      setError('Something went wrong. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -255,22 +294,32 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
           from={{ opacity: 0, translateY: 10 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500, delay: 300 }}
-          style={stepStyles.codeRow}
+          style={{ marginBottom: 28 }}
         >
-          {code.map((char, i) => (
-            <View key={i} style={stepStyles.codeBox}>
-              <TextInput
-                ref={(ref) => { inputRefs.current[i] = ref; }}
-                style={stepStyles.codeInput}
-                value={char}
-                onChangeText={(text) => handleCodeChange(text, i)}
-                maxLength={1}
-                autoCapitalize="characters"
-                keyboardType="default"
-                textAlign="center"
-              />
-            </View>
-          ))}
+          <TextInput
+            ref={inputRef}
+            style={[
+              stepStyles.codeFullInput,
+              isValid && { borderColor: colors.sand },
+              error ? { borderColor: colors.error } : null,
+            ]}
+            value={code}
+            onChangeText={(text) => {
+              setCode(text.toUpperCase());
+              setError('');
+              setIsValid(false);
+            }}
+            placeholder="AMARI-XXXX-XXX"
+            placeholderTextColor="rgba(255,255,255,0.15)"
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+
+          {error ? (
+            <Text style={stepStyles.errorText}>{error}</Text>
+          ) : isValid ? (
+            <Text style={stepStyles.successText}>Code verified</Text>
+          ) : null}
         </MotiView>
 
         <MotiView
@@ -281,11 +330,22 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              onEnter();
+              handleValidate();
             }}
-            style={({ pressed }) => [stepStyles.enterBtn, pressed && { transform: [{ scale: 0.97 }] }]}
+            disabled={isValidating || isValid || code.length < 4}
+            style={({ pressed }) => [
+              stepStyles.enterBtn,
+              (isValidating || isValid || code.length < 4) && { opacity: 0.6 },
+              pressed && { transform: [{ scale: 0.97 }] },
+            ]}
           >
-            <Text style={stepStyles.enterBtnText}>Enter the Convergence</Text>
+            {isValidating ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={stepStyles.enterBtnText}>
+                {isValid ? 'Verified' : 'Enter the Convergence'}
+              </Text>
+            )}
           </Pressable>
 
           <Pressable onPress={onSignIn} style={{ marginTop: 14 }}>
@@ -302,7 +362,7 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
 // ─── Main Onboarding Component ──────────────────────────
 
 interface OnboardingProps {
-  onComplete: () => void;
+  onComplete: (validatedCode: string) => void;
 }
 
 export function Onboarding({ onComplete }: OnboardingProps) {
@@ -326,7 +386,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleSkip = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onComplete();
+    onComplete('');
   };
 
   const isLastStep = currentStep === totalSteps - 1;
@@ -338,7 +398,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       {currentStep === 1 && <Step1 />}
       {currentStep === 2 && <Step2 />}
       {currentStep === 3 && <Step3 />}
-      {currentStep === 4 && <Step4 onEnter={onComplete} onSignIn={onComplete} />}
+      {currentStep === 4 && <Step4 onEnter={onComplete} onSignIn={() => onComplete('')} />}
 
       {/* Navigation footer (hidden on step 0 and step 4) */}
       {currentStep > 0 && !isLastStep && (
@@ -485,29 +545,33 @@ const stepStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.45)',
     marginBottom: 28,
   },
-  codeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 32,
-  },
-  codeBox: {
-    width: 46,
-    height: 56,
-    borderRadius: 10,
+  codeFullInput: {
+    fontFamily: typography.body.medium,
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: 4,
+    color: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    textAlign: 'center',
   },
-  codeInput: {
-    fontFamily: typography.serif.medium,
-    fontSize: 26,
-    color: colors.sand,
-    fontWeight: '500',
-    width: '100%',
-    height: '100%',
+  errorText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.error,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  successText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.success,
+    marginTop: 8,
     textAlign: 'center',
   },
   enterBtn: {

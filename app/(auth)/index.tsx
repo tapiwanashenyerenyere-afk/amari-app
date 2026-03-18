@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -14,16 +14,27 @@ export default function AuthLandingScreen() {
   const router = useRouter();
   const [done, setDone] = useState(false);
   const fadeOut = useSharedValue(1);
+  const validatedCodeRef = useRef('');
 
-  const navigateToInvite = () => {
-    router.push('/(auth)/invite');
+  const navigateAfterOnboarding = () => {
+    if (validatedCodeRef.current) {
+      // Code was validated inline — go straight to register
+      router.push({
+        pathname: '/(auth)/register',
+        params: { code: validatedCodeRef.current },
+      });
+    } else {
+      // "Already a member?" sign-in flow — go to invite as fallback
+      router.push('/(auth)/invite');
+    }
   };
 
-  const handleComplete = () => {
+  const handleComplete = (validatedCode: string) => {
+    validatedCodeRef.current = validatedCode;
     // Dark-to-light transition: fade out onboarding over 500ms, then navigate
     fadeOut.value = withTiming(0, { duration: 500 }, (finished) => {
       if (finished) {
-        runOnJS(navigateToInvite)();
+        runOnJS(navigateAfterOnboarding)();
       }
     });
   };
