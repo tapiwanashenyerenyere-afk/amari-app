@@ -186,9 +186,9 @@ export default function AlignedLanding() {
             tag="See what people are building"
             title="Projects"
             subtitle="Anonymous project tiles ranked by skill alignment"
-            gradientColors={['#111111', '#2a1818', '#111128']}
-            glowColor="rgba(139, 115, 85, 0.15)"
-            glowPosition={{ x: 110, y: 60 }}
+            gradientColors={['#1C1815', '#111111', '#14120F']}
+            glowColor="rgba(196, 168, 130, 0.14)"
+            glowPosition={{ x: 130, y: 70 }}
             onPress={() => router.push('/(tabs)/aligned/projects')}
             delay={100}
           />
@@ -196,13 +196,34 @@ export default function AlignedLanding() {
             tag="Discover shared passions"
             title="Interests"
             subtitle="People who care about the same things you do"
-            gradientColors={['#1a221a', '#111111', '#111120']}
-            glowColor="rgba(92, 109, 79, 0.14)"
+            gradientColors={['#151618', '#111111', '#111114']}
+            glowColor="rgba(196, 168, 130, 0.08)"
             glowPosition={{ x: 70, y: 100 }}
             onPress={() => router.push('/(tabs)/aligned/interests')}
             delay={250}
           />
         </View>
+
+        {/* Create tile CTA */}
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+        >
+          <Pressable
+            style={styles.createBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/(tabs)/aligned/create');
+            }}
+          >
+            <Text style={styles.createBtnPlus}>+</Text>
+            <View>
+              <Text style={styles.createBtnTitle}>Add your tile</Text>
+              <Text style={styles.createBtnSub}>
+                Share a project or interest for others to discover
+              </Text>
+            </View>
+          </Pressable>
+        </Animated.View>
 
         {/* Recent Connections */}
         <View style={styles.recentSection}>
@@ -315,6 +336,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.5)',
     lineHeight: 18,
+  },
+
+  // Create tile CTA
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginHorizontal: spacing.xl,
+    marginTop: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderStyle: 'dashed',
+  },
+  createBtnPlus: {
+    fontFamily: typography.body.regular,
+    fontSize: 22,
+    color: colors.sand,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.ghost,
+    textAlign: 'center',
+    lineHeight: 34,
+  },
+  createBtnTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  createBtnSub: {
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: colors.gray,
+    marginTop: 2,
   },
 
   // Recent connections
