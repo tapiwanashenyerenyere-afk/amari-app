@@ -1,17 +1,25 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { colors, typography } from '../../lib/theme';
+import { useAuth } from '../../providers/AuthProvider';
+import { colors, typography, TIER_LEVELS, TAB_VISIBILITY } from '../../lib/theme';
 import { PulseIcon, EventsIcon, AlignedIcon, CorridorIcon, ProfileIcon } from './TabIcons';
 
 const TAB_CONFIG = [
-  { name: 'index', label: 'Pulse', Icon: PulseIcon },
-  { name: 'events', label: 'Events', Icon: EventsIcon },
-  { name: 'aligned', label: 'Aligned', Icon: AlignedIcon },
-  { name: 'corridor', label: 'Corridor', Icon: CorridorIcon },
-  { name: 'profile', label: 'Me', Icon: ProfileIcon },
+  { name: 'index', label: 'Pulse', Icon: PulseIcon, visibilityKey: 'pulse' },
+  { name: 'events', label: 'Events', Icon: EventsIcon, visibilityKey: 'events' },
+  { name: 'aligned', label: 'Aligned', Icon: AlignedIcon, visibilityKey: 'aligned' },
+  { name: 'corridor', label: 'Corridor', Icon: CorridorIcon, visibilityKey: 'corridor' },
+  { name: 'profile', label: 'Me', Icon: ProfileIcon, visibilityKey: 'profile' },
 ];
+
+const TIER_NAMES: Record<number, string> = {
+  1: 'Member',
+  2: 'Silver',
+  3: 'Platinum',
+  4: 'Laureate',
+};
 
 interface CustomTabBarProps {
   state: any;
@@ -21,6 +29,8 @@ interface CustomTabBarProps {
 
 export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { tier } = useAuth();
+  const userLevel = TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 1;
 
   // Filter to only show our 5 main tabs (skip admin, discover, network)
   const visibleRoutes = state.routes.filter((route: any) =>
@@ -33,12 +43,27 @@ export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarPro
         const tabConfig = TAB_CONFIG.find((tab) => tab.name === route.name);
         if (!tabConfig) return null;
 
-        const { Icon, label } = tabConfig;
+        const { Icon, label, visibilityKey } = tabConfig;
         const routeIndex = state.routes.findIndex((r: any) => r.name === route.name);
         const isFocused = state.index === routeIndex;
-        const color = isFocused ? colors.black : colors.grayLight;
+
+        const requiredLevel = TAB_VISIBILITY[visibilityKey] ?? 1;
+        const isLocked = userLevel < requiredLevel;
+        const tierName = TIER_NAMES[requiredLevel] || 'Member';
+
+        const baseColor = isFocused ? colors.black : colors.grayLight;
+        const tabOpacity = isLocked ? 0.25 : 1;
 
         const onPress = () => {
+          if (isLocked) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            Alert.alert(
+              `${label}`,
+              `Available from ${tierName} membership.`
+            );
+            return;
+          }
+
           const event = navigation.emit({
             type: 'tabPress',
             target: route.key,
@@ -55,15 +80,15 @@ export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarPro
           <Pressable
             key={route.key}
             onPress={onPress}
-            style={styles.tab}
+            style={[styles.tab, { opacity: tabOpacity }]}
             accessibilityRole="tab"
-            accessibilityLabel={label}
+            accessibilityLabel={isLocked ? `${label} — requires ${tierName}` : label}
             accessibilityState={{ selected: isFocused }}
-            accessibilityHint={`Navigate to ${label} tab`}
+            accessibilityHint={isLocked ? `Requires ${tierName} membership` : `Navigate to ${label} tab`}
           >
-            {isFocused && <View style={styles.activeDot} />}
-            <Icon color={color} size={18} />
-            <Text style={[styles.label, { color }]}>{label}</Text>
+            {isFocused && !isLocked && <View style={styles.activeDot} />}
+            <Icon color={baseColor} size={18} />
+            <Text style={[styles.label, { color: baseColor }]}>{label}</Text>
           </Pressable>
         );
       })}

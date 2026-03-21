@@ -27,47 +27,52 @@ export default function MutualRevealOverlay({
       <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-      <Animated.View
-        entering={ZoomIn.delay(150).duration(400).springify()}
-        style={styles.card}
-      >
-        {/* Icon */}
-        <View style={styles.iconCircle}>
-          <Text style={styles.iconY}>Y</Text>
-        </View>
-
-        <Text style={styles.cardTitle}>Mutual alignment</Text>
-        <Text style={styles.cardSub}>
-          They expressed interest in your work too. Here&apos;s who&apos;s behind
-          the project.
-        </Text>
-
-        {/* Identity reveal */}
-        <View style={styles.revealRow}>
-          <View style={styles.revealAvatar}>
-            <Text style={styles.revealInitials}>{initials}</Text>
-          </View>
-          <View>
-            <Text style={styles.revealName}>{name}</Text>
-            <Text style={styles.revealRole}>
-              {role} · {tier}
-            </Text>
-          </View>
-        </View>
-
-        {/* CTA */}
-        <Pressable
-          style={styles.ctaBtn}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            onStartConversation();
-          }}
+      {/* Card wrapper stops tap propagation to backdrop */}
+      <Pressable onPress={() => {}} style={styles.cardTouchSink}>
+        <Animated.View
+          entering={ZoomIn.delay(150).duration(400).springify()}
+          style={styles.card}
         >
-          <Text style={styles.ctaBtnText}>Start Conversation</Text>
-        </Pressable>
-      </Animated.View>
+          {/* Icon */}
+          <View style={styles.iconCircle}>
+            <Text style={styles.iconY}>Y</Text>
+          </View>
 
-      <Pressable onPress={onClose} style={styles.closeBtn}>
+          <Text style={styles.cardTitle}>Mutual alignment</Text>
+          <Text style={styles.cardSub}>
+            They expressed interest in your work too. Here&apos;s who&apos;s behind
+            the project.
+          </Text>
+
+          {/* Identity reveal */}
+          <View style={styles.revealRow}>
+            <View style={styles.revealAvatar}>
+              <Text style={styles.revealInitials}>{initials}</Text>
+            </View>
+            <View>
+              <Text style={styles.revealName}>{name}</Text>
+              <Text style={styles.revealRole}>
+                {role} · {tier}
+              </Text>
+            </View>
+          </View>
+
+          {/* CTA */}
+          <Pressable
+            style={styles.ctaBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onStartConversation();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Start conversation"
+          >
+            <Text style={styles.ctaBtnText}>Start Conversation</Text>
+          </Pressable>
+        </Animated.View>
+      </Pressable>
+
+      <Pressable onPress={onClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close" hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
         <Text style={styles.closeText}>Close</Text>
       </Pressable>
     </Animated.View>
@@ -81,10 +86,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cardTouchSink: {
+    zIndex: 2,
+  },
   card: {
     width: 280,
     backgroundColor: colors.bone,
-    borderRadius: 24,
+    borderRadius: radius.xxl,
     padding: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
@@ -158,7 +166,7 @@ const styles = StyleSheet.create({
   ctaBtn: {
     width: '100%',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: colors.black,
     alignItems: 'center',
   },
@@ -174,6 +182,6 @@ const styles = StyleSheet.create({
   closeText: {
     fontFamily: typography.body.regular,
     fontSize: 11,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.6)',
   },
 });

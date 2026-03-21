@@ -19,25 +19,16 @@ import Animated, {
 import { colors, typography, spacing, radius } from '../../../lib/theme';
 import { StaggerReveal, SectionLabel } from '../../../components/v2';
 
-// ─── Demo data (replace with real query later) ──────────
-const RECENT_CONNECTIONS = [
-  {
-    id: '1',
-    name: 'Kwame Owusu',
-    initials: 'KO',
-    color: '#2a1818',
-    via: 'Projects',
-    timeAgo: '3d ago',
-  },
-  {
-    id: '2',
-    name: 'Tara Njoku',
-    initials: 'TN',
-    color: '#1a221a',
-    via: 'Interests',
-    timeAgo: '1w ago',
-  },
-];
+// ─── Connections (real data via query — empty until populated) ──
+interface Connection {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  via: string;
+  timeAgo: string;
+}
+const RECENT_CONNECTIONS: Connection[] = [];
 
 // ─── Entry Card Component ───────────────────────────────
 function EntryCard({
@@ -81,6 +72,8 @@ function EntryCard({
           onPress();
         }}
         style={styles.entryCard}
+        accessibilityRole="button"
+        accessibilityLabel={title + '. ' + subtitle}
       >
         <LinearGradient
           colors={gradientColors}
@@ -111,7 +104,7 @@ function EntryCard({
         {/* Geometric accent — ring */}
         <View style={styles.geoRing} />
         {/* Arrow button */}
-        <View style={styles.entryArrow}>
+        <View style={styles.entryArrow} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.arrowText}>{'\u2192'}</Text>
         </View>
         {/* Content */}
@@ -214,6 +207,8 @@ export default function AlignedLanding() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push('/(tabs)/aligned/create');
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Add your tile"
           >
             <Text style={styles.createBtnPlus}>+</Text>
             <View>
@@ -318,7 +313,7 @@ const styles = StyleSheet.create({
   },
   entryTag: {
     fontFamily: typography.geo.semiBold,
-    fontSize: 9,
+    fontSize: typography.sizes.caption,
     letterSpacing: 1.8,
     textTransform: 'uppercase',
     color: colors.sandOnDark,
@@ -327,14 +322,14 @@ const styles = StyleSheet.create({
   entryTitle: {
     fontFamily: typography.serif.medium,
     fontSize: 26,
-    color: '#FFFFFF',
+    color: colors.white,
     lineHeight: 30,
     marginBottom: 4,
   },
   entrySubtitle: {
     fontFamily: typography.body.regular,
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(255,255,255,0.6)',
     lineHeight: 18,
   },
 
@@ -414,12 +409,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 6,
-    backgroundColor: 'rgba(92,109,79,0.08)',
+    backgroundColor: colors.badgeGreen,
   },
   connBadgeText: {
     fontFamily: typography.body.semiBold,
-    fontSize: 9,
-    color: '#5c6d4f',
+    fontSize: typography.sizes.caption,
+    color: colors.badgeGreenText,
   },
   emptyText: {
     fontFamily: typography.body.regular,

@@ -26,8 +26,9 @@ export function useExpressInterest() {
       }
       return { alreadyExpressed: false };
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['corridor-activity'] });
+      queryClient.invalidateQueries({ queryKey: ['corridor-interest-check'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.corridor.all });
     },
     onError: (err: Error) => {

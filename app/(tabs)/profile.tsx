@@ -48,8 +48,12 @@ export default function ProfileScreen() {
   const handleSave = useCallback(
     (value: string) => {
       if (!editField) return;
+      const parsed =
+        editField.key === 'skills' || editField.key === 'interests'
+          ? value.split(',').map((s) => s.trim()).filter(Boolean)
+          : value;
       updateProfile.mutate(
-        { [editField.key]: value },
+        { [editField.key]: parsed },
         {
           onSuccess: () => {
             setEditField(null);
@@ -198,7 +202,19 @@ export default function ProfileScreen() {
                   </View>
                 ))
               ) : (
-                <Text style={styles.projectText}>Tap to add your skills</Text>
+                <Pressable
+                  onPress={() =>
+                    setEditField({
+                      label: 'Skills (comma-separated)',
+                      key: 'skills',
+                      value: '',
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Add your skills"
+                >
+                  <Text style={styles.projectText}>Tap to add your skills</Text>
+                </Pressable>
               )}
             </View>
             <View style={styles.tagRow}>
@@ -209,7 +225,19 @@ export default function ProfileScreen() {
                   </View>
                 ))
               ) : (
-                <Text style={styles.projectText}>Tap to add your interests</Text>
+                <Pressable
+                  onPress={() =>
+                    setEditField({
+                      label: 'Interests (comma-separated)',
+                      key: 'interests',
+                      value: '',
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Add your interests"
+                >
+                  <Text style={styles.projectText}>Tap to add your interests</Text>
+                </Pressable>
               )}
             </View>
             {profile?.current_project ? (
@@ -224,6 +252,8 @@ export default function ProfileScreen() {
                   value: Array.isArray(profile?.skills) ? (profile.skills as string[]).join(', ') : '',
                 })
               }
+              accessibilityRole="button"
+              accessibilityLabel="Edit skills and interests"
             >
               <Text style={styles.editBtnText}>Edit</Text>
             </Pressable>
@@ -310,6 +340,8 @@ export default function ProfileScreen() {
               pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
             ]}
             onPress={handleSignOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
           >
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
@@ -347,12 +379,12 @@ const styles = StyleSheet.create({
   // Completion
   completionRow: { paddingHorizontal: 4, marginTop: 12 },
   completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  completionLabel: { fontFamily: typography.geo.medium, fontSize: 9, color: '#BBB', letterSpacing: 1 },
+  completionLabel: { fontFamily: typography.geo.medium, fontSize: typography.sizes.caption, color: colors.grayLight, letterSpacing: 1 },
   completionPercent: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.sand },
   // Skills section
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 16, paddingTop: 0 },
   skillTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(139,115,85,0.08)', borderWidth: 1, borderColor: 'rgba(139,115,85,0.1)' },
-  skillTagText: { fontFamily: typography.body.medium, fontSize: 11, color: '#8a7340' },
+  skillTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
   interestTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.ghost, borderWidth: 1, borderColor: colors.rule },
   interestTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.gray },
   projectText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, fontStyle: 'italic', paddingHorizontal: 16, paddingBottom: 12, lineHeight: 18 },

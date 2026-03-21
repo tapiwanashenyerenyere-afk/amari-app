@@ -16,24 +16,11 @@ import {
   FilterPills,
   Badge,
 } from '../../components/v2';
+import { CorridorOpportunity, CorridorInterest } from '../../types/database';
 
 // ─── Types ──────────────────────────────────────────────────
-interface CorridorOpportunity {
-  id: number;
-  title: string;
-  description: string | null;
-  type: string;
-  min_tier: string;
-  closing_date: string | null;
-  partner_name: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface CorridorActivityItem {
-  id: number;
-  status: string;
-  expressed_at: string;
+interface CorridorActivityItem extends Pick<CorridorInterest, 'id' | 'expressed_at'> {
+  status: CorridorInterest['status'] | 'expressed';
   opportunity: {
     id: number;
     title: string;
@@ -67,7 +54,7 @@ function daysRemaining(closingDate: string | null): number | null {
   const now = new Date();
   const close = new Date(closingDate);
   const diff = Math.ceil((close.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
+  return diff;
 }
 
 // ─── Helper: tier check ─────────────────────────────────────
@@ -85,6 +72,7 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
 
   const canAccess = meetsMinTier(tier, opportunity.min_tier);
   const days = daysRemaining(opportunity.closing_date);
+  const isExpired = days !== null && days <= 0;
   const tierLabel = TIER_BADGE_LABELS[opportunity.min_tier] || 'MEMBER+';
 
   const handlePress = useCallback(() => {
@@ -94,7 +82,7 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
 
   return (
     <WhiteCard static>
-      <View style={styles.cardInner}>
+      <View style={styles.cardInner} accessible={true} accessibilityLabel={`${opportunity.title}. ${opportunity.description || ''} ${tierLabel} tier`}>
         {/* Top row: icon + tier badge + days */}
         <View style={styles.cardHeader}>
           <View style={styles.iconBox}>
@@ -102,7 +90,9 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
           </View>
           <Text style={styles.tierBadge}>{tierLabel}</Text>
           {days !== null && (
-            <Text style={styles.daysLeft}>{days}d left</Text>
+            isExpired
+              ? <Badge>Closed</Badge>
+              : <Text style={styles.daysLeft}>{days}d left</Text>
           )}
         </View>
 
@@ -129,7 +119,11 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
         </View>
 
         {/* Action button */}
-        {alreadyExpressed ? (
+        {isExpired ? (
+          <View style={styles.expressedRow}>
+            <Text style={styles.expressedText}>Opportunity Closed</Text>
+          </View>
+        ) : alreadyExpressed ? (
           <View style={styles.expressedRow}>
             <Text style={styles.expressedText}>Interest Expressed</Text>
           </View>
@@ -190,10 +184,9 @@ export default function CorridorScreen() {
   const [filter, setFilter] = useState('All');
 
   const filterType = FILTER_TO_TYPE[filter];
-  const { data: opportunitiesRaw, isLoading } = useCorridorOpportunities(filterType);
-  const opportunities = (opportunitiesRaw ?? []) as CorridorOpportunity[];
-  const { data: activityRaw } = useCorridorActivity();
-  const activity = (activityRaw ?? []) as unknown as CorridorActivityItem[];
+  // Note: server-side filtering of expired/inactive opportunities is handled by RLS policies
+  const { data: opportunities = [], isLoading } = useCorridorOpportunities(filterType);
+  const { data: activity = [] } = useCorridorActivity() as { data: CorridorActivityItem[] | undefined };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

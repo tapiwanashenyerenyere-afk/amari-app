@@ -30,6 +30,14 @@ export const colors = {
   rule: 'rgba(0, 0, 0, 0.06)',
   overlay: 'rgba(0, 0, 0, 0.35)',
 
+  // Tier accent colors
+  tierPlatinum: '#722F37',
+  tierSilver: '#9898a0',
+
+  // Badge colors
+  badgeGreen: 'rgba(92,109,79,0.08)',
+  badgeGreenText: '#5c6d4f',
+
   // Status
   success: '#10b981',
   warning: '#f59e0b',
@@ -73,6 +81,8 @@ export const typography = {
   // Scale
   sizes: {
     screenTitle: 26,
+    alignedTitle: 32,
+    listTitle: 28,
     cardTitle: 18,
     sectionLabel: 11,     // Bumped from 10 for readability
     body: 13,
@@ -108,6 +118,7 @@ export const radius = {
   md: 14,
   lg: 16,
   xl: 20,
+  xxl: 24,
   full: 999,
 } as const;
 

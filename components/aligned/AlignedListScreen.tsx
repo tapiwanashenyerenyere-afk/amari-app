@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,36 +12,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeOut, SlideOutLeft } from 'react-native-reanimated';
+import Animated, { FadeOut } from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../lib/theme';
+import { AlignedTile as AlignedTileBase } from '../../types/database';
 import MutualRevealOverlay from './MutualRevealOverlay';
 
 // ─── Types ──────────────────────────────────────────────
-interface AlignedTile {
-  id: string;
-  type: 'project' | 'interest';
-  description: string;
-  tags: string[];
+// Extend the canonical AlignedTile with UI-specific display fields
+interface AlignedTileUI extends Pick<AlignedTileBase, 'id' | 'type' | 'description' | 'tags'> {
   tier: 'laureate' | 'platinum' | 'silver' | 'member';
   gradientKey: string;
 }
 
-// ─── Demo Data ──────────────────────────────────────────
-const PROJECT_TILES: AlignedTile[] = [
-  { id: '1', type: 'project', description: 'AI-powered regulatory compliance tool for healthcare startups', tags: ['HealthTech', 'AI/ML'], tier: 'laureate', gradientKey: 'warm' },
-  { id: '2', type: 'project', description: 'Cross-border payments infrastructure for African diaspora remittances', tags: ['Fintech', 'Payments'], tier: 'platinum', gradientKey: 'cool' },
-  { id: '3', type: 'project', description: 'Community-owned solar microgrid platform for regional communities', tags: ['CleanTech', 'Community'], tier: 'silver', gradientKey: 'green' },
-  { id: '4', type: 'project', description: 'Digital marketplace connecting African artisans with global buyers', tags: ['Culture', 'E-Commerce'], tier: 'platinum', gradientKey: 'rose' },
-  { id: '5', type: 'project', description: 'EdTech platform bridging skills gaps in emerging tech sectors', tags: ['Education', 'Tech'], tier: 'laureate', gradientKey: 'earth' },
-];
+// ─── Tile data (real data via query — empty until populated) ──
+const PROJECT_TILES: AlignedTileUI[] = [];
 
-const INTEREST_TILES: AlignedTile[] = [
-  { id: '10', type: 'interest', description: 'Ethical frameworks for deploying emerging technologies in developing markets', tags: ['Ethics', 'Tech Policy'], tier: 'laureate', gradientKey: 'cool' },
-  { id: '11', type: 'interest', description: 'Impact investing models that prioritise community ownership', tags: ['Investing', 'Impact'], tier: 'platinum', gradientKey: 'warm' },
-  { id: '12', type: 'interest', description: 'Design systems that centre African visual traditions', tags: ['Design', 'Culture'], tier: 'silver', gradientKey: 'rose' },
-  { id: '13', type: 'interest', description: 'Policy advocacy for diaspora economic participation', tags: ['Policy', 'Advocacy'], tier: 'laureate', gradientKey: 'green' },
-  { id: '14', type: 'interest', description: 'Mentorship models that scale without losing depth', tags: ['Mentorship', 'Community'], tier: 'platinum', gradientKey: 'earth' },
-];
+const INTEREST_TILES: AlignedTileUI[] = [];
 
 const PROJECT_FILTERS = ['All', 'Tech', 'Health', 'Finance', 'Culture', 'Education'];
 const INTEREST_FILTERS = ['All', 'Ethics', 'Investing', 'Design', 'Policy'];
@@ -56,10 +42,10 @@ const GRADIENTS: Record<string, [string, string]> = {
 };
 
 const TIER_COLORS: Record<string, string> = {
-  laureate: '#C4A882',
-  platinum: '#722F37',
-  silver: '#9898a0',
-  member: '#767676',
+  laureate: colors.sandOnDark,
+  platinum: colors.tierPlatinum,
+  silver: colors.tierSilver,
+  member: colors.gray,
 };
 
 // ─── Tile Component ─────────────────────────────────────
@@ -68,7 +54,7 @@ function TileItem({
   onSkip,
   onAlign,
 }: {
-  tile: AlignedTile;
+  tile: AlignedTileUI;
   onSkip: (id: string) => void;
   onAlign: (id: string) => void;
 }) {
@@ -77,7 +63,7 @@ function TileItem({
 
   return (
     <Animated.View
-      exiting={FadeOut.duration(300).withCallback(() => {})}
+      exiting={FadeOut.duration(300)}
       style={styles.tileRow}
     >
       {/* Thumbnail */}
@@ -137,6 +123,8 @@ function TileItem({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onSkip(tile.id);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Skip this tile"
           >
             <Text style={styles.btnSkipText}>Skip</Text>
           </Pressable>
@@ -146,6 +134,8 @@ function TileItem({
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               onAlign(tile.id);
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Express interest in this tile"
           >
             <Text style={styles.btnAlignText}>Align</Text>
           </Pressable>
@@ -169,6 +159,8 @@ function FilterPill({
     <Pressable
       onPress={onPress}
       style={[styles.pill, active && styles.pillActive]}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter by ${label}`}
     >
       <Text style={[styles.pillText, active && styles.pillTextActive]}>
         {label}
@@ -187,21 +179,29 @@ export default function AlignedListScreen({
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
   const [showReveal, setShowReveal] = useState(false);
+  const [revealData, setRevealData] = useState<{ name: string; initials: string; role: string; tier: string } | null>(null);
 
   const tiles = mode === 'projects' ? PROJECT_TILES : INTEREST_TILES;
   const filters = mode === 'projects' ? PROJECT_FILTERS : INTEREST_FILTERS;
-  const [visibleTiles, setVisibleTiles] = useState(tiles);
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+
+  const visibleTiles = useMemo(() => {
+    return tiles.filter((t) => {
+      if (skippedIds.has(t.id)) return false;
+      if (activeFilter === 'All') return true;
+      return t.tags.some((tag) => tag.toLowerCase().includes(activeFilter.toLowerCase()));
+    });
+  }, [tiles, skippedIds, activeFilter]);
 
   const handleSkip = useCallback(
     (id: string) => {
-      setVisibleTiles((prev) => prev.filter((t) => t.id !== id));
+      setSkippedIds((prev) => new Set(prev).add(id));
     },
     []
   );
 
-  const handleAlign = useCallback((id: string) => {
-    // Demo: show mutual reveal on the third align
-    setShowReveal(true);
+  const handleAlign = useCallback((_id: string) => {
+    // TODO: Check server for mutual alignment, then set revealData + setShowReveal(true)
   }, []);
 
   const title = mode === 'projects' ? 'Projects' : 'Interests';
@@ -217,6 +217,8 @@ export default function AlignedListScreen({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.back();
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Text style={styles.backIcon}>{'\u2039'}</Text>
         </Pressable>
@@ -254,15 +256,20 @@ export default function AlignedListScreen({
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No tiles yet. Create the first one.</Text>
+          </View>
+        }
       />
 
-      {/* Mutual Reveal Overlay */}
-      {showReveal && (
+      {/* Mutual Reveal Overlay — only shown when real mutual alignment data triggers it */}
+      {showReveal && revealData && (
         <MutualRevealOverlay
-          name="Dr. Amara Kofi"
-          initials="AK"
-          role="Health-Tech Founder"
-          tier="Laureate"
+          name={revealData.name}
+          initials={revealData.initials}
+          role={revealData.role}
+          tier={revealData.tier}
           onStartConversation={() => {
             setShowReveal(false);
             Alert.alert(
@@ -415,7 +422,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   tagTextSkill: {
-    color: '#8a7340',
+    color: colors.sand,
   },
   tagTextContext: {
     color: colors.gray,
@@ -427,7 +434,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   btnSkip: {
-    paddingVertical: 7,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.03)',
@@ -449,5 +456,17 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.semiBold,
     fontSize: 11,
     color: colors.bone,
+  },
+
+  // Empty state
+  emptyState: {
+    paddingVertical: 48,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: colors.gray,
+    textAlign: 'center',
   },
 });

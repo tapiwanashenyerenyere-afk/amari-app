@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { useAuthStore } from '../stores/auth';
+import { useAuth } from '../providers/AuthProvider';
 
 interface CreateTileInput {
   type: 'project' | 'interest';
@@ -13,7 +15,7 @@ interface CreateTileInput {
 
 export function useCreateTile() {
   const [loading, setLoading] = useState(false);
-  const member = useAuthStore((s) => s.member);
+  const { user } = useAuth();
 
   /**
    * Launch image picker — returns the local URI or null
@@ -47,16 +49,16 @@ export function useCreateTile() {
    */
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
-      const fileName = `${member?.id || 'anon'}-${Date.now()}.jpg`;
+      const fileName = `${user?.id || 'anon'}-${Date.now()}.jpg`;
       const filePath = `aligned-tiles/${fileName}`;
 
-      // Read file as blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
+      // Read file as base64 and upload
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64',
+      });
       const { error } = await supabase.storage
         .from('uploads')
-        .upload(filePath, blob, {
+        .upload(filePath, decode(base64), {
           contentType: 'image/jpeg',
           upsert: false,
         });
@@ -81,7 +83,7 @@ export function useCreateTile() {
    * Create a tile — upload image if provided, then insert row
    */
   const createTile = async (input: CreateTileInput): Promise<boolean> => {
-    if (!member?.id) {
+    if (!user?.id) {
       Alert.alert('Error', 'You must be signed in to create a tile.');
       return false;
     }
@@ -98,10 +100,14 @@ export function useCreateTile() {
 
       if (input.imageUri) {
         imageUrl = await uploadImage(input.imageUri);
+        if (!imageUrl) {
+          Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
+          return false;
+        }
       }
 
       const { error } = await supabase.from('aligned_tiles').insert({
-        user_id: member.id,
+        user_id: user!.id,
         type: input.type,
         description: input.description.trim(),
         tags: input.tags,

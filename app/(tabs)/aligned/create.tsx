@@ -100,6 +100,8 @@ export default function CreateTileScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.back();
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Text style={styles.backIcon}>{'\u2039'}</Text>
           </Pressable>
@@ -121,6 +123,8 @@ export default function CreateTileScreen() {
                 setTileType('project');
                 setSelectedTags([]);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Select project type"
             >
               <Text
                 style={[styles.typeBtnText, tileType === 'project' && styles.typeBtnTextActive]}
@@ -134,6 +138,8 @@ export default function CreateTileScreen() {
                 setTileType('interest');
                 setSelectedTags([]);
               }}
+              accessibilityRole="button"
+              accessibilityLabel="Select interest type"
             >
               <Text
                 style={[styles.typeBtnText, tileType === 'interest' && styles.typeBtnTextActive]}
@@ -147,7 +153,7 @@ export default function CreateTileScreen() {
           <Text style={styles.label}>
             Image <Text style={styles.labelHint}>(optional)</Text>
           </Text>
-          <Pressable style={styles.imageUpload} onPress={handlePickImage}>
+          <Pressable style={styles.imageUpload} onPress={handlePickImage} accessibilityRole="button" accessibilityLabel="Upload image">
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.imagePreview} />
             ) : (
@@ -196,6 +202,8 @@ export default function CreateTileScreen() {
                   key={tag}
                   style={[styles.tagPill, active && styles.tagPillActive]}
                   onPress={() => toggleTag(tag)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${active ? 'Remove' : 'Add'} ${tag} tag`}
                 >
                   <Text style={[styles.tagPillText, active && styles.tagPillTextActive]}>
                     {tag}
@@ -210,6 +218,8 @@ export default function CreateTileScreen() {
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={loading ? 'Creating tile' : 'Create tile'}
           >
             <Text style={styles.submitBtnText}>
               {loading ? 'Creating...' : 'Create Tile'}
@@ -309,12 +319,12 @@ const styles = StyleSheet.create({
   },
   imagePlaceholderIcon: {
     fontSize: 24,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.6)',
   },
   imagePlaceholderText: {
     fontFamily: typography.body.regular,
     fontSize: 10,
-    color: 'rgba(255,255,255,0.25)',
+    color: 'rgba(255,255,255,0.6)',
   },
 
   // Text input
