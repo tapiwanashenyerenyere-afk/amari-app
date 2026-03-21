@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../providers/AuthProvider';
 import { useMyProfile, useUpdateProfile } from '../../queries/members';
 import { supabase } from '../../lib/supabase';
@@ -18,12 +19,30 @@ import {
   StaggerReveal,
 } from '../../components/v2';
 import { EditFieldModal } from '../../components/EditFieldModal';
+import { useCorridorActivity } from '../../hooks/useCorridorInterest';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { session, tier } = useAuth();
+  const { session, user, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const updateProfile = useUpdateProfile();
+  const { data: corridorActivity } = useCorridorActivity();
+
+  // Query aligned tiles for current user
+  const { data: myTiles } = useQuery({
+    queryKey: ['my-aligned-tiles', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('aligned_tiles')
+        .select('id, type, description, is_active')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
   const [editField, setEditField] = useState<{ label: string; key: string; value: string } | null>(null);
 
   const handleSave = useCallback(
@@ -56,9 +75,14 @@ export default function ProfileScreen() {
   const profileCompletion = useMemo(() => {
     if (!profile) return 0;
     let filled = 0;
-    const fields = ['full_name', 'bio', 'company', 'industry', 'city'];
+    const fields = ['full_name', 'bio', 'company', 'industry', 'city', 'skills', 'interests'];
     fields.forEach((f) => {
-      if (profile[f as keyof typeof profile]) filled++;
+      const val = profile[f as keyof typeof profile];
+      if (Array.isArray(val)) {
+        if (val.length > 0) filled++;
+      } else if (val) {
+        filled++;
+      }
     });
     return Math.round((filled / fields.length) * 100);
   }, [profile]);
@@ -118,7 +142,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Barcode */}
-          <Barcode memberId={`AMARI-2026-${profile?.id ? profile.id.slice(-4).toUpperCase() : '0000'}`} />
+          <Barcode memberId={profile?.display_id || `AMARI-2026-${profile?.id?.slice(-4).toUpperCase() || '0000'}`} />
 
           {/* Profile completion */}
           <View style={styles.completionRow}>
@@ -161,6 +185,122 @@ export default function ProfileScreen() {
                 setEditField({ label: 'Open To', key: 'bio', value: profile?.bio || '' })
               }
             />
+          </WhiteCard>
+
+          {/* Skills & Interests */}
+          <SectionLabel>Skills & Interests</SectionLabel>
+          <WhiteCard static>
+            <View style={styles.tagRow}>
+              {(profile?.skills as string[] | undefined)?.length ? (
+                (profile.skills as string[]).map((skill: string) => (
+                  <View key={skill} style={styles.skillTag}>
+                    <Text style={styles.skillTagText}>{skill}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.projectText}>Tap to add your skills</Text>
+              )}
+            </View>
+            <View style={styles.tagRow}>
+              {(profile?.interests as string[] | undefined)?.length ? (
+                (profile.interests as string[]).map((interest: string) => (
+                  <View key={interest} style={styles.interestTag}>
+                    <Text style={styles.interestTagText}>{interest}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.projectText}>Tap to add your interests</Text>
+              )}
+            </View>
+            {profile?.current_project ? (
+              <Text style={styles.projectText}>{profile.current_project as string}</Text>
+            ) : null}
+            <Pressable
+              style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.6 }]}
+              onPress={() =>
+                setEditField({
+                  label: 'Skills (comma-separated)',
+                  key: 'skills',
+                  value: Array.isArray(profile?.skills) ? (profile.skills as string[]).join(', ') : '',
+                })
+              }
+            >
+              <Text style={styles.editBtnText}>Edit</Text>
+            </Pressable>
+          </WhiteCard>
+
+          {/* My Tiles */}
+          <SectionLabel>My Tiles</SectionLabel>
+          <WhiteCard static>
+            {myTiles && myTiles.length > 0 ? (
+              <>
+                <Text style={[styles.completionLabel, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }]}>
+                  {myTiles.filter((t) => t.is_active).length} ACTIVE TILES
+                </Text>
+                {myTiles.map((tile) => (
+                  <View key={tile.id} style={styles.tileRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.tileType}>{tile.type || 'PROJECT'}</Text>
+                      <Text style={styles.tileDesc} numberOfLines={1}>
+                        {tile.description || 'Untitled tile'}
+                      </Text>
+                    </View>
+                    <Badge>{tile.is_active ? 'ACTIVE' : 'PAUSED'}</Badge>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <Text style={[styles.projectText, { paddingTop: 14 }]}>
+                Create your first tile on the Aligned tab
+              </Text>
+            )}
+          </WhiteCard>
+
+          {/* Corridor Activity */}
+          <SectionLabel>Corridor Activity</SectionLabel>
+          <WhiteCard static>
+            {corridorActivity && corridorActivity.length > 0 ? (
+              corridorActivity.map((item: Record<string, unknown>) => {
+                const opp = item.opportunity as { id: number; title: string; type: string; closing_date: string; min_tier: string } | null;
+                const status = (item.status as string) || 'pending';
+                const itemId = item.id as string;
+                const expressedAt = item.expressed_at as string | null;
+                const statusColors: Record<string, { bg: string; text: string }> = {
+                  pending: { bg: 'rgba(0,0,0,0.05)', text: colors.gray },
+                  reviewed: { bg: 'rgba(139,115,85,0.1)', text: colors.sand },
+                  accepted: { bg: 'rgba(16,185,129,0.1)', text: colors.success },
+                  declined: { bg: 'rgba(239,68,68,0.1)', text: colors.error },
+                };
+                const sc = statusColors[status] || statusColors.pending;
+                return (
+                  <View key={itemId} style={styles.activityRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.activityTitle} numberOfLines={1}>
+                        {opp?.title || 'Opportunity'}
+                      </Text>
+                      <Text style={styles.activityDate}>
+                        {expressedAt
+                          ? new Date(expressedAt).toLocaleDateString('en-AU', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
+                          : ''}
+                      </Text>
+                    </View>
+                    <View style={[styles.activityBadge, { backgroundColor: sc.bg }]}>
+                      <Text style={[styles.activityBadgeText, { color: sc.text }]}>
+                        {status.toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={[styles.projectText, { paddingTop: 14 }]}>
+                Express interest in opportunities on the Corridor tab
+              </Text>
+            )}
           </WhiteCard>
 
           {/* Sign out */}
@@ -209,6 +349,25 @@ const styles = StyleSheet.create({
   completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   completionLabel: { fontFamily: typography.geo.medium, fontSize: 9, color: '#BBB', letterSpacing: 1 },
   completionPercent: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.sand },
+  // Skills section
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 16, paddingTop: 0 },
+  skillTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(139,115,85,0.08)', borderWidth: 1, borderColor: 'rgba(139,115,85,0.1)' },
+  skillTagText: { fontFamily: typography.body.medium, fontSize: 11, color: '#8a7340' },
+  interestTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.ghost, borderWidth: 1, borderColor: colors.rule },
+  interestTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.gray },
+  projectText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, fontStyle: 'italic', paddingHorizontal: 16, paddingBottom: 12, lineHeight: 18 },
+  editBtn: { paddingHorizontal: 16, paddingBottom: 14, alignSelf: 'flex-start' as const },
+  editBtnText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
+  // Tiles section
+  tileRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: colors.rule },
+  tileType: { fontFamily: typography.geo.medium, fontSize: 9, color: colors.sand, letterSpacing: 1, textTransform: 'uppercase' as const },
+  tileDesc: { fontFamily: typography.body.regular, fontSize: 12, color: colors.black, marginTop: 2 },
+  // Activity section
+  activityRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.rule },
+  activityTitle: { fontFamily: typography.body.medium, fontSize: 13, color: colors.black },
+  activityDate: { fontFamily: typography.body.regular, fontSize: 10, color: colors.grayLight, marginTop: 2 },
+  activityBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 },
+  activityBadgeText: { fontFamily: typography.body.semiBold, fontSize: 9 },
   // Sign out
   signOutBtn: {
     marginTop: 10, paddingVertical: 12, borderRadius: radius.md,

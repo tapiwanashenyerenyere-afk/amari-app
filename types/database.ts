@@ -21,6 +21,9 @@ export interface Member {
   industry: string | null;
   city: string | null;
   company: string | null;
+  skills: string[];
+  interests: string[];
+  current_project: string | null;
   title: string | null;
   consent_given_at: string | null;
   consent_version: string | null;
@@ -117,4 +120,37 @@ export interface Notification {
   data: any;
   read_at: string | null;
   created_at: string;
+}
+
+export interface CorridorInterest {
+  id: string;
+  member_id: string;
+  opportunity_id: number;
+  status: 'pending' | 'reviewed' | 'accepted' | 'declined';
+  expressed_at: string;
+  reviewed_at: string | null;
+}
+
+export interface AlignedTile {
+  id: string;
+  user_id: string;
+  type: 'project' | 'interest';
+  description: string;
+  image_url: string | null;
+  tags: string[];
+  location: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Connection {
+  id: string;
+  user_a: string;
+  user_b: string;
+  matched_via: 'project' | 'interest';
+  tile_a_id: string | null;
+  tile_b_id: string | null;
+  status: 'mutual' | 'archived';
+  connected_at: string;
 }
