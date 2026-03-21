@@ -3,8 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MotiView } from 'moti';
-import { useCorridorOpportunities } from '../../queries/corridor';
-import { useExpressInterest, useCorridorActivity, useHasExpressedInterest } from '../../hooks/useCorridorInterest';
+import { useCorridorOpportunities, useExpressInterest, useCorridorActivity, useHasExpressedInterest } from '../../hooks/useCorridorInterest';
 import { useAuth } from '../../providers/AuthProvider';
 import { colors, typography, spacing, radius, TIER_LEVELS, MembershipTier } from '../../lib/theme';
 import {

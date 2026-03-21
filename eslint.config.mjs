@@ -4,8 +4,10 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   {
+    ignores: ['node_modules/**', 'dist/**', '.expo/**'],
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['node_modules/**', 'dist/**', '.expo/**', 'babel.config.js'],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: 2022,

@@ -123,10 +123,11 @@ export interface Notification {
 }
 
 export interface CorridorInterest {
-  id: string;
+  id: number;
   member_id: string;
   opportunity_id: number;
   status: 'pending' | 'reviewed' | 'accepted' | 'declined';
+  message: string | null;
   expressed_at: string;
   reviewed_at: string | null;
 }
@@ -137,6 +138,7 @@ export interface AlignedTile {
   type: 'project' | 'interest';
   description: string;
   image_url: string | null;
+  image_path: string | null;
   tags: string[];
   location: string | null;
   is_active: boolean;

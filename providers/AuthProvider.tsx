@@ -45,10 +45,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const { tier, isAdmin } = extractTierFromSession(session);
       setState(prev => ({ ...prev, session, user: session?.user ?? null, tier, isAdmin, isLoading: false }));
 
+      if (event === 'SIGNED_IN') {
+        queryClient.invalidateQueries();
+      }
+
       if (event === 'TOKEN_REFRESHED') {
         queryClient.invalidateQueries({ queryKey: queryKeys.corridor.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.aligned.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.member.me });
       }
 
       if (event === 'SIGNED_OUT') {

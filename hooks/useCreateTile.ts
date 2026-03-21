@@ -45,12 +45,12 @@ export function useCreateTile() {
   };
 
   /**
-   * Upload image to Supabase Storage, returns public URL
+   * Upload image to Supabase Storage, returns the storage path (not URL)
    */
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
-      const fileName = `${user?.id || 'anon'}-${Date.now()}.jpg`;
-      const filePath = `aligned-tiles/${fileName}`;
+      const fileName = `${Date.now()}.jpg`;
+      const filePath = `aligned-tiles/${user!.id}/${fileName}`;
 
       // Read file as base64 and upload
       const base64 = await FileSystem.readAsStringAsync(uri, {
@@ -68,11 +68,7 @@ export function useCreateTile() {
         return null;
       }
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('uploads').getPublicUrl(filePath);
-
-      return publicUrl;
+      return filePath;
     } catch (err) {
       console.error('Upload failed:', err);
       return null;
@@ -96,11 +92,11 @@ export function useCreateTile() {
     setLoading(true);
 
     try {
-      let imageUrl: string | null = null;
+      let imagePath: string | null = null;
 
       if (input.imageUri) {
-        imageUrl = await uploadImage(input.imageUri);
-        if (!imageUrl) {
+        imagePath = await uploadImage(input.imageUri);
+        if (!imagePath) {
           Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
           return false;
         }
@@ -111,12 +107,17 @@ export function useCreateTile() {
         type: input.type,
         description: input.description.trim(),
         tags: input.tags,
-        image_url: imageUrl,
+        image_url: null,
+        image_path: imagePath,
         is_active: true,
       });
 
       if (error) {
         console.error('Insert error:', error);
+        // Clean up uploaded file if DB insert fails
+        if (imagePath) {
+          await supabase.storage.from('uploads').remove([imagePath]);
+        }
         Alert.alert('Error', 'Could not create tile. Please try again.');
         return false;
       }

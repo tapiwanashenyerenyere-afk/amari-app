@@ -2,7 +2,48 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
-import { queryKeys } from '../lib/queryClient';
+import { queryKeys, staleTimes } from '../lib/queryClient';
+
+// Fetch corridor opportunities (optionally filtered by type)
+export function useCorridorOpportunities(type?: string) {
+  return useQuery({
+    queryKey: queryKeys.corridor.list(type),
+    queryFn: async () => {
+      let query = supabase
+        .from('corridor_opportunities')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (type) {
+        query = query.eq('type', type);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    staleTime: staleTimes.corridor,
+  });
+}
+
+// Fetch a single corridor opportunity by ID
+export function useCorridorDetail(id: number) {
+  return useQuery({
+    queryKey: queryKeys.corridor.detail(id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('corridor_opportunities')
+        .select('*, corridor_interests(count)')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: staleTimes.corridor,
+    enabled: !!id,
+  });
+}
 
 // Express interest in an opportunity
 export function useExpressInterest() {

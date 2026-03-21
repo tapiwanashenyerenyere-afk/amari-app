@@ -62,19 +62,17 @@ export function useMyRsvps() {
 }
 
 export function useRsvpToEvent() {
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (eventId: number) => {
       const { data, error } = await supabase.rpc('rsvp_to_event', {
         p_event_id: eventId,
-        p_member_id: user!.id,
       });
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.events.all });
     },
   });
