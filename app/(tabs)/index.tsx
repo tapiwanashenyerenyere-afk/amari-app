@@ -20,6 +20,8 @@ import {
   StaggerReveal,
 } from '../../components/v2';
 import { BreathingDot } from '../../components/v2/BreathingDot';
+import { ExploreCarousel, QuickActions } from '../../components/pulse';
+import { useExploreFeed } from '../../hooks/useExploreFeed';
 
 const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
 
@@ -45,6 +47,7 @@ export default function PulseScreen() {
   const { data: profile } = useMyProfile();
   const { data: pulse } = useLatestPulse();
   const { data: events } = useEvents('upcoming');
+  const explore = useExploreFeed();
 
   const firstName = useMemo(() => {
     if (profile?.full_name) {
@@ -75,11 +78,24 @@ export default function PulseScreen() {
         showsVerticalScrollIndicator={false}
       >
         <StaggerReveal>
-          {/* Greeting */}
+          {/* Greeting + Explore */}
           <View>
-            <Text style={styles.date}>{formatDate()}</Text>
-            <Text style={styles.greeting} accessibilityRole="header">{getGreeting()}, {firstName}</Text>
-            <Badge>{tierLabel}</Badge>
+            <Text style={styles.timeLabel}>{getGreeting()}</Text>
+            <Text style={styles.exploreTitle} accessibilityRole="header">Explore</Text>
+          </View>
+        </StaggerReveal>
+
+        {/* Explore Carousel — outside StaggerReveal for full-bleed scroll */}
+        <ExploreCarousel tiles={explore.tiles} isLoading={explore.isLoading} />
+
+        <StaggerReveal>
+          {/* Quick Actions */}
+          <View style={{ paddingHorizontal: spacing.xl, marginTop: 20 }}>
+            <QuickActions
+              matchCount={0}
+              opportunityCount={0}
+              eventCount={upcomingEvents.length}
+            />
           </View>
 
           {/* Divider */}
@@ -173,6 +189,8 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: 88 },
   date: { fontFamily: typography.mono.regular, fontSize: 11, color: colors.sand, letterSpacing: 1.5, marginBottom: 3 },
+  timeLabel: { fontFamily: typography.body.regular, fontSize: 12, color: colors.sand, marginBottom: 4 },
+  exploreTitle: { fontFamily: typography.serif.medium, fontSize: 30, color: colors.black, letterSpacing: -0.3, marginBottom: 16 },
   greeting: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, lineHeight: 30, letterSpacing: -0.3 },
   rule: { height: 1, backgroundColor: colors.rule, marginVertical: 14 },
   pulseIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
