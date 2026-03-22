@@ -75,7 +75,7 @@ Please do one of the following for package `com.amari.mobile`:
 
 OR
 
-2. Upload the Google Play service-account JSON into Expo/EAS Android submit credentials for this project if you have dashboard access and confirm the credential is attached to the correct app.
+2. If you only have Expo/EAS dashboard access, upload the Google Play service-account JSON into Expo/EAS Android submit credentials for this project and tell me when it is attached to the correct app. The repo is currently wired for the GitHub secret path, so I will make the small follow-up config change after you confirm the dashboard credential is in place.
 
 Important context:
 - Expo account: `t.jeremy.n`
