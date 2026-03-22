@@ -51,6 +51,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start local Supabase
+        env:
+          SUPABASE_AUTH_APPLE_CLIENT_ID: ''
+          SUPABASE_AUTH_APPLE_SECRET: ''
+          SUPABASE_AUTH_GOOGLE_CLIENT_ID: ''
+          SUPABASE_AUTH_GOOGLE_SECRET: ''
+        run: npx supabase start
+
       - name: Reset local Supabase
         env:
           SUPABASE_AUTH_APPLE_CLIENT_ID: ''
