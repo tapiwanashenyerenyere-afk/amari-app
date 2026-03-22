@@ -15,7 +15,6 @@ import {
   SectionLabel,
   EventRow,
   ProgressBar,
-  AvatarStack,
   StaggerReveal,
 } from '../../components/v2';
 import { BreathingDot } from '../../components/v2/BreathingDot';
@@ -52,6 +51,10 @@ export default function PulseScreen() {
   }, [profile]);
 
   const upcomingEvents = events?.slice(0, 3) || [];
+  const pulseSummary =
+    typeof pulse?.summary_content === 'object' && pulse?.summary_content !== null
+      ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
+      : pulse?.summary_content;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -70,6 +73,13 @@ export default function PulseScreen() {
 
         {/* Explore Carousel — outside StaggerReveal for full-bleed scroll */}
         <ExploreCarousel tiles={explore.tiles} isLoading={explore.isLoading} />
+        {!explore.isLoading && explore.tiles.length === 0 ? (
+          <View style={{ paddingHorizontal: spacing.xl }}>
+            <WhiteCard static>
+              <Text style={styles.emptyText}>Explore updates are coming soon.</Text>
+            </WhiteCard>
+          </View>
+        ) : null}
 
         <StaggerReveal>
           {/* Quick Actions */}
@@ -86,24 +96,26 @@ export default function PulseScreen() {
 
           {/* The Pulse — Editorial Hero */}
           <SectionLabel>The Pulse</SectionLabel>
-          <HeroCard onPress={() => {}}>
-            <View style={styles.pulseIndicator}>
-              <BreathingDot size={5} />
-              <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
-            </View>
-            <Text style={styles.pulseHeadline}>
-              {pulse?.headline || 'What It Means to\nBe an Alchemist'}
-            </Text>
-            <Text style={styles.pulseDesc}>
-              {(typeof pulse?.summary_content === 'object' && pulse?.summary_content !== null
-                ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
-                : pulse?.summary_content) || 'AMARI exists for the people who refuse to wait for permission. Not the loudest in the room — the ones who change what the room looks like. We call them alchemists. Founders who build before the market believes. Operators who turn disorder into systems. The ones who define what comes next, not what came before.'}
-            </Text>
-            <View style={styles.pulseFooter}>
-              <Text style={styles.pulseRead}>3 min read</Text>
-              <Text style={styles.pulseLink}>Read →</Text>
-            </View>
-          </HeroCard>
+          {pulse?.headline ? (
+            <HeroCard onPress={() => {}}>
+              <View style={styles.pulseIndicator}>
+                <BreathingDot size={5} />
+                <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
+              </View>
+              <Text style={styles.pulseHeadline}>{pulse.headline}</Text>
+              {pulseSummary ? (
+                <Text style={styles.pulseDesc}>{pulseSummary}</Text>
+              ) : null}
+              <View style={styles.pulseFooter}>
+                <Text style={styles.pulseRead}>3 min read</Text>
+                <Text style={styles.pulseLink}>Read →</Text>
+              </View>
+            </HeroCard>
+          ) : (
+            <WhiteCard static>
+              <Text style={styles.emptyText}>The next Pulse editorial is coming soon.</Text>
+            </WhiteCard>
+          )}
 
           {/* Upcoming Events */}
           <SectionLabel>Upcoming</SectionLabel>
@@ -139,7 +151,6 @@ export default function PulseScreen() {
               <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
               <Text style={styles.featuredMeta}>May 2 · Plaza Ballroom, 191 Collins St · Black Tie</Text>
               <View style={styles.featuredFooter}>
-                <AvatarStack initials={['A', 'K', 'N']} extra={12} />
                 <Text style={styles.featuredLink}>Details →</Text>
               </View>
             </View>

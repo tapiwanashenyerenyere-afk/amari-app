@@ -48,12 +48,19 @@ export interface AlignedInterestResult {
   error?: string;
 }
 
-export function useAlignedDiscoveryTiles(type: 'project' | 'interest') {
+export function useAlignedDiscoveryTiles(
+  type: 'project' | 'interest',
+  options?: { enabled?: boolean; limit?: number },
+) {
+  const enabled = options?.enabled ?? true;
+  const limit = options?.limit ?? 40;
+
   return useQuery({
-    queryKey: queryKeys.aligned.discovery(type),
+    queryKey: queryKeys.aligned.discovery(type, limit),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('aligned_discovery_tiles', {
         p_type: type,
+        p_limit: limit,
       });
 
       if (error) {
@@ -62,6 +69,7 @@ export function useAlignedDiscoveryTiles(type: 'project' | 'interest') {
 
       return (data ?? []) as AlignedDiscoveryTile[];
     },
+    enabled,
     staleTime: staleTimes.aligned,
   });
 }

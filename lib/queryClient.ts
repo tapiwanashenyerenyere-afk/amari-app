@@ -33,7 +33,8 @@ export const queryKeys = {
   },
   aligned: {
     all: ['aligned'] as const,
-    discovery: (type: 'project' | 'interest') => [...queryKeys.aligned.all, 'discovery', type] as const,
+    discovery: (type: 'project' | 'interest', limit?: number) =>
+      [...queryKeys.aligned.all, 'discovery', type, limit] as const,
     connections: (limit?: number) => [...queryKeys.aligned.all, 'connections', limit] as const,
     myTiles: () => [...queryKeys.aligned.all, 'my-tiles'] as const,
   },

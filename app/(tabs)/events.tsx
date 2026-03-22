@@ -8,7 +8,6 @@ import {
   WhiteCard,
   EventRow,
   FilterPills,
-  AvatarStack,
   StaggerReveal,
 } from '../../components/v2';
 
@@ -32,7 +31,7 @@ export default function EventsScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Events</Text>
-            <Text style={styles.count}>{eventsList.length || 4} upcoming</Text>
+            <Text style={styles.count}>{eventsList.length} upcoming</Text>
           </View>
 
           {/* Filter pills */}
@@ -68,14 +67,14 @@ export default function EventsScreen() {
           {/* Event list */}
           {eventsList.length > 0 ? (
             eventsList.map((event: any, i: number) => {
-              const date = new Date(event.event_date || event.date);
+              const date = event.starts_at ? new Date(event.starts_at) : null;
               return (
                 <EventRow
                   key={event.id || i}
-                  day={date.getDate().toString().padStart(2, '0')}
-                  month={date.toLocaleString('en-US', { month: 'short' }).toUpperCase()}
+                  day={date ? date.getDate().toString().padStart(2, '0') : '--'}
+                  month={date ? date.toLocaleString('en-US', { month: 'short' }).toUpperCase() : 'TBA'}
                   title={event.title}
-                  meta={[event.location, event.type].filter(Boolean).join(' · ')}
+                  meta={[event.venue_name, event.type].filter(Boolean).join(' · ')}
                   tier={event.min_tier?.toUpperCase().slice(0, 4)}
                   dimDate={i > 0}
                   onPress={() => {}}

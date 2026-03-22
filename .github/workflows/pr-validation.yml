@@ -1,0 +1,60 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - redesign/v2-blank-street
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint And Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+  supabase-reset:
+    name: Verify Supabase Reset
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reset local Supabase
+        env:
+          SUPABASE_AUTH_APPLE_CLIENT_ID: ''
+          SUPABASE_AUTH_APPLE_SECRET: ''
+          SUPABASE_AUTH_GOOGLE_CLIENT_ID: ''
+          SUPABASE_AUTH_GOOGLE_SECRET: ''
+        run: npx supabase db reset --local
