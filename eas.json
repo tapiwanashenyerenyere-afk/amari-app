@@ -6,6 +6,7 @@
   "build": {
     "development": {
       "developmentClient": true,
+      "channel": "development",
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
@@ -13,6 +14,7 @@
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk",
@@ -28,6 +30,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "android": {
         "credentialsSource": "local"
       },
@@ -40,10 +43,16 @@
     }
   },
   "submit": {
-    "production": {
+    "internal": {
       "android": {
         "serviceAccountKeyPath": "./google-services.json",
         "track": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-services.json",
+        "track": "production"
       }
     }
   }
