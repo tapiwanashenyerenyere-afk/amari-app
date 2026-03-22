@@ -1,20 +1,19 @@
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useAuth } from '../../providers/AuthProvider';
 import { useLatestPulse } from '../../queries/pulse';
 import { useEvents } from '../../queries/events';
 import { useMyProfile } from '../../queries/members';
+import { useAlignedConnections } from '../../queries/aligned';
+import { useCorridorOpportunities } from '../../hooks/useCorridorInterest';
 import { colors, typography, spacing, radius } from '../../lib/theme';
-import { TIER_DISPLAY_NAMES } from '../../lib/theme';
 import {
   WhiteCard,
   HeroCard,
   SectionLabel,
   EventRow,
-  Badge,
   ProgressBar,
   AvatarStack,
   StaggerReveal,
@@ -32,31 +31,15 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function formatDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).toUpperCase();
-}
-
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { session, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const { data: pulse } = useLatestPulse();
   const { data: events } = useEvents('upcoming');
+  const { data: alignedConnections = [] } = useAlignedConnections(12);
+  const { data: corridorOpportunities = [] } = useCorridorOpportunities();
   const explore = useExploreFeed();
-
-  const firstName = useMemo(() => {
-    if (profile?.full_name) {
-      return profile.full_name.split(' ')[0];
-    }
-    return 'there';
-  }, [profile]);
-
-  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
 
   const profileCompletion = useMemo(() => {
     if (!profile) return 0;
@@ -92,8 +75,8 @@ export default function PulseScreen() {
           {/* Quick Actions */}
           <View style={{ paddingHorizontal: spacing.xl, marginTop: 20 }}>
             <QuickActions
-              matchCount={0}
-              opportunityCount={0}
+              matchCount={alignedConnections.length}
+              opportunityCount={corridorOpportunities.length}
               eventCount={upcomingEvents.length}
             />
           </View>
@@ -112,7 +95,9 @@ export default function PulseScreen() {
               {pulse?.headline || 'What It Means to\nBe an Alchemist'}
             </Text>
             <Text style={styles.pulseDesc}>
-              {pulse?.summary_content || 'AMARI exists for the people who refuse to wait for permission. Not the loudest in the room — the ones who change what the room looks like. We call them alchemists. Founders who build before the market believes. Operators who turn disorder into systems. The ones who define what comes next, not what came before.'}
+              {(typeof pulse?.summary_content === 'object' && pulse?.summary_content !== null
+                ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
+                : pulse?.summary_content) || 'AMARI exists for the people who refuse to wait for permission. Not the loudest in the room — the ones who change what the room looks like. We call them alchemists. Founders who build before the market believes. Operators who turn disorder into systems. The ones who define what comes next, not what came before.'}
             </Text>
             <View style={styles.pulseFooter}>
               <Text style={styles.pulseRead}>3 min read</Text>
@@ -124,14 +109,14 @@ export default function PulseScreen() {
           <SectionLabel>Upcoming</SectionLabel>
           {upcomingEvents.length > 0 ? (
             upcomingEvents.map((event: any, i: number) => {
-              const date = new Date(event.event_date || event.date);
+              const date = new Date(event.starts_at);
               return (
                 <EventRow
                   key={event.id || i}
                   day={date.getDate().toString().padStart(2, '0')}
                   month={date.toLocaleString('en-US', { month: 'short' }).toUpperCase()}
                   title={event.title}
-                  meta={[event.location, event.type].filter(Boolean).join(' · ')}
+                  meta={[event.venue_name, event.type].filter(Boolean).join(' · ')}
                   tier={event.min_tier?.toUpperCase().slice(0, 4)}
                   dimDate={i > 0}
                   onPress={() => {}}

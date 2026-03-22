@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   FlatList,
@@ -14,20 +15,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeOut } from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../lib/theme';
-import { AlignedTile as AlignedTileBase } from '../../types/database';
+import { useMyProfile } from '../../queries/members';
+import {
+  useAlignedDiscoveryTiles,
+  useExpressAlignedInterest,
+  useSkipAlignedTile,
+  type AlignedDiscoveryTile,
+  type AlignedRevealMember,
+} from '../../queries/aligned';
+import type { MembershipTier } from '../../types/db-helpers';
 import MutualRevealOverlay from './MutualRevealOverlay';
 
 // ─── Types ──────────────────────────────────────────────
-// Extend the canonical AlignedTile with UI-specific display fields
-interface AlignedTileUI extends Pick<AlignedTileBase, 'id' | 'type' | 'description' | 'tags'> {
-  tier: 'laureate' | 'platinum' | 'silver' | 'member';
+interface AlignedTileUI extends Pick<AlignedDiscoveryTile, 'id' | 'type' | 'description' | 'tags'> {
+  tier: MembershipTier;
   gradientKey: string;
+  recommendationScore: number;
 }
-
-// ─── Tile data (real data via query — empty until populated) ──
-const PROJECT_TILES: AlignedTileUI[] = [];
-
-const INTEREST_TILES: AlignedTileUI[] = [];
 
 const PROJECT_FILTERS = ['All', 'Tech', 'Health', 'Finance', 'Culture', 'Education'];
 const INTEREST_FILTERS = ['All', 'Ethics', 'Investing', 'Design', 'Policy'];
@@ -47,6 +51,82 @@ const TIER_COLORS: Record<string, string> = {
   silver: colors.tierSilver,
   member: colors.gray,
 };
+
+function toWords(values: Array<string | null | undefined>): string[] {
+  return values
+    .flatMap((value) => (value ?? '').toLowerCase().split(/[^a-z0-9]+/))
+    .filter(Boolean);
+}
+
+function computeRecommendationScore(
+  tile: AlignedDiscoveryTile,
+  profile: Record<string, unknown> | null | undefined,
+) {
+  const skillSet = new Set(
+    toWords([
+      ...(Array.isArray(profile?.skills) ? (profile.skills as string[]) : []),
+      ...(Array.isArray(profile?.interests) ? (profile.interests as string[]) : []),
+      typeof profile?.current_project === 'string' ? profile.current_project : null,
+      typeof profile?.industry === 'string' ? profile.industry : null,
+      typeof profile?.company === 'string' ? profile.company : null,
+    ])
+  );
+
+  if (skillSet.size === 0) {
+    return 0;
+  }
+
+  const tileWords = new Set(toWords([tile.description, ...(tile.tags ?? []), tile.location]));
+  let score = 0;
+
+  tileWords.forEach((word) => {
+    if (skillSet.has(word)) {
+      score += 1;
+    }
+  });
+
+  return score;
+}
+
+function pickGradientKey(tile: Pick<AlignedDiscoveryTile, 'tags' | 'description'>) {
+  const haystack = `${tile.tags.join(' ')} ${tile.description}`.toLowerCase();
+
+  if (haystack.includes('design') || haystack.includes('culture') || haystack.includes('brand')) {
+    return 'rose';
+  }
+
+  if (haystack.includes('climate') || haystack.includes('health') || haystack.includes('wellness')) {
+    return 'green';
+  }
+
+  if (haystack.includes('ai') || haystack.includes('data') || haystack.includes('tech')) {
+    return 'cool';
+  }
+
+  if (haystack.includes('finance') || haystack.includes('invest')) {
+    return 'earth';
+  }
+
+  return 'warm';
+}
+
+function buildRevealData(member: AlignedRevealMember) {
+  const initials = member.full_name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const role = member.title || member.company || member.city || 'AMARI member';
+
+  return {
+    name: member.full_name,
+    initials,
+    role,
+    tier: member.tier.toUpperCase(),
+  };
+}
 
 // ─── Tile Component ─────────────────────────────────────
 function TileItem({
@@ -180,32 +260,106 @@ export default function AlignedListScreen({
   const [activeFilter, setActiveFilter] = useState('All');
   const [showReveal, setShowReveal] = useState(false);
   const [revealData, setRevealData] = useState<{ name: string; initials: string; role: string; tier: string } | null>(null);
-
-  const tiles = mode === 'projects' ? PROJECT_TILES : INTEREST_TILES;
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const tileType = mode === 'projects' ? 'project' : 'interest';
   const filters = mode === 'projects' ? PROJECT_FILTERS : INTEREST_FILTERS;
-  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set());
+  const { data: profile } = useMyProfile();
+  const { data: tiles = [], isLoading, isError } = useAlignedDiscoveryTiles(tileType);
+  const skipTile = useSkipAlignedTile();
+  const expressInterest = useExpressAlignedInterest();
 
   const visibleTiles = useMemo(() => {
-    return tiles.filter((t) => {
-      if (skippedIds.has(t.id)) return false;
-      if (activeFilter === 'All') return true;
-      return t.tags.some((tag) => tag.toLowerCase().includes(activeFilter.toLowerCase()));
-    });
-  }, [tiles, skippedIds, activeFilter]);
+    return tiles
+      .map((tile) => ({
+        id: tile.id,
+        type: tile.type,
+        description: tile.description,
+        tags: tile.tags ?? [],
+        tier: tile.owner_tier,
+        gradientKey: pickGradientKey(tile),
+        recommendationScore: computeRecommendationScore(tile, profile),
+      }))
+      .filter((tile) => {
+        if (dismissedIds.has(tile.id)) {
+          return false;
+        }
+
+        if (activeFilter === 'All') {
+          return true;
+        }
+
+        return tile.tags.some((tag) => tag.toLowerCase().includes(activeFilter.toLowerCase()));
+      })
+      .sort((a, b) => b.recommendationScore - a.recommendationScore || a.description.localeCompare(b.description));
+  }, [tiles, dismissedIds, activeFilter, profile]);
 
   const handleSkip = useCallback(
     (id: string) => {
-      setSkippedIds((prev) => new Set(prev).add(id));
+      setDismissedIds((prev) => new Set(prev).add(id));
+      skipTile.mutate(id, {
+        onError: () => {
+          setDismissedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          Alert.alert('Could not skip tile', 'Please try again.');
+        },
+      });
     },
-    []
+    [skipTile]
   );
 
-  const handleAlign = useCallback((_id: string) => {
-    // TODO: Check server for mutual alignment, then set revealData + setShowReveal(true)
-  }, []);
+  const handleAlign = useCallback(
+    (id: string) => {
+      setDismissedIds((prev) => new Set(prev).add(id));
+      expressInterest.mutate(id, {
+        onSuccess: (result) => {
+          if (result.mutual && result.revealed_member) {
+            setRevealData(buildRevealData(result.revealed_member));
+            setShowReveal(true);
+          }
+        },
+        onError: (error: Error) => {
+          setDismissedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          Alert.alert('Could not align', error.message || 'Please try again.');
+        },
+      });
+    },
+    [expressInterest]
+  );
 
   const title = mode === 'projects' ? 'Projects' : 'Interests';
   const count = visibleTiles.length;
+
+  const listEmpty = (() => {
+    if (isLoading) {
+      return (
+        <View style={styles.emptyState}>
+          <ActivityIndicator color={colors.sand} />
+          <Text style={styles.emptyText}>Loading aligned recommendations…</Text>
+        </View>
+      );
+    }
+
+    if (isError) {
+      return (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>Aligned is temporarily unavailable. Please try again.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyText}>No recommendations yet. Add your own tile or refine your profile.</Text>
+      </View>
+    );
+  })();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -223,7 +377,7 @@ export default function AlignedListScreen({
           <Text style={styles.backIcon}>{'\u2039'}</Text>
         </Pressable>
         <Text style={styles.listTitle}>{title}</Text>
-        <Text style={styles.listCount}>{count} aligned</Text>
+        <Text style={styles.listCount}>{count} recommended</Text>
       </View>
 
       {/* Filters */}
@@ -256,14 +410,10 @@ export default function AlignedListScreen({
         )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No tiles yet. Create the first one.</Text>
-          </View>
-        }
+        ListEmptyComponent={listEmpty}
       />
 
-      {/* Mutual Reveal Overlay — only shown when real mutual alignment data triggers it */}
+      {/* Mutual Reveal Overlay */}
       {showReveal && revealData && (
         <MutualRevealOverlay
           name={revealData.name}

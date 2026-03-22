@@ -33,8 +33,9 @@ export const queryKeys = {
   },
   aligned: {
     all: ['aligned'] as const,
-    current: () => [...queryKeys.aligned.all, 'current'] as const,
-    match: (id: number) => [...queryKeys.aligned.all, id] as const,
+    discovery: (type: 'project' | 'interest') => [...queryKeys.aligned.all, 'discovery', type] as const,
+    connections: (limit?: number) => [...queryKeys.aligned.all, 'connections', limit] as const,
+    myTiles: () => [...queryKeys.aligned.all, 'my-tiles'] as const,
   },
   cityPresence: {
     all: ['city-presence'] as const,

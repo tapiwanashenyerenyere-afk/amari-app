@@ -1,29 +1,28 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../providers/AuthProvider';
 import { useMyProfile, useUpdateProfile } from '../../queries/members';
 import { supabase } from '../../lib/supabase';
 import { colors, typography, spacing, radius } from '../../lib/theme';
-import { TIER_DISPLAY_NAMES } from '../../lib/theme';
 import {
   WhiteCard,
   SectionLabel,
   InfoRow,
-  Barcode,
   ProgressBar,
   Badge,
   StaggerReveal,
 } from '../../components/v2';
 import { EditFieldModal } from '../../components/EditFieldModal';
 import { useCorridorActivity } from '../../hooks/useCorridorInterest';
+import { FullCardOverlay } from '../../components/card/FullCardOverlay';
+import { MembershipCard } from '../../components/card/MembershipCard';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { session, user, tier } = useAuth();
+  const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const updateProfile = useUpdateProfile();
   const { data: corridorActivity } = useCorridorActivity();
@@ -44,6 +43,7 @@ export default function ProfileScreen() {
     enabled: !!user?.id,
   });
   const [editField, setEditField] = useState<{ label: string; key: string; value: string } | null>(null);
+  const [showCardOverlay, setShowCardOverlay] = useState(false);
 
   const handleSave = useCallback(
     (value: string) => {
@@ -63,18 +63,6 @@ export default function ProfileScreen() {
     },
     [editField, updateProfile],
   );
-
-  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
-
-  const initials = useMemo(() => {
-    if (!profile?.full_name) return 'AA';
-    return profile.full_name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  }, [profile]);
 
   const profileCompletion = useMemo(() => {
     if (!profile) return 0;
@@ -104,9 +92,18 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
-  const fullName = profile?.full_name || 'AMARI Member';
-  const nameParts = fullName.split(' ');
+  const cardProfile = useMemo(
+    () => ({
+      full_name: profile?.full_name,
+      display_id: profile?.display_id,
+      title: profile?.title,
+      company: profile?.company,
+      city: profile?.city,
+      created_at: profile?.created_at,
+      tier: tier ?? 'member',
+    }),
+    [profile, tier],
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -116,37 +113,11 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <StaggerReveal delay={45}>
-          {/* Profile Header */}
-          <WhiteCard static>
-            <View style={styles.profileHeader}>
-              <MotiView
-                from={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', damping: 14, delay: 100 }}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              </MotiView>
-              <View>
-                <Text style={styles.name}>
-                  {nameParts[0]}
-                  {nameParts.length > 1 && `\n${nameParts.slice(1).join(' ')}`}
-                </Text>
-                <Text style={styles.role}>
-                  {profile?.company || 'Tap to set your role'}
-                </Text>
-              </View>
-            </View>
-          </WhiteCard>
-
-          {/* Tier Badge */}
-          <View style={styles.badgeCenter}>
-            <Badge>{tierLabel}</Badge>
-          </View>
-
-          {/* Barcode */}
-          <Barcode memberId={profile?.display_id || `AMARI-2026-${profile?.id?.slice(-4).toUpperCase() || '0000'}`} />
+          <MembershipCard
+            profile={cardProfile}
+            size="compact"
+            onPress={() => setShowCardOverlay(true)}
+          />
 
           {/* Profile completion */}
           <View style={styles.completionRow}>
@@ -347,6 +318,12 @@ export default function ProfileScreen() {
           </Pressable>
         </StaggerReveal>
       </ScrollView>
+
+      <FullCardOverlay
+        profile={cardProfile}
+        visible={showCardOverlay}
+        onClose={() => setShowCardOverlay(false)}
+      />
 
       <EditFieldModal
         visible={!!editField}

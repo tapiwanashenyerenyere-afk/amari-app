@@ -7,7 +7,7 @@ export function useBarcode() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['member', 'barcode', user?.id],
+    queryKey: [...queryKeys.member.barcode, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('generate_barcode_token');
       if (error) throw error;

@@ -3,9 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { queryKeys, staleTimes } from '@/lib/queryClient';
 import { useAuth } from '@/providers/AuthProvider';
 
-export function useEvents(type?: string) {
+export type EventFilter = 'upcoming' | 'vibes' | 'dinner' | 'talk' | 'gala';
+
+export function useEvents(filter: EventFilter = 'upcoming') {
   return useQuery({
-    queryKey: queryKeys.events.list(type),
+    queryKey: queryKeys.events.list(filter),
     queryFn: async () => {
       let query = supabase
         .from('events')
@@ -13,8 +15,8 @@ export function useEvents(type?: string) {
         .gte('starts_at', new Date().toISOString())
         .order('starts_at', { ascending: true });
 
-      if (type) {
-        query = query.eq('type', type);
+      if (filter !== 'upcoming') {
+        query = query.eq('type', filter);
       }
 
       const { data, error } = await query;

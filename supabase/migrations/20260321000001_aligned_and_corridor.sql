@@ -90,29 +90,5 @@ ALTER TABLE connections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own connections" ON connections
   FOR SELECT USING (auth.uid() = user_a OR auth.uid() = user_b);
 
--- Display ID generation function
-CREATE OR REPLACE FUNCTION generate_display_id()
-RETURNS TRIGGER AS $$
-DECLARE
-  year_str TEXT;
-  seq_num INTEGER;
-BEGIN
-  year_str := EXTRACT(YEAR FROM now())::TEXT;
-  SELECT COALESCE(MAX(
-    CAST(SPLIT_PART(display_id, '-', 3) AS INTEGER)
-  ), 0) + 1 INTO seq_num
-  FROM members
-  WHERE display_id LIKE 'AMARI-' || year_str || '-%';
-
-  NEW.display_id := 'AMARI-' || year_str || '-' || LPAD(seq_num::TEXT, 4, '0');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger for auto display_id (only if not already set)
-DROP TRIGGER IF EXISTS set_display_id ON members;
-CREATE TRIGGER set_display_id
-  BEFORE INSERT ON members
-  FOR EACH ROW
-  WHEN (NEW.display_id IS NULL OR NEW.display_id = '')
-  EXECUTE FUNCTION generate_display_id();
+-- Display ID generation remains owned by the initial schema.
+-- The authority-hardening repair migration reasserts the canonical trigger.

@@ -48,6 +48,7 @@ yarn-error.*
 
 # Supabase local
 supabase/.temp/
+supabase/.branches/
 
 # Claude
 .claude/

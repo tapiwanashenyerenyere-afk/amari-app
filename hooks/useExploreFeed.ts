@@ -1,9 +1,23 @@
-import { useAuth } from '@/providers/AuthProvider';
 import { useMyProfile } from '@/queries/members';
 import { useLatestPulse } from '@/queries/pulse';
 import { useEvents } from '@/queries/events';
 import { FALLBACK_TILES } from '@/constants/explore';
 import type { ExploreTile, ExploreState } from '@/types/explore';
+
+function buildProfileKeywords(profile: any): Set<string> {
+  return new Set(
+    [
+      ...(Array.isArray(profile?.skills) ? profile.skills : []),
+      ...(Array.isArray(profile?.interests) ? profile.interests : []),
+      profile?.current_project,
+      profile?.industry,
+      profile?.city,
+    ]
+      .filter(Boolean)
+      .flatMap((value: string) => value.toLowerCase().split(/[^a-z0-9]+/))
+      .filter(Boolean)
+  );
+}
 
 function buildExploreTiles(
   pulse: any,
@@ -11,6 +25,7 @@ function buildExploreTiles(
   profile: any,
 ): ExploreTile[] {
   const tiles: ExploreTile[] = [];
+  const profileKeywords = buildProfileKeywords(profile);
 
   // 1. Admin/editorial content from pulse
   if (pulse?.headline) {
@@ -18,7 +33,9 @@ function buildExploreTiles(
       id: `pulse-${pulse.id || 'latest'}`,
       type: 'editorial',
       title: pulse.headline,
-      description: pulse.summary_content || null,
+      description: (typeof pulse.summary_content === 'object' && pulse.summary_content !== null
+        ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
+        : pulse.summary_content) || null,
       image_url: pulse.hero_image_path || null,
       image_path: null,
       tags: [],
@@ -37,6 +54,8 @@ function buildExploreTiles(
     const daysAway = eventDate
       ? Math.ceil((eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : null;
+    const eventKeywords = `${event.title || ''} ${event.description || ''} ${event.type || ''}`.toLowerCase();
+    const interestBoost = Array.from(profileKeywords).some((keyword) => eventKeywords.includes(keyword)) ? 0.08 : 0;
 
     tiles.push({
       id: `event-${event.id}`,
@@ -46,7 +65,7 @@ function buildExploreTiles(
       image_url: event.cover_image_path || null,
       image_path: null,
       tags: [event.type || 'event'],
-      score: 0.9 - i * 0.05,
+      score: 0.9 - i * 0.05 + interestBoost,
       disclosure_label: null,
       tag_label: daysAway !== null ? `${daysAway} DAYS AWAY` : 'UPCOMING',
       subtitle: eventDate
@@ -71,6 +90,8 @@ function buildExploreTiles(
       });
     });
   }
+
+  tiles.sort((a, b) => b.score - a.score);
 
   return tiles;
 }

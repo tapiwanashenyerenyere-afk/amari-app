@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MotiView } from 'moti';
 import { useCorridorOpportunities, useExpressInterest, useCorridorActivity, useHasExpressedInterest } from '../../hooks/useCorridorInterest';
 import { useAuth } from '../../providers/AuthProvider';
-import { colors, typography, spacing, radius, TIER_LEVELS, MembershipTier } from '../../lib/theme';
+import { useMyProfile } from '../../queries/members';
+import { colors, typography, spacing, radius, TIER_LEVELS } from '../../lib/theme';
 import {
   WhiteCard,
   SectionLabel,
@@ -15,7 +16,8 @@ import {
   FilterPills,
   Badge,
 } from '../../components/v2';
-import { CorridorOpportunity, CorridorInterest } from '../../types/database';
+import type { CorridorOpportunity, CorridorInterest } from '../../types/db-helpers';
+import { FullCardOverlay } from '../../components/card/FullCardOverlay';
 
 // ─── Types ──────────────────────────────────────────────────
 interface CorridorActivityItem extends Pick<CorridorInterest, 'id' | 'expressed_at'> {
@@ -61,6 +63,17 @@ function meetsMinTier(userTier: string, requiredTier: string): boolean {
   const userLevel = TIER_LEVELS[userTier as keyof typeof TIER_LEVELS] ?? 0;
   const requiredLevel = TIER_LEVELS[requiredTier as keyof typeof TIER_LEVELS] ?? 0;
   return userLevel >= requiredLevel;
+}
+
+function getCardPillBackground(tier: string) {
+  if (tier === 'laureate') return colors.tierPlatinum;
+  if (tier === 'silver') return '#E7E1D9';
+  return colors.black;
+}
+
+function getCardPillText(tier: string) {
+  if (tier === 'silver') return colors.black;
+  return colors.bone;
 }
 
 // ─── Opportunity Card ───────────────────────────────────────
@@ -159,10 +172,12 @@ function ActivityRow({ item }: { item: CorridorActivityItem }) {
   if (!opp) return null;
 
   const statusLabel = item.status === 'expressed' ? 'Pending' : item.status;
-  const expressedDate = new Date(item.expressed_at).toLocaleDateString('en-AU', {
-    day: 'numeric',
-    month: 'short',
-  });
+  const expressedDate = item.expressed_at
+    ? new Date(item.expressed_at).toLocaleDateString('en-AU', {
+        day: 'numeric',
+        month: 'short',
+      })
+    : 'Pending';
 
   return (
     <View style={styles.activityRow}>
@@ -180,7 +195,10 @@ function ActivityRow({ item }: { item: CorridorActivityItem }) {
 // ─── Main Screen ────────────────────────────────────────────
 export default function CorridorScreen() {
   const insets = useSafeAreaInsets();
+  const { tier } = useAuth();
+  const { data: profile } = useMyProfile();
   const [filter, setFilter] = useState('All');
+  const [showCardOverlay, setShowCardOverlay] = useState(false);
 
   const filterType = FILTER_TO_TYPE[filter];
   // Note: server-side filtering of expired/inactive opportunities is handled by RLS policies
@@ -195,6 +213,27 @@ export default function CorridorScreen() {
         showsVerticalScrollIndicator={false}
       >
         <StaggerReveal delay={50}>
+          <View style={styles.topBar}>
+            <Pressable
+              style={styles.helpPill}
+              onPress={() => Alert.alert('Corridor help', 'The Corridor surfaces private opportunities matched to your tier and current activity.')}
+            >
+              <Text style={styles.helpPillText}>Help</Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.cardPill,
+                {
+                  backgroundColor: getCardPillBackground(tier),
+                },
+              ]}
+              onPress={() => setShowCardOverlay(true)}
+            >
+              <Text style={[styles.cardPillText, { color: getCardPillText(tier) }]}>Card</Text>
+            </Pressable>
+          </View>
+
           {/* Header */}
           <View>
             <Text style={styles.title}>The Corridor</Text>
@@ -261,6 +300,22 @@ export default function CorridorScreen() {
           )}
         </StaggerReveal>
       </ScrollView>
+
+      {profile && (
+        <FullCardOverlay
+          profile={{
+            full_name: profile.full_name,
+            display_id: profile.display_id,
+            title: profile.title,
+            company: profile.company,
+            city: profile.city,
+            created_at: profile.created_at,
+            tier,
+          }}
+          visible={showCardOverlay}
+          onClose={() => setShowCardOverlay(false)}
+        />
+      )}
     </View>
   );
 }
@@ -270,6 +325,35 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: 88 },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  helpPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
+  helpPillText: {
+    fontFamily: typography.body.medium,
+    fontSize: typography.sizes.meta,
+    color: colors.gray,
+  },
+  cardPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radius.full,
+  },
+  cardPillText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: typography.sizes.bodySmall,
+    letterSpacing: 0.3,
+  },
   title: {
     fontFamily: typography.serif.medium,
     fontSize: typography.sizes.screenTitle,

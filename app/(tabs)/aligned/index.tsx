@@ -18,17 +18,44 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../lib/theme';
 import { StaggerReveal, SectionLabel } from '../../../components/v2';
+import { useAlignedConnections } from '../../../queries/aligned';
 
-// ─── Connections (real data via query — empty until populated) ──
-interface Connection {
-  id: string;
-  name: string;
-  initials: string;
-  color: string;
-  via: string;
-  timeAgo: string;
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
-const RECENT_CONNECTIONS: Connection[] = [];
+
+function getConnectionColor(tier: string) {
+  switch (tier) {
+    case 'laureate':
+      return colors.sandOnDark;
+    case 'platinum':
+      return colors.tierPlatinum;
+    case 'silver':
+      return colors.tierSilver;
+    default:
+      return colors.gray;
+  }
+}
+
+function formatTimeAgo(timestamp: string) {
+  const elapsed = Date.now() - new Date(timestamp).getTime();
+  const days = Math.max(0, Math.floor(elapsed / (1000 * 60 * 60 * 24)));
+
+  if (days === 0) {
+    return 'today';
+  }
+
+  if (days === 1) {
+    return '1 day ago';
+  }
+
+  return `${days} days ago`;
+}
 
 // ─── Entry Card Component ───────────────────────────────
 function EntryCard({
@@ -154,6 +181,7 @@ function ConnectionRow({
 export default function AlignedLanding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { data: connections = [] } = useAlignedConnections();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -223,9 +251,16 @@ export default function AlignedLanding() {
         {/* Recent Connections */}
         <View style={styles.recentSection}>
           <SectionLabel>Recent connections</SectionLabel>
-          {RECENT_CONNECTIONS.length > 0 ? (
-            RECENT_CONNECTIONS.map((conn) => (
-              <ConnectionRow key={conn.id} {...conn} />
+          {connections.length > 0 ? (
+            connections.map((connection) => (
+              <ConnectionRow
+                key={connection.id}
+                name={connection.full_name}
+                initials={getInitials(connection.full_name)}
+                color={getConnectionColor(connection.tier)}
+                via={connection.matched_via}
+                timeAgo={formatTimeAgo(connection.connected_at)}
+              />
             ))
           ) : (
             <Text style={styles.emptyText}>

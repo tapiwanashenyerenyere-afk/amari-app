@@ -33,10 +33,12 @@ export default function RegisterScreen() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const storePendingCode = async () => {
-    await SecureStore.setItemAsync(
-      'pending_invitation_code',
-      JSON.stringify({ code, fullName, city, industry }),
-    );
+    if (Platform.OS !== 'web') {
+      await SecureStore.setItemAsync(
+        'pending_invitation_code',
+        JSON.stringify({ code, fullName, city, industry }),
+      );
+    }
   };
 
   const handleEmailAuth = async () => {
