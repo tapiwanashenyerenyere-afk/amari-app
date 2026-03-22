@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Linking } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useLatestPulse } from '../../queries/pulse';
-import { useEvents } from '../../queries/events';
+import { useEventDetail, useEvents, useRsvpToEvent } from '../../queries/events';
 import { useMyProfile } from '../../queries/members';
 import { useAlignedConnections } from '../../queries/aligned';
 import { useCorridorOpportunities } from '../../hooks/useCorridorInterest';
@@ -20,8 +20,19 @@ import {
 import { BreathingDot } from '../../components/v2/BreathingDot';
 import { ExploreCarousel, QuickActions } from '../../components/pulse';
 import { useExploreFeed } from '../../hooks/useExploreFeed';
+import { EventDetailSheet } from '../../components/EventDetailSheet';
+import type { ExploreTile } from '../../types/explore';
 
 const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
+
+function parseTileId(id: string, prefix: string) {
+  if (!id.startsWith(prefix)) {
+    return null;
+  }
+
+  const value = Number(id.slice(prefix.length));
+  return Number.isFinite(value) ? value : null;
+}
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -33,9 +44,12 @@ function getGreeting(): string {
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const { data: profile } = useMyProfile();
   const { data: pulse } = useLatestPulse();
   const { data: events } = useEvents('upcoming');
+  const { data: selectedEventDetail } = useEventDetail(selectedEventId ?? 0);
+  const rsvpToEvent = useRsvpToEvent();
   const { data: alignedConnections = [] } = useAlignedConnections(12);
   const { data: corridorOpportunities = [] } = useCorridorOpportunities();
   const explore = useExploreFeed();
@@ -55,6 +69,49 @@ export default function PulseScreen() {
     typeof pulse?.summary_content === 'object' && pulse?.summary_content !== null
       ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
       : pulse?.summary_content;
+  const selectedEvent =
+    (selectedEventDetail ?? upcomingEvents.find((event: any) => event.id === selectedEventId)) || null;
+
+  const handleExploreTilePress = (tile: ExploreTile) => {
+    if (tile.type === 'editorial') {
+      const pulseId = parseTileId(tile.id, 'pulse-');
+      if (pulseId != null) {
+        router.push({ pathname: '/pulse/[id]', params: { id: String(pulseId) } });
+      }
+      return;
+    }
+
+    if (tile.type === 'event_preview') {
+      const eventId = parseTileId(tile.id, 'event-');
+      if (eventId != null) {
+        setSelectedEventId(eventId);
+      } else {
+        router.push('/(tabs)/events');
+      }
+      return;
+    }
+
+    if (tile.type === 'member_project') {
+      router.push('/(tabs)/aligned/projects');
+      return;
+    }
+
+    if (tile.type === 'member_interest') {
+      router.push('/(tabs)/aligned/interests');
+      return;
+    }
+  };
+
+  const handleRsvp = () => {
+    if (!selectedEventId) {
+      return;
+    }
+
+    rsvpToEvent.mutate(selectedEventId, {
+      onSuccess: () => setSelectedEventId(null),
+      onError: (error: Error) => Alert.alert('Could not RSVP', error.message),
+    });
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -72,7 +129,11 @@ export default function PulseScreen() {
         </StaggerReveal>
 
         {/* Explore Carousel — outside StaggerReveal for full-bleed scroll */}
-        <ExploreCarousel tiles={explore.tiles} isLoading={explore.isLoading} />
+        <ExploreCarousel
+          tiles={explore.tiles}
+          isLoading={explore.isLoading}
+          onTilePress={handleExploreTilePress}
+        />
         {!explore.isLoading && explore.tiles.length === 0 ? (
           <View style={{ paddingHorizontal: spacing.xl }}>
             <WhiteCard static>
@@ -97,7 +158,13 @@ export default function PulseScreen() {
           {/* The Pulse — Editorial Hero */}
           <SectionLabel>The Pulse</SectionLabel>
           {pulse?.headline ? (
-            <HeroCard onPress={() => {}}>
+            <HeroCard
+              onPress={() =>
+                pulse?.id
+                  ? router.push({ pathname: '/pulse/[id]', params: { id: String(pulse.id) } })
+                  : undefined
+              }
+            >
               <View style={styles.pulseIndicator}>
                 <BreathingDot size={5} />
                 <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
@@ -131,7 +198,7 @@ export default function PulseScreen() {
                   meta={[event.venue_name, event.type].filter(Boolean).join(' · ')}
                   tier={event.min_tier?.toUpperCase().slice(0, 4)}
                   dimDate={i > 0}
-                  onPress={() => {}}
+                  onPress={() => setSelectedEventId(event.id)}
                 />
               );
             })
@@ -176,6 +243,30 @@ export default function PulseScreen() {
           </WhiteCard>
         </StaggerReveal>
       </ScrollView>
+
+      <EventDetailSheet
+        visible={selectedEventId !== null && !!selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onRsvp={handleRsvp}
+        event={
+          selectedEvent && selectedEvent.starts_at
+            ? {
+                id: selectedEvent.id,
+                title: selectedEvent.title,
+                description: selectedEvent.description || undefined,
+                starts_at: selectedEvent.starts_at,
+                venue_name: selectedEvent.venue_name || undefined,
+                capacity: selectedEvent.capacity ?? undefined,
+                rsvp_count: Array.isArray(selectedEvent.event_rsvps)
+                  ? selectedEvent.event_rsvps[0]?.count ?? 0
+                  : undefined,
+                type: selectedEvent.type || undefined,
+                min_tier: selectedEvent.min_tier || undefined,
+              }
+            : null
+        }
+        isRsvping={rsvpToEvent.isPending}
+      />
     </View>
   );
 }

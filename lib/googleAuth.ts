@@ -2,13 +2,11 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 let GoogleSignin: any = null;
-let statusCodes: any = null;
 
 if (Platform.OS !== 'web') {
   try {
     const module = require('@react-native-google-signin/google-signin');
     GoogleSignin = module.GoogleSignin;
-    statusCodes = module.statusCodes;
   } catch (e) {
     console.warn('Google Sign-In not available:', e);
   }

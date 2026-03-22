@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
-import { C, T, S, R } from '../../lib/constants';
+import { C, T, S } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
@@ -28,8 +28,9 @@ export default function AdminScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
-    const [members, codes, events, rsvps] = await Promise.all([
+    const [members, activeMembers, codes, events, rsvps] = await Promise.all([
       supabase.from('members').select('id, status', { count: 'exact', head: true }),
+      supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('invitation_codes').select('id, used_by', { count: 'exact' }),
       supabase.from('events').select('id', { count: 'exact' }).gte('ends_at', new Date().toISOString()),
       supabase.from('event_rsvps').select('id', { count: 'exact' }).eq('status', 'confirmed'),
@@ -40,7 +41,7 @@ export default function AdminScreen() {
 
     setStats({
       totalMembers: members.count || 0,
-      activeMembers: members.count || 0,
+      activeMembers: activeMembers.count || 0,
       codesUsed: used,
       codesRemaining: (codes.count || 0) - used,
       activeEvents: events.count || 0,

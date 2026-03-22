@@ -34,7 +34,6 @@ import { AuthProvider, useAuth } from '../providers/AuthProvider';
 import { QueryProvider } from '../providers/QueryProvider';
 import { configureGoogleSignIn } from '../lib/googleAuth';
 import { supabase } from '../lib/supabase';
-import { Onboarding } from '../components/v2/Onboarding';
 import { AmariEmblem } from '../components/v2/AmariEmblem';
 
 SplashScreen.preventAutoHideAsync();
@@ -54,7 +53,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     } else if (session && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [session, isLoading, segments]);
+  }, [isLoading, router, segments, session]);
 
   return <>{children}</>;
 }
@@ -70,7 +69,7 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
       setTimeout(() => onComplete(), 2800),
     ];
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [onComplete]);
 
   return (
     <View style={splashStyles.container}>

@@ -1,5 +1,4 @@
 import { View, Text, Pressable, Modal, StyleSheet, ActivityIndicator } from 'react-native';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, radius, TIER_DISPLAY_NAMES } from '@/lib/theme';
 import { AvatarStack } from './v2/AvatarStack';

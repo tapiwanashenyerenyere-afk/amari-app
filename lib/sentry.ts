@@ -14,6 +14,6 @@ export function initSentry() {
       enabled: !__DEV__,
     });
   } catch {
-    console.log('Sentry not installed — monitoring disabled');
+    console.warn('Sentry not installed — monitoring disabled');
   }
 }

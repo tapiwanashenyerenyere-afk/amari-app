@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet } from 'react-native';
-import { colors, typography, radius } from '../../lib/theme';
+import { colors, typography } from '../../lib/theme';
 
 interface TagProps {
   children: string;

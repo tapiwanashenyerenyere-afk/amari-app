@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import { MotiView } from 'moti';
-import { C, T, S, R } from '../../lib/constants';
+import { C, T, S } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
 import { GrainOverlay } from '../../components/ui/GrainOverlay';

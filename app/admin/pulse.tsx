@@ -46,8 +46,12 @@ export default function PulseAdminScreen() {
   useEffect(() => { fetchEditions(); }, [fetchEditions]);
 
   const handleCreate = async () => {
-    if (!headline) {
-      Alert.alert('Required', 'Headline is required.');
+    const trimmedHeadline = headline.trim();
+    const trimmedSummary = summary.trim();
+    const trimmedFullContent = fullContent.trim();
+
+    if (!trimmedHeadline || !trimmedSummary || !trimmedFullContent) {
+      Alert.alert('Required', 'Headline, summary, and full editorial content are required.');
       return;
     }
 
@@ -55,14 +59,13 @@ export default function PulseAdminScreen() {
     const { error } = await supabase.from('pulse_editions').insert({
       publish_date: new Date().toISOString().split('T')[0],
       status: 'draft',
-      headline,
+      headline: trimmedHeadline,
       summary_content: {
-        blocks: [{ type: 'text', content: summary || 'Summary coming soon.' }],
+        blocks: [{ type: 'text', content: trimmedSummary }],
       },
       full_content: {
-        blocks: [{ type: 'text', content: fullContent || 'Full content coming soon.' }],
+        blocks: [{ type: 'text', content: trimmedFullContent }],
       },
-      stats: { alchemists: 0, cities: 0, connections: 0, opportunities: 0 },
     });
     setSubmitting(false);
 

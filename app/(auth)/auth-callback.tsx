@@ -8,19 +8,19 @@ export default function AuthCallbackScreen() {
   const params = useLocalSearchParams<{ token_hash?: string; type?: string }>();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const tokenHash = typeof params.token_hash === 'string' ? params.token_hash : undefined;
+  const otpType = typeof params.type === 'string' ? params.type : undefined;
 
   useEffect(() => {
     const verifyOtp = async () => {
-      const { token_hash, type } = params;
-
-      if (!token_hash || !type) {
+      if (!tokenHash || !otpType) {
         setError('Invalid verification link. Please try signing up again.');
         return;
       }
 
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash,
-        type: type as 'email' | 'signup' | 'magiclink',
+        token_hash: tokenHash,
+        type: otpType as 'email' | 'signup' | 'magiclink',
       });
 
       if (verifyError) {
@@ -33,7 +33,7 @@ export default function AuthCallbackScreen() {
     };
 
     verifyOtp();
-  }, []);
+  }, [otpType, tokenHash]);
 
   if (error) {
     return (

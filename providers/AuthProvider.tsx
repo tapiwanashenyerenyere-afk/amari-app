@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, PropsWithChildren } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  PropsWithChildren,
+} from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -26,6 +34,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthState>({
     session: null, user: null, tier: 'member', isAdmin: false, isLoading: true,
   });
+  const userMetadata = state.user?.user_metadata;
 
   function extractTierFromSession(session: Session | null): { tier: MembershipTier; isAdmin: boolean } {
     const appMeta = session?.user?.app_metadata;
@@ -69,7 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   //   - already_member (returning user with pending code)
   //   - Google sign-in (name from Google, city/industry empty)
   //   - Magic link opened on a different device (no SecureStore, but user_metadata has data)
-  const syncProfileData = async (
+  const syncProfileData = useCallback(async (
     userId: string,
     pendingData?: { fullName?: string; city?: string; industry?: string },
   ) => {
@@ -83,7 +92,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       if (fetchError || !member) return;
 
-      const userMeta = state.user?.user_metadata;
+      const userMeta = userMetadata;
 
       // Build updates only for fields that are empty in the DB but available from sources
       const updates: Record<string, string> = {};
@@ -119,7 +128,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (err) {
       console.error('Profile sync error:', err);
     }
-  };
+  }, [userMetadata]);
 
   // Redeem pending invitation code after sign-in
   const redeemingRef = useRef(false);
@@ -181,7 +190,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
 
     redeemPendingCode();
-  }, [state.user?.id, state.isLoading]);
+  }, [state.isLoading, state.user, syncProfileData]);
 
   // Listen for tier change notifications via Supabase Realtime
   useEffect(() => {
@@ -206,7 +215,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [state.user?.id]);
+  }, [state.user]);
 
   return (
     <AuthContext.Provider value={state}>

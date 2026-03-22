@@ -1,16 +1,7 @@
 // Animated number counter — rolls up from 0 to target value
 import React, { useEffect } from 'react';
 import { Text, TextStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedProps,
-  withTiming,
-  Easing,
-  useDerivedValue,
-} from 'react-native-reanimated';
-import { colors, typography } from '../../lib/theme';
-
-const AnimatedText = Animated.createAnimatedComponent(Text);
+import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 
 interface AnimatedCounterProps {
   value: number;
@@ -39,7 +30,7 @@ export function AnimatedCounter({
       });
     }, delay);
     return () => clearTimeout(timer);
-  }, [value]);
+  }, [animatedValue, delay, duration, value]);
 
   // For now, just display the target value since animatedProps on Text
   // is limited in RN. The animation is handled by the parent StaggerReveal.

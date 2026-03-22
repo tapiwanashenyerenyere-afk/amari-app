@@ -20,9 +20,10 @@ import { ExploreTile } from './ExploreTile';
 interface ExploreCarouselProps {
   tiles: ExploreTileData[];
   isLoading: boolean;
+  onTilePress?: (tile: ExploreTileData) => void;
 }
 
-export function ExploreCarousel({ tiles, isLoading }: ExploreCarouselProps) {
+export function ExploreCarousel({ tiles, isLoading, onTilePress }: ExploreCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList<ExploreTileData>>(null);
 
@@ -54,7 +55,7 @@ export function ExploreCarousel({ tiles, isLoading }: ExploreCarouselProps) {
   const snapOffsets = computeSnapOffsets(tiles.length);
 
   const renderItem = ({ item, index }: { item: ExploreTileData; index: number }) => (
-    <ExploreTile tile={item} width={getItemWidth(index)} />
+    <ExploreTile tile={item} width={getItemWidth(index)} onPress={onTilePress} />
   );
 
   const renderSeparator = () => <View style={styles.separator} />;

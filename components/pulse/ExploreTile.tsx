@@ -10,19 +10,21 @@ import type { ExploreTile as ExploreTileType } from '../../types/explore';
 interface ExploreTileProps {
   tile: ExploreTileType;
   width: number;
+  onPress?: (tile: ExploreTileType) => void;
 }
 
-export function ExploreTile({ tile, width }: ExploreTileProps) {
+export function ExploreTile({ tile, width, onPress }: ExploreTileProps) {
   const isLarge = width >= TILE_LARGE_WIDTH;
 
   const handlePress = () => {
     tapHaptic();
-    // TODO: navigate to tile detail
+    onPress?.(tile);
   };
 
   return (
     <Pressable
       onPress={handlePress}
+      disabled={!onPress}
       accessibilityRole="button"
       accessibilityLabel={`${tile.tag_label}: ${tile.title}`}
       style={[styles.container, { width }]}

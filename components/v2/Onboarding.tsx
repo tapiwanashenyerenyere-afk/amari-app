@@ -1,26 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
   StyleSheet,
-  Dimensions,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  withSpring,
   withDelay,
-  withRepeat,
-  withSequence,
   Easing,
-  FadeIn,
-  FadeOut,
-  SlideInDown,
 } from 'react-native-reanimated';
 import { MotiView } from 'moti';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,8 +20,6 @@ import * as Haptics from 'expo-haptics';
 import { colors, typography, radius, spacing } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
 import { AmariEmblem } from './AmariEmblem';
-
-const { width: SCREEN_W } = Dimensions.get('window');
 
 // ─── Constellation Dot ──────────────────────────────────
 function ConstellationDot({ index, total }: { index: number; total: number }) {
@@ -90,7 +80,7 @@ function Step1() {
 
   useEffect(() => {
     lineWidth.value = withDelay(500, withTiming(32, { duration: 400, easing: Easing.ease }));
-  }, []);
+  }, [lineWidth]);
 
   const lineStyle = useAnimatedStyle(() => ({
     width: lineWidth.value,

@@ -29,7 +29,7 @@ export function BreathingDot({ size = 5, color = colors.sand, style }: Breathing
       -1,
       false
     );
-  }, []);
+  }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

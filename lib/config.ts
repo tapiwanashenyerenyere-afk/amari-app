@@ -90,12 +90,5 @@ export const config: Config = {
   isProduction: !__DEV__,
 };
 
-// DEMO MODE: Set to true to bypass backend and use mock data
-export const DEMO_MODE = true;
-
-// For debugging - only in development with redacted URL
-if (__DEV__) {
-  const redactedUrl = config.apiBaseUrl.replace(/\/\/[^/]+/, '//***');
-  console.log('[Config] Environment: development');
-  console.log('[Config] API Base URL:', redactedUrl);
-}
+// Legacy demo mode is intentionally disabled so the app never falls back to mock data.
+export const DEMO_MODE = false;

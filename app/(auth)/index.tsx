@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -12,7 +12,6 @@ import { colors } from '../../lib/theme';
 
 export default function AuthLandingScreen() {
   const router = useRouter();
-  const [done, setDone] = useState(false);
   const fadeOut = useSharedValue(1);
   const validatedCodeRef = useRef('');
 

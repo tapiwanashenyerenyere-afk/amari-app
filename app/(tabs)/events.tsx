@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useEvents } from '../../queries/events';
+import { useEventDetail, useEvents, useRsvpToEvent } from '../../queries/events';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import {
   WhiteCard,
@@ -10,15 +10,47 @@ import {
   FilterPills,
   StaggerReveal,
 } from '../../components/v2';
+import { EventDetailSheet } from '../../components/EventDetailSheet';
 
 const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
 
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState('All');
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const { data: events } = useEvents('upcoming');
+  const { data: selectedEventDetail } = useEventDetail(selectedEventId ?? 0);
+  const rsvpToEvent = useRsvpToEvent();
 
-  const eventsList = events || [];
+  const eventsList = useMemo(() => events ?? [], [events]);
+  const filteredEvents = useMemo(() => {
+    if (filter === 'All') {
+      return eventsList;
+    }
+
+    if (filter === 'Dinners') {
+      return eventsList.filter((event: any) => event.type === 'dinner');
+    }
+
+    if (filter === 'Talks') {
+      return eventsList.filter((event: any) => event.type === 'talk');
+    }
+
+    return eventsList;
+  }, [eventsList, filter]);
+  const selectedEvent =
+    (selectedEventDetail ?? eventsList.find((event: any) => event.id === selectedEventId)) || null;
+
+  const handleRsvp = () => {
+    if (!selectedEventId) {
+      return;
+    }
+
+    rsvpToEvent.mutate(selectedEventId, {
+      onSuccess: () => setSelectedEventId(null),
+      onError: (error: Error) => Alert.alert('Could not RSVP', error.message),
+    });
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -31,7 +63,7 @@ export default function EventsScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Events</Text>
-            <Text style={styles.count}>{eventsList.length} upcoming</Text>
+            <Text style={styles.count}>{filteredEvents.length} upcoming</Text>
           </View>
 
           {/* Filter pills */}
@@ -65,8 +97,8 @@ export default function EventsScreen() {
           </WhiteCard>
 
           {/* Event list */}
-          {eventsList.length > 0 ? (
-            eventsList.map((event: any, i: number) => {
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map((event: any, i: number) => {
               const date = event.starts_at ? new Date(event.starts_at) : null;
               return (
                 <EventRow
@@ -77,7 +109,7 @@ export default function EventsScreen() {
                   meta={[event.venue_name, event.type].filter(Boolean).join(' · ')}
                   tier={event.min_tier?.toUpperCase().slice(0, 4)}
                   dimDate={i > 0}
-                  onPress={() => {}}
+                  onPress={() => setSelectedEventId(event.id)}
                 />
               );
             })
@@ -89,6 +121,30 @@ export default function EventsScreen() {
           )}
         </StaggerReveal>
       </ScrollView>
+
+      <EventDetailSheet
+        visible={selectedEventId !== null && !!selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onRsvp={handleRsvp}
+        event={
+          selectedEvent && selectedEvent.starts_at
+            ? {
+                id: selectedEvent.id,
+                title: selectedEvent.title,
+                description: selectedEvent.description || undefined,
+                starts_at: selectedEvent.starts_at,
+                venue_name: selectedEvent.venue_name || undefined,
+                capacity: selectedEvent.capacity ?? undefined,
+                rsvp_count: Array.isArray(selectedEvent.event_rsvps)
+                  ? selectedEvent.event_rsvps[0]?.count ?? 0
+                  : undefined,
+                type: selectedEvent.type || undefined,
+                min_tier: selectedEvent.min_tier || undefined,
+              }
+            : null
+        }
+        isRsvping={rsvpToEvent.isPending}
+      />
     </View>
   );
 }
