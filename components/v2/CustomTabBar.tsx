@@ -32,7 +32,6 @@ export function CustomTabBar({ state, descriptors: _descriptors, navigation }: C
   const { tier } = useAuth();
   const userLevel = TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 1;
 
-  // Filter to only show our 5 main tabs (skip admin, discover, network)
   const visibleRoutes = state.routes.filter((route: any) =>
     TAB_CONFIG.some((tab) => tab.name === route.name)
   );
@@ -57,10 +56,7 @@ export function CustomTabBar({ state, descriptors: _descriptors, navigation }: C
         const onPress = () => {
           if (isLocked) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            Alert.alert(
-              `${label}`,
-              `Available from ${tierName} membership.`
-            );
+            Alert.alert(label, `Available from ${tierName} membership.`);
             return;
           }
 
@@ -80,14 +76,15 @@ export function CustomTabBar({ state, descriptors: _descriptors, navigation }: C
           <Pressable
             key={route.key}
             onPress={onPress}
+            hitSlop={6}
             style={[styles.tab, { opacity: tabOpacity }]}
             accessibilityRole="tab"
-            accessibilityLabel={isLocked ? `${label} — requires ${tierName}` : label}
+            accessibilityLabel={isLocked ? `${label} - requires ${tierName}` : label}
             accessibilityState={{ selected: isFocused }}
             accessibilityHint={isLocked ? `Requires ${tierName} membership` : `Navigate to ${label} tab`}
           >
             {isFocused && !isLocked && <View style={styles.activeDot} />}
-            <Icon color={baseColor} size={18} />
+            <Icon color={baseColor} size={20} />
             <Text style={[styles.label, { color: baseColor }]}>{label}</Text>
           </Pressable>
         );
@@ -112,21 +109,24 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 4,
-    gap: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 4,
     position: 'relative',
   },
   activeDot: {
     position: 'absolute',
-    top: 0,
-    width: 4,
-    height: 3,
-    borderRadius: 1.5,
+    top: 2,
+    width: 14,
+    height: 2,
+    borderRadius: 999,
     backgroundColor: colors.sand,
   },
   label: {
     fontFamily: typography.geo.medium,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '500',
     letterSpacing: 0.5,
   },

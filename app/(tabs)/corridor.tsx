@@ -263,11 +263,11 @@ export default function CorridorScreen() {
                 <View style={styles.iconBox}>
                   <KeyholeSmall color={colors.sand} size={12} />
                 </View>
-                <Text style={styles.emptyTitle}>No Opportunities</Text>
+                <Text style={styles.emptyTitle}>The room is quiet</Text>
                 <Text style={styles.emptyDesc}>
                   {filter === 'All'
-                    ? 'The Corridor opens as the network grows. New opportunities will appear here.'
-                    : `No ${filter.toLowerCase()} opportunities at the moment.`}
+                    ? 'No private openings are live right now. When AMARI has a board role, advisory brief, or quiet introduction to make, it will appear here first.'
+                    : `No ${filter.toLowerCase()} openings are live right now. Try another lens or check back after the next drop.`}
                 </Text>
               </View>
             </WhiteCard>

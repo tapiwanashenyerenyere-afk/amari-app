@@ -20,6 +20,14 @@ import { useCorridorActivity } from '../../hooks/useCorridorInterest';
 import { FullCardOverlay } from '../../components/card/FullCardOverlay';
 import { MembershipCard } from '../../components/card/MembershipCard';
 
+interface EditFieldState {
+  label: string;
+  key: string;
+  value: string;
+  placeholder?: string;
+  multiline?: boolean;
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, tier } = useAuth();
@@ -27,7 +35,6 @@ export default function ProfileScreen() {
   const updateProfile = useUpdateProfile();
   const { data: corridorActivity } = useCorridorActivity();
 
-  // Query aligned tiles for current user
   const { data: myTiles } = useQuery({
     queryKey: ['my-aligned-tiles', user?.id],
     queryFn: async () => {
@@ -42,16 +49,39 @@ export default function ProfileScreen() {
     },
     enabled: !!user?.id,
   });
-  const [editField, setEditField] = useState<{ label: string; key: string; value: string } | null>(null);
+
+  const [editField, setEditField] = useState<EditFieldState | null>(null);
   const [showCardOverlay, setShowCardOverlay] = useState(false);
+
+  const openEditField = useCallback(
+    (
+      label: string,
+      key: string,
+      value: string,
+      options?: {
+        placeholder?: string;
+        multiline?: boolean;
+      },
+    ) => {
+      setEditField({
+        label,
+        key,
+        value,
+        placeholder: options?.placeholder,
+        multiline: options?.multiline,
+      });
+    },
+    [],
+  );
 
   const handleSave = useCallback(
     (value: string) => {
       if (!editField) return;
       const parsed =
         editField.key === 'skills' || editField.key === 'interests'
-          ? value.split(',').map((s) => s.trim()).filter(Boolean)
+          ? value.split(',').map((item) => item.trim()).filter(Boolean)
           : value;
+
       updateProfile.mutate(
         { [editField.key]: parsed },
         {
@@ -67,12 +97,12 @@ export default function ProfileScreen() {
   const profileCompletion = useMemo(() => {
     if (!profile) return 0;
     let filled = 0;
-    const fields = ['full_name', 'bio', 'company', 'industry', 'city', 'skills', 'interests'];
-    fields.forEach((f) => {
-      const val = profile[f as keyof typeof profile];
-      if (Array.isArray(val)) {
-        if (val.length > 0) filled++;
-      } else if (val) {
+    const fields = ['full_name', 'bio', 'company', 'industry', 'city', 'current_project', 'skills', 'interests'];
+    fields.forEach((field) => {
+      const value = profile[field as keyof typeof profile];
+      if (Array.isArray(value)) {
+        if (value.length > 0) filled++;
+      } else if (value) {
         filled++;
       }
     });
@@ -92,6 +122,7 @@ export default function ProfileScreen() {
       },
     ]);
   };
+
   const cardProfile = useMemo(
     () => ({
       full_name: profile?.full_name,
@@ -119,7 +150,6 @@ export default function ProfileScreen() {
             onPress={() => setShowCardOverlay(true)}
           />
 
-          {/* Profile completion */}
           <View style={styles.completionRow}>
             <View style={styles.completionHeader}>
               <Text style={styles.completionLabel}>PROFILE COMPLETION</Text>
@@ -128,41 +158,46 @@ export default function ProfileScreen() {
             <ProgressBar progress={profileCompletion} />
           </View>
 
-          {/* Details */}
           <SectionLabel>Details</SectionLabel>
           <WhiteCard static>
             <InfoRow
-              label="City Presence"
+              label="City"
               value={profile?.city || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'City', key: 'city', value: profile?.city || '' })
-              }
+              onPress={() => openEditField('City', 'city', profile?.city || '')}
             />
             <InfoRow
-              label="Building"
+              label="Company"
               value={profile?.company || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'Building', key: 'company', value: profile?.company || '' })
-              }
+              onPress={() => openEditField('Company', 'company', profile?.company || '')}
             />
             <InfoRow
-              label="Interests"
+              label="Sector"
               value={profile?.industry || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'Interests', key: 'industry', value: profile?.industry || '' })
-              }
+              onPress={() => openEditField('Sector', 'industry', profile?.industry || '')}
             />
             <InfoRow
               label="Open To"
               value={profile?.bio || 'Tap to add'}
+              onPress={() =>
+                openEditField('Open To', 'bio', profile?.bio || '', {
+                  placeholder: 'How should members think about working with you?',
+                  multiline: true,
+                })
+              }
+            />
+            <InfoRow
+              label="Current Project"
+              value={profile?.current_project || 'Tap to add'}
               isLast
               onPress={() =>
-                setEditField({ label: 'Open To', key: 'bio', value: profile?.bio || '' })
+                openEditField('Current Project', 'current_project', profile?.current_project || '', {
+                  placeholder: 'What are you building or exploring right now?',
+                  multiline: true,
+                })
               }
             />
           </WhiteCard>
 
-          {/* Skills & Interests */}
           <SectionLabel>Skills & Interests</SectionLabel>
           <WhiteCard static>
             <View style={styles.tagRow}>
@@ -174,13 +209,7 @@ export default function ProfileScreen() {
                 ))
               ) : (
                 <Pressable
-                  onPress={() =>
-                    setEditField({
-                      label: 'Skills (comma-separated)',
-                      key: 'skills',
-                      value: '',
-                    })
-                  }
+                  onPress={() => openEditField('Skills (comma-separated)', 'skills', '')}
                   accessibilityRole="button"
                   accessibilityLabel="Add your skills"
                 >
@@ -188,6 +217,7 @@ export default function ProfileScreen() {
                 </Pressable>
               )}
             </View>
+
             <View style={styles.tagRow}>
               {(profile?.interests as string[] | undefined)?.length ? (
                 (profile.interests as string[]).map((interest: string) => (
@@ -197,13 +227,7 @@ export default function ProfileScreen() {
                 ))
               ) : (
                 <Pressable
-                  onPress={() =>
-                    setEditField({
-                      label: 'Interests (comma-separated)',
-                      key: 'interests',
-                      value: '',
-                    })
-                  }
+                  onPress={() => openEditField('Interests (comma-separated)', 'interests', '')}
                   accessibilityRole="button"
                   accessibilityLabel="Add your interests"
                 >
@@ -211,32 +235,72 @@ export default function ProfileScreen() {
                 </Pressable>
               )}
             </View>
-            {profile?.current_project ? (
-              <Text style={styles.projectText}>{profile.current_project as string}</Text>
-            ) : null}
-            <Pressable
-              style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.6 }]}
-              onPress={() =>
-                setEditField({
-                  label: 'Skills (comma-separated)',
-                  key: 'skills',
-                  value: Array.isArray(profile?.skills) ? (profile.skills as string[]).join(', ') : '',
-                })
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Edit skills and interests"
-            >
-              <Text style={styles.editBtnText}>Edit</Text>
-            </Pressable>
+
+            <View style={styles.projectPanel}>
+              <Text style={styles.projectLabel}>CURRENT PROJECT</Text>
+              <Text style={styles.projectCopy}>
+                {profile?.current_project || 'Add what you are building or exploring right now.'}
+              </Text>
+            </View>
+
+            <View style={styles.editActionRow}>
+              <Pressable
+                style={({ pressed }) => [styles.editChip, pressed && { opacity: 0.7 }]}
+                onPress={() =>
+                  openEditField(
+                    'Skills (comma-separated)',
+                    'skills',
+                    Array.isArray(profile?.skills) ? (profile.skills as string[]).join(', ') : '',
+                  )
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Edit skills"
+              >
+                <Text style={styles.editChipText}>Skills</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.editChip, pressed && { opacity: 0.7 }]}
+                onPress={() =>
+                  openEditField(
+                    'Interests (comma-separated)',
+                    'interests',
+                    Array.isArray(profile?.interests) ? (profile.interests as string[]).join(', ') : '',
+                  )
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Edit interests"
+              >
+                <Text style={styles.editChipText}>Interests</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.editChip, pressed && { opacity: 0.7 }]}
+                onPress={() =>
+                  openEditField('Current Project', 'current_project', profile?.current_project || '', {
+                    placeholder: 'What are you building or exploring right now?',
+                    multiline: true,
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Edit current project"
+              >
+                <Text style={styles.editChipText}>Current Project</Text>
+              </Pressable>
+            </View>
           </WhiteCard>
 
-          {/* My Tiles */}
           <SectionLabel>My Tiles</SectionLabel>
           <WhiteCard static>
             {myTiles && myTiles.length > 0 ? (
               <>
-                <Text style={[styles.completionLabel, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }]}>
-                  {myTiles.filter((t) => t.is_active).length} ACTIVE TILES
+                <Text
+                  style={[
+                    styles.completionLabel,
+                    { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
+                  ]}
+                >
+                  {myTiles.filter((tile) => tile.is_active).length} ACTIVE TILES
                 </Text>
                 {myTiles.map((tile) => (
                   <View key={tile.id} style={styles.tileRow}>
@@ -257,12 +321,17 @@ export default function ProfileScreen() {
             )}
           </WhiteCard>
 
-          {/* Corridor Activity */}
           <SectionLabel>Corridor Activity</SectionLabel>
           <WhiteCard static>
             {corridorActivity && corridorActivity.length > 0 ? (
               corridorActivity.map((item: Record<string, unknown>) => {
-                const opp = item.opportunity as { id: number; title: string; type: string; closing_date: string; min_tier: string } | null;
+                const opp = item.opportunity as {
+                  id: number;
+                  title: string;
+                  type: string;
+                  closing_date: string;
+                  min_tier: string;
+                } | null;
                 const status = (item.status as string) || 'pending';
                 const itemId = item.id as string;
                 const expressedAt = item.expressed_at as string | null;
@@ -273,6 +342,7 @@ export default function ProfileScreen() {
                   declined: { bg: 'rgba(239,68,68,0.1)', text: colors.error },
                 };
                 const sc = statusColors[status] || statusColors.pending;
+
                 return (
                   <View key={itemId} style={styles.activityRow}>
                     <View style={{ flex: 1 }}>
@@ -304,7 +374,6 @@ export default function ProfileScreen() {
             )}
           </WhiteCard>
 
-          {/* Sign out */}
           <Pressable
             style={({ pressed }) => [
               styles.signOutBtn,
@@ -331,7 +400,8 @@ export default function ProfileScreen() {
         onSave={handleSave}
         label={editField?.label || ''}
         currentValue={editField?.value || ''}
-        multiline={editField?.key === 'bio'}
+        placeholder={editField?.placeholder}
+        multiline={editField?.multiline}
         isSaving={updateProfile.isPending}
       />
     </View>
@@ -342,45 +412,166 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
   content: { padding: spacing.xl, paddingBottom: 88 },
-  // Header
   profileHeader: { padding: 16, flexDirection: 'row', gap: 14, alignItems: 'center' },
   avatar: {
-    width: 56, height: 56, borderRadius: 16, backgroundColor: colors.black,
-    alignItems: 'center', justifyContent: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarText: { fontFamily: typography.serif.medium, fontSize: 20, fontWeight: '500', color: colors.white, letterSpacing: -0.5 },
-  name: { fontFamily: typography.serif.medium, fontSize: 20, fontWeight: '500', color: colors.black, lineHeight: 23, letterSpacing: -0.3 },
-  role: { fontFamily: typography.body.regular, fontSize: 12, fontStyle: 'italic', color: colors.gray, marginTop: 2 },
-  // Badge
+  avatarText: {
+    fontFamily: typography.serif.medium,
+    fontSize: 20,
+    fontWeight: '500',
+    color: colors.white,
+    letterSpacing: -0.5,
+  },
+  name: {
+    fontFamily: typography.serif.medium,
+    fontSize: 20,
+    fontWeight: '500',
+    color: colors.black,
+    lineHeight: 23,
+    letterSpacing: -0.3,
+  },
+  role: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: colors.gray,
+    marginTop: 2,
+  },
   badgeCenter: { alignItems: 'center', marginVertical: 2 },
-  // Completion
   completionRow: { paddingHorizontal: 4, marginTop: 12 },
-  completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  completionLabel: { fontFamily: typography.geo.medium, fontSize: typography.sizes.caption, color: colors.grayLight, letterSpacing: 1 },
-  completionPercent: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.sand },
-  // Skills section
+  completionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  completionLabel: {
+    fontFamily: typography.geo.medium,
+    fontSize: typography.sizes.caption,
+    color: colors.grayLight,
+    letterSpacing: 1,
+  },
+  completionPercent: {
+    fontFamily: typography.serif.medium,
+    fontSize: 18,
+    fontWeight: '500',
+    color: colors.sand,
+  },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 16, paddingTop: 0 },
-  skillTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(139,115,85,0.08)', borderWidth: 1, borderColor: 'rgba(139,115,85,0.1)' },
+  skillTag: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139,115,85,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(139,115,85,0.1)',
+  },
   skillTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
-  interestTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.ghost, borderWidth: 1, borderColor: colors.rule },
+  interestTag: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: colors.ghost,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
   interestTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.gray },
-  projectText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, fontStyle: 'italic', paddingHorizontal: 16, paddingBottom: 12, lineHeight: 18 },
-  editBtn: { paddingHorizontal: 16, paddingBottom: 14, alignSelf: 'flex-start' as const },
-  editBtnText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
-  // Tiles section
-  tileRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: colors.rule },
-  tileType: { fontFamily: typography.geo.medium, fontSize: 9, color: colors.sand, letterSpacing: 1, textTransform: 'uppercase' as const },
-  tileDesc: { fontFamily: typography.body.regular, fontSize: 12, color: colors.black, marginTop: 2 },
-  // Activity section
-  activityRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.rule },
+  projectText: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    fontStyle: 'italic',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    lineHeight: 18,
+  },
+  projectPanel: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.ghost,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
+  projectLabel: {
+    fontFamily: typography.geo.medium,
+    fontSize: 9,
+    color: colors.sand,
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  projectCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 18,
+  },
+  editActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
+  editChip: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+  },
+  editChipText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
+  tileRow: {
+    padding: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  tileType: {
+    fontFamily: typography.geo.medium,
+    fontSize: 9,
+    color: colors.sand,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  tileDesc: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.black,
+    marginTop: 2,
+  },
+  activityRow: {
+    padding: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
   activityTitle: { fontFamily: typography.body.medium, fontSize: 13, color: colors.black },
   activityDate: { fontFamily: typography.body.regular, fontSize: 10, color: colors.grayLight, marginTop: 2 },
   activityBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 },
   activityBadgeText: { fontFamily: typography.body.semiBold, fontSize: 9 },
-  // Sign out
   signOutBtn: {
-    marginTop: 10, paddingVertical: 12, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.rule, alignItems: 'center',
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    alignItems: 'center',
   },
   signOutText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray },
 });

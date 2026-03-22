@@ -137,7 +137,9 @@ export default function PulseScreen() {
         {!explore.isLoading && explore.tiles.length === 0 ? (
           <View style={{ paddingHorizontal: spacing.xl }}>
             <WhiteCard static>
-              <Text style={styles.emptyText}>Explore updates are coming soon.</Text>
+              <Text style={styles.emptyText}>
+                The next curated drop is being assembled. New introductions and invitations will land here first.
+              </Text>
             </WhiteCard>
           </View>
         ) : null}
@@ -180,7 +182,9 @@ export default function PulseScreen() {
             </HeroCard>
           ) : (
             <WhiteCard static>
-              <Text style={styles.emptyText}>The next Pulse editorial is coming soon.</Text>
+              <Text style={styles.emptyText}>
+                This week&apos;s editorial note is still being prepared. Check back after the next AMARI release.
+              </Text>
             </WhiteCard>
           )}
 
@@ -204,7 +208,9 @@ export default function PulseScreen() {
             })
           ) : (
             <WhiteCard static>
-              <Text style={styles.emptyText}>No upcoming events yet. Stay tuned.</Text>
+              <Text style={styles.emptyText}>
+                No event dates are live yet. When the next invitation window opens, it will appear here first.
+              </Text>
             </WhiteCard>
           )}
 
