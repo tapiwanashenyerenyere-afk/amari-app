@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../providers/AuthProvider';
 import { useMyProfile, useUpdateProfile } from '../../queries/members';
+import { useMonthlyInviteStatus } from '../../queries/invites';
 import { supabase } from '../../lib/supabase';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import {
@@ -28,10 +30,22 @@ interface EditFieldState {
   multiline?: boolean;
 }
 
+interface MyTileRecord {
+  id: string;
+  type: string;
+  description: string;
+  is_active: boolean;
+  moderation_status?: 'pending' | 'approved' | 'rejected';
+  visibility_tiers?: string[] | null;
+  contact_enabled?: boolean | null;
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
+  const { data: inviteStatus } = useMonthlyInviteStatus();
   const updateProfile = useUpdateProfile();
   const { data: corridorActivity } = useCorridorActivity();
 
@@ -41,11 +55,11 @@ export default function ProfileScreen() {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from('aligned_tiles')
-        .select('id, type, description, is_active')
+        .select('id, type, description, is_active, moderation_status, visibility_tiers, contact_enabled')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as MyTileRecord[];
     },
     enabled: !!user?.id,
   });
@@ -309,8 +323,11 @@ export default function ProfileScreen() {
                       <Text style={styles.tileDesc} numberOfLines={1}>
                         {tile.description || 'Untitled tile'}
                       </Text>
+                      <Text style={styles.tileMeta}>
+                        {`${(tile.visibility_tiers || []).join(', ').toUpperCase() || 'PLATINUM, LAUREATE'}${tile.type === 'project' ? ` • EMAIL ${tile.contact_enabled ? 'OPEN' : 'CLOSED'}` : ''}`}
+                      </Text>
                     </View>
-                    <Badge>{tile.is_active ? 'ACTIVE' : 'PAUSED'}</Badge>
+                    <Badge>{(tile.moderation_status || 'approved').toUpperCase()}</Badge>
                   </View>
                 ))}
               </>
@@ -320,6 +337,39 @@ export default function ProfileScreen() {
               </Text>
             )}
           </WhiteCard>
+
+          {inviteStatus?.eligible ? (
+            <>
+              <SectionLabel>Monthly Invites</SectionLabel>
+              <WhiteCard static>
+                <InfoRow
+                  label="Remaining"
+                  value={`${inviteStatus.remaining} this month`}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/member-invites' as any);
+                  }}
+                />
+                <InfoRow
+                  label="Sent"
+                  value={`${inviteStatus.quota_used} of ${inviteStatus.quota_total}`}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/member-invites' as any);
+                  }}
+                />
+                <InfoRow
+                  label="Eligible Levels"
+                  value="Member, Silver, Platinum"
+                  isLast
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/member-invites' as any);
+                  }}
+                />
+              </WhiteCard>
+            </>
+          ) : null}
 
           <SectionLabel>Corridor Activity</SectionLabel>
           <WhiteCard static>
@@ -551,6 +601,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.black,
     marginTop: 2,
+  },
+  tileMeta: {
+    fontFamily: typography.body.regular,
+    fontSize: 10,
+    color: colors.gray,
+    marginTop: 5,
   },
   activityRow: {
     padding: 14,

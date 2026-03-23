@@ -17,11 +17,20 @@ interface CodeSummary {
   remaining: number;
 }
 
+interface StaffSummary {
+  role: 'owner' | 'admin';
+  total: number;
+  used: number;
+  remaining: number;
+}
+
 interface CodeDetail {
   id: number;
   code_prefix: string;
   tier_grant: string;
   grants_admin: boolean;
+  staff_role_grant: 'owner' | 'admin' | 'editor' | 'door_staff' | null;
+  invite_source: 'bootstrap' | 'monthly_member';
   used_by: string | null;
   used_at: string | null;
   expires_at: string;
@@ -30,6 +39,7 @@ interface CodeDetail {
 export default function CodesScreen() {
   const router = useRouter();
   const [summary, setSummary] = useState<CodeSummary[]>([]);
+  const [staffSummary, setStaffSummary] = useState<StaffSummary[]>([]);
   const [recentCodes, setRecentCodes] = useState<CodeDetail[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +49,7 @@ export default function CodesScreen() {
     // Get all codes (admin policy allows full access)
     const { data: codes, error } = await supabase
       .from('invitation_codes')
-      .select('id, code_prefix, tier_grant, grants_admin, used_by, used_at, expires_at')
+      .select('id, code_prefix, tier_grant, grants_admin, staff_role_grant, invite_source, used_by, used_at, expires_at')
       .order('used_at', { ascending: false, nullsFirst: false });
 
     if (error) {
@@ -49,11 +59,12 @@ export default function CodesScreen() {
     }
 
     const allCodes = codes || [];
+    const bootstrapCodes = allCodes.filter(c => c.invite_source !== 'monthly_member');
 
     // Build summary by tier
     const tiers = ['laureate', 'platinum', 'silver', 'member'];
     const summaryData: CodeSummary[] = tiers.map(tier => {
-      const tierCodes = allCodes.filter(c => c.tier_grant === tier);
+      const tierCodes = bootstrapCodes.filter(c => c.tier_grant === tier);
       const used = tierCodes.filter(c => c.used_by !== null).length;
       return {
         tier_grant: tier,
@@ -65,6 +76,20 @@ export default function CodesScreen() {
     });
 
     setSummary(summaryData);
+
+    const roles: Array<'owner' | 'admin'> = ['owner', 'admin'];
+    setStaffSummary(
+      roles.map((role) => {
+        const roleCodes = bootstrapCodes.filter((code) => code.staff_role_grant === role);
+        const used = roleCodes.filter((code) => code.used_by !== null).length;
+        return {
+          role,
+          total: roleCodes.length,
+          used,
+          remaining: roleCodes.length - used,
+        };
+      }),
+    );
 
     // Recently used codes (last 20)
     const recent = allCodes.filter(c => c.used_at).slice(0, 20);
@@ -139,6 +164,16 @@ export default function CodesScreen() {
               ))}
             </View>
 
+            <View style={styles.staffRow}>
+              {staffSummary.map((staff) => (
+                <LiquidGlassCard key={staff.role} variant="dark" style={styles.staffCard}>
+                  <Text style={styles.staffRole}>{staff.role.toUpperCase()}</Text>
+                  <Text style={styles.staffCount}>{staff.remaining}</Text>
+                  <Text style={styles.staffMeta}>{staff.used} used · {staff.total} total</Text>
+                </LiquidGlassCard>
+              ))}
+            </View>
+
             {/* Recent Usage Header */}
             <Text style={styles.sectionTitle}>Recently Used</Text>
           </>
@@ -153,7 +188,9 @@ export default function CodesScreen() {
               <View style={styles.codeRow}>
                 <View>
                   <Text style={styles.codePrefix}>{item.code_prefix || '???'}</Text>
-                  <Text style={styles.codeTier}>{item.tier_grant}</Text>
+                  <Text style={styles.codeTier}>
+                    {item.staff_role_grant ? `${item.staff_role_grant} · ${item.tier_grant}` : item.tier_grant}
+                  </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.codeUsedAt}>
@@ -185,6 +222,11 @@ const styles = StyleSheet.create({
   title: { ...T.title, color: C.lightPrimary, marginTop: S._4 },
   summaryGrid: { paddingHorizontal: S._12, marginTop: S._16, gap: S._8 },
   summaryCard: {},
+  staffRow: { flexDirection: 'row', gap: S._8, paddingHorizontal: S._12, marginTop: S._8 },
+  staffCard: { flex: 1, alignItems: 'center' },
+  staffRole: { ...T.label, color: C.lightTertiary, marginBottom: S._6 },
+  staffCount: { ...T.stat, fontSize: 18, color: C.lightPrimary },
+  staffMeta: { ...T.meta, color: C.lightFaint, marginTop: S._4 },
   summaryTier: { ...T.label, marginBottom: S._12 },
   summaryNumbers: { flexDirection: 'row', gap: S._16 },
   summaryNumBlock: { alignItems: 'center' },

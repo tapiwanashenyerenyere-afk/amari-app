@@ -15,7 +15,7 @@ export const TAB_VISIBILITY: Record<string, number> = {
   pulse: 1,
   events: 1,
   corridor: 2,
-  aligned: 3,
+  aligned: 1,
   profile: 1,
 };
 

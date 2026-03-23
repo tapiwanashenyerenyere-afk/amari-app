@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EXPLORE_CACHE_KEY } from '@/constants/explore';
 import { TIER_LEVELS } from '@/lib/constants';
+import { getRecommendedEditorialLead } from '@/lib/editorialRecommendations';
 import {
   useAlignedDiscoveryTiles,
   type AlignedDiscoveryTile,
 } from '@/queries/aligned';
 import { useEvents } from '@/queries/events';
 import { useMyProfile } from '@/queries/members';
-import { useLatestPulse } from '@/queries/pulse';
 import type { MembershipTier } from '@/types/db-helpers';
+import type { EditorialStory } from '@/types/editorial';
 import type { ExploreTile, ExploreState } from '@/types/explore';
 
 interface ExploreProfile {
@@ -19,13 +20,6 @@ interface ExploreProfile {
   industry?: string | null;
   city?: string | null;
   tier?: MembershipTier | null;
-}
-
-interface PulseEdition {
-  id?: number | null;
-  headline?: string | null;
-  summary_content?: unknown;
-  hero_image_path?: string | null;
 }
 
 interface EventPreview {
@@ -61,28 +55,6 @@ function buildProfileKeywords(profile: ExploreProfile | null | undefined): Set<s
   );
 }
 
-function extractPulseSummary(summaryContent: unknown): string | null {
-  if (typeof summaryContent === 'string') {
-    return summaryContent;
-  }
-
-  if (
-    typeof summaryContent === 'object' &&
-    summaryContent !== null &&
-    'blocks' in summaryContent &&
-    Array.isArray((summaryContent as { blocks?: unknown[] }).blocks)
-  ) {
-    const blocks = (summaryContent as { blocks: Array<{ content?: string | null }> }).blocks;
-
-    return blocks
-      .map((block) => block.content?.trim())
-      .filter(Boolean)
-      .join(' ');
-  }
-
-  return null;
-}
-
 function clampText(text: string, maxLength = 72): string {
   if (text.length <= maxLength) {
     return text;
@@ -114,24 +86,24 @@ function overlapKeywords(
   });
 }
 
-function buildEditorialTile(pulse: PulseEdition | null | undefined): ExploreTile[] {
-  if (!pulse?.headline) {
+function buildEditorialTile(story: EditorialStory | null): ExploreTile[] {
+  if (!story) {
     return [];
   }
 
   return [
     {
-      id: `pulse-${pulse.id ?? 'latest'}`,
+      id: `pulse-${story.id}`,
       type: 'editorial',
-      title: pulse.headline,
-      description: extractPulseSummary(pulse.summary_content),
-      image_url: pulse.hero_image_path ?? null,
+      title: story.headline,
+      description: story.summary,
+      image_url: story.image,
       image_path: null,
-      tags: ['pulse', 'editorial'],
+      tags: ['pulse', 'editorial', story.shortLabel.toLowerCase()],
       score: 1,
       disclosure_label: null,
       tag_label: 'NEW THIS WEEK',
-      subtitle: '3 min read \u00b7 Editorial',
+      subtitle: `${story.shortLabel} \u00b7 Editorial`,
       source: 'live',
     },
   ];
@@ -237,10 +209,10 @@ function dedupeTiles(tiles: ExploreTile[]): ExploreTile[] {
 export function useExploreFeed(): ExploreState {
   const [cachedTiles, setCachedTiles] = useState<ExploreTile[]>([]);
   const [cacheLoaded, setCacheLoaded] = useState(false);
-  const { data: pulse, isLoading: pulseLoading, isError: pulseError } = useLatestPulse();
   const { data: events, isLoading: eventsLoading, isError: eventsError } = useEvents('upcoming');
   const { data: profile } = useMyProfile();
   const profileTier = (profile as ExploreProfile | undefined)?.tier;
+  const recommendedEditorial = getRecommendedEditorialLead(profile as ExploreProfile | undefined);
   const alignedEnabled =
     (profileTier ? TIER_LEVELS[profileTier] : 0) >= TIER_LEVELS.platinum;
   const {
@@ -288,12 +260,12 @@ export function useExploreFeed(): ExploreState {
 
     return dedupeTiles(
       [
-        ...buildEditorialTile(pulse as PulseEdition | undefined),
+        ...buildEditorialTile(recommendedEditorial?.story ?? null),
         ...buildEventTiles((events ?? []) as EventPreview[], profileKeywords),
         ...buildAlignedTiles(projectTiles, interestTiles, profileKeywords),
       ].sort((a, b) => b.score - a.score),
     );
-  }, [events, interestTiles, profile, projectTiles, pulse]);
+  }, [events, interestTiles, profile, projectTiles, recommendedEditorial]);
 
   useEffect(() => {
     if (organicTiles.length === 0) {
@@ -309,8 +281,8 @@ export function useExploreFeed(): ExploreState {
   }, [organicTiles]);
 
   const isLoading =
-    (pulseLoading || eventsLoading) && !cacheLoaded && cachedTiles.length === 0;
-  const isError = pulseError || eventsError || projectsError || interestsError;
+    eventsLoading && !cacheLoaded && cachedTiles.length === 0;
+  const isError = eventsError || projectsError || interestsError;
 
   if (isLoading) {
     return { tiles: [], isLoading: true, isError: false, source: 'live' };

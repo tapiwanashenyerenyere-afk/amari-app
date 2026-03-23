@@ -15,8 +15,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { colors, typography, spacing, radius } from '../../../lib/theme';
+import { colors, typography, spacing, radius, TIER_LEVELS } from '../../../lib/theme';
 import { useCreateTile } from '../../../hooks/useCreateTile';
+import { useAuth } from '../../../providers/AuthProvider';
 
 const PROJECT_TAG_OPTIONS = [
   'AI/ML', 'Fintech', 'HealthTech', 'EdTech', 'CleanTech',
@@ -30,19 +31,33 @@ const INTEREST_TAG_OPTIONS = [
   'Community', 'Technology',
 ];
 
+const VISIBILITY_OPTIONS = [
+  { value: 'member', label: 'Member' },
+  { value: 'silver', label: 'Silver' },
+  { value: 'platinum', label: 'Platinum' },
+  { value: 'laureate', label: 'Laureate' },
+] as const;
+
 export default function CreateTileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { tier } = useAuth();
   const { pickImage, createTile, loading } = useCreateTile();
 
   const [tileType, setTileType] = useState<'project' | 'interest'>('project');
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [contactEnabled, setContactEnabled] = useState(false);
+  const [selectedVisibility, setSelectedVisibility] = useState<Array<'member' | 'silver' | 'platinum' | 'laureate'>>([
+    'platinum',
+    'laureate',
+  ]);
 
   const tagOptions = tileType === 'project' ? PROJECT_TAG_OPTIONS : INTEREST_TAG_OPTIONS;
   const charCount = description.length;
   const maxChars = 150;
+  const canCreate = (TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 0) >= TIER_LEVELS.silver;
 
   const toggleTag = (tag: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -61,6 +76,15 @@ export default function CreateTileScreen() {
     if (uri) setImageUri(uri);
   };
 
+  const toggleVisibility = (value: 'member' | 'silver' | 'platinum' | 'laureate') => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedVisibility((prev) =>
+      prev.includes(value)
+        ? prev.filter((tierValue) => tierValue !== value)
+        : [...prev, value]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!description.trim()) {
       Alert.alert('Missing description', 'Describe what you are building or what you care about.');
@@ -70,21 +94,56 @@ export default function CreateTileScreen() {
       Alert.alert('Missing tags', 'Select at least one tag.');
       return;
     }
+    if (selectedVisibility.length === 0) {
+      Alert.alert('Missing audience', 'Select at least one membership level that can view this tile.');
+      return;
+    }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const success = await createTile({
+    const result = await createTile({
       type: tileType,
       description,
       tags: selectedTags,
+      visibilityTiers: selectedVisibility,
+      contactEnabled,
       imageUri,
     });
 
-    if (success) {
-      Alert.alert('Tile created', 'Your tile is now visible to the community.', [
+    if (result.success) {
+      const message = result.moderationStatus === 'pending'
+        ? 'Your tile has been submitted for approval. You will see it on your profile once it is reviewed.'
+        : 'Your tile is now live in Aligned for the memberships you selected.';
+      Alert.alert('Tile created', message, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     }
   };
+
+  if (!canCreate) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <Pressable
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={styles.backIcon}>{'\u2039'}</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>New Tile</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <View style={styles.gateWrap}>
+          <Text style={styles.gateTitle}>Aligned publishing opens from Silver membership.</Text>
+          <Text style={styles.gateCopy}>
+            You can explore Aligned on your current membership, but publishing a project or interest requires Silver, Platinum, or Laureate access.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -122,6 +181,7 @@ export default function CreateTileScreen() {
               onPress={() => {
                 setTileType('project');
                 setSelectedTags([]);
+                setContactEnabled(false);
               }}
               accessibilityRole="button"
               accessibilityLabel="Select project type"
@@ -137,6 +197,7 @@ export default function CreateTileScreen() {
               onPress={() => {
                 setTileType('interest');
                 setSelectedTags([]);
+                setContactEnabled(false);
               }}
               accessibilityRole="button"
               accessibilityLabel="Select interest type"
@@ -213,6 +274,70 @@ export default function CreateTileScreen() {
             })}
           </View>
 
+          <Text style={styles.label}>
+            Who can see this? <Text style={styles.labelHint}>(choose one or more)</Text>
+          </Text>
+          <View style={styles.tagsWrap}>
+            {VISIBILITY_OPTIONS.map((option) => {
+              const active = selectedVisibility.includes(option.value);
+              return (
+                <Pressable
+                  key={option.value}
+                  style={[styles.tagPill, active && styles.tagPillActive]}
+                  onPress={() => toggleVisibility(option.value)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${active ? 'Remove' : 'Add'} ${option.label} audience`}
+                >
+                  <Text style={[styles.tagPillText, active && styles.tagPillTextActive]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {tileType === 'project' ? (
+            <>
+              <Text style={styles.label}>
+                Email Contact <Text style={styles.labelHint}>(required choice)</Text>
+              </Text>
+              <View style={styles.consentCard}>
+                <Text style={styles.consentTitle}>Do you want members to contact you about this project?</Text>
+                <Text style={styles.consentCopy}>
+                  If enabled, AMARI will open the member&apos;s installed email app such as Gmail, Outlook, Yahoo, or Apple Mail. There will be no in-app messaging for this project.
+                </Text>
+                <View style={styles.typeRow}>
+                  <Pressable
+                    style={[styles.typeBtn, !contactEnabled && styles.typeBtnActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setContactEnabled(false);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Do not allow email contact for this project"
+                  >
+                    <Text style={[styles.typeBtnText, !contactEnabled && styles.typeBtnTextActive]}>
+                      Not Yet
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.typeBtn, contactEnabled && styles.typeBtnActive]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setContactEnabled(true);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Allow email contact for this project"
+                  >
+                    <Text style={[styles.typeBtnText, contactEnabled && styles.typeBtnTextActive]}>
+                      Yes, Allow Email
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            </>
+          ) : null}
+
           {/* Submit */}
           <Pressable
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
@@ -257,6 +382,25 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.xl, paddingBottom: 100 },
+  gateWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 80,
+  },
+  gateTitle: {
+    fontFamily: typography.serif.medium,
+    fontSize: 28,
+    color: colors.black,
+    lineHeight: 32,
+  },
+  gateCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: colors.gray,
+    lineHeight: 20,
+    marginTop: 10,
+  },
 
   // Labels
   label: {
@@ -274,6 +418,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textTransform: 'none',
     color: colors.gray,
+  },
+  consentCard: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+    padding: 16,
+    gap: 10,
+  },
+  consentTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 14,
+    color: colors.black,
+    lineHeight: 20,
+  },
+  consentCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 18,
   },
 
   // Type selector

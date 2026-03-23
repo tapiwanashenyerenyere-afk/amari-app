@@ -32,13 +32,23 @@ export default function RegisterScreen() {
   const [authMethod, setAuthMethod] = useState<'email' | 'google' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const storePendingCode = async () => {
-    if (Platform.OS !== 'web') {
-      await SecureStore.setItemAsync(
-        'pending_invitation_code',
-        JSON.stringify({ code, fullName, city, industry }),
-      );
+  const getEmailRedirectUrl = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return `${window.location.origin}/auth-callback`;
     }
+
+    return 'amari://auth-callback';
+  };
+
+  const storePendingCode = async () => {
+    const payload = JSON.stringify({ code, fullName, city, industry });
+
+    if (Platform.OS === 'web') {
+      window.localStorage.setItem('pending_invitation_code', payload);
+      return;
+    }
+
+    await SecureStore.setItemAsync('pending_invitation_code', payload);
   };
 
   const handleEmailAuth = async () => {
@@ -53,7 +63,7 @@ export default function RegisterScreen() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: 'amari://auth-callback',
+          emailRedirectTo: getEmailRedirectUrl(),
           data: {
             full_name: fullName,
             city,

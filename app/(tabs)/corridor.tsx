@@ -42,13 +42,6 @@ const FILTER_TO_TYPE: Record<string, string | undefined> = {
   Advisory: 'advisory',
 };
 
-const TIER_BADGE_LABELS: Record<string, string> = {
-  member: 'MEMBER+',
-  silver: 'SILVER+',
-  platinum: 'PLATINUM+',
-  laureate: 'LAUREATE',
-};
-
 // ─── Helper: days remaining ─────────────────────────────────
 function daysRemaining(closingDate: string | null): number | null {
   if (!closingDate) return null;
@@ -58,11 +51,10 @@ function daysRemaining(closingDate: string | null): number | null {
   return diff;
 }
 
-// ─── Helper: tier check ─────────────────────────────────────
-function meetsMinTier(userTier: string, requiredTier: string): boolean {
+// ─── Helper: corridor access check ──────────────────────────
+function hasCorridorAccess(userTier: string): boolean {
   const userLevel = TIER_LEVELS[userTier as keyof typeof TIER_LEVELS] ?? 0;
-  const requiredLevel = TIER_LEVELS[requiredTier as keyof typeof TIER_LEVELS] ?? 0;
-  return userLevel >= requiredLevel;
+  return userLevel >= TIER_LEVELS.silver;
 }
 
 function getCardPillBackground(tier: string) {
@@ -80,12 +72,12 @@ function getCardPillText(tier: string) {
 function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) {
   const { tier } = useAuth();
   const expressInterest = useExpressInterest();
-  const { data: alreadyExpressed, isLoading: checkingInterest } = useHasExpressedInterest(opportunity.id);
+  const { data: alreadyExpressed = false } = useHasExpressedInterest(opportunity.id);
 
-  const canAccess = meetsMinTier(tier, opportunity.min_tier);
+  const canAccess = hasCorridorAccess(tier);
   const days = daysRemaining(opportunity.closing_date);
   const isExpired = days !== null && days <= 0;
-  const tierLabel = TIER_BADGE_LABELS[opportunity.min_tier] || 'MEMBER+';
+  const accessLabel = canAccess ? 'SILVER+ ACCESS' : 'SILVER+ REQUIRED';
 
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -94,13 +86,13 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
 
   return (
     <WhiteCard static>
-      <View style={styles.cardInner} accessible={true} accessibilityLabel={`${opportunity.title}. ${opportunity.description || ''} ${tierLabel} tier`}>
+      <View style={styles.cardInner} accessible={true} accessibilityLabel={`${opportunity.title}. ${opportunity.description || ''} ${accessLabel}`}>
         {/* Top row: icon + tier badge + days */}
         <View style={styles.cardHeader}>
           <View style={styles.iconBox}>
             <KeyholeSmall color={colors.sand} size={12} />
           </View>
-          <Text style={styles.tierBadge}>{tierLabel}</Text>
+          <Text style={styles.tierBadge}>{accessLabel}</Text>
           {days !== null && (
             isExpired
               ? <Badge>Closed</Badge>
@@ -127,7 +119,7 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
         {/* Tags row */}
         <View style={styles.tagsRow}>
           <Tag variant="sand">{opportunity.type.replace('_', '-')}</Tag>
-          {!canAccess && <Tag variant="ghost">{`${tierLabel} required`}</Tag>}
+          {!canAccess && <Tag variant="ghost">Silver required</Tag>}
         </View>
 
         {/* Action button */}
@@ -147,16 +139,16 @@ function OpportunityCard({ opportunity }: { opportunity: CorridorOpportunity }) 
               pressed && canAccess && { transform: [{ scale: 0.97 }], opacity: 0.9 },
             ]}
             onPress={canAccess ? handlePress : undefined}
-            disabled={!canAccess || expressInterest.isPending || checkingInterest}
+            disabled={!canAccess || expressInterest.isPending}
             accessibilityRole="button"
-            accessibilityLabel={canAccess ? `Express interest in ${opportunity.title}` : `Requires ${tierLabel} tier`}
-            accessibilityState={{ disabled: !canAccess }}
+            accessibilityLabel={canAccess ? `Express interest in ${opportunity.title}` : 'Requires Silver membership'}
+            accessibilityState={{ disabled: !canAccess || expressInterest.isPending }}
           >
             {expressInterest.isPending ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={[styles.ctaDarkText, !canAccess && styles.ctaDisabledText]}>
-                {canAccess ? 'Express Interest' : `Requires ${tierLabel}`}
+                {canAccess ? 'Express Interest' : 'Requires Silver+'}
               </Text>
             )}
           </Pressable>
@@ -204,6 +196,20 @@ export default function CorridorScreen() {
   // Note: server-side filtering of expired/inactive opportunities is handled by RLS policies
   const { data: opportunities = [], isLoading } = useCorridorOpportunities(filterType);
   const { data: activity = [] } = useCorridorActivity() as { data: CorridorActivityItem[] | undefined };
+  const canAccessCorridor = hasCorridorAccess(tier);
+
+  if (!canAccessCorridor) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.memberGate}>
+          <Text style={styles.memberGateTitle}>The Corridor opens from Silver membership.</Text>
+          <Text style={styles.memberGateCopy}>
+            This room is reserved for Silver, Platinum, and Laureate members. Upgrade access to view and act on live opportunities.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -216,7 +222,7 @@ export default function CorridorScreen() {
           <View style={styles.topBar}>
             <Pressable
               style={styles.helpPill}
-              onPress={() => Alert.alert('Corridor help', 'The Corridor surfaces private opportunities matched to your tier and current activity.')}
+              onPress={() => Alert.alert('Corridor help', 'The Corridor surfaces private opportunities for Silver, Platinum, and Laureate members to review and act on.')}
             >
               <Text style={styles.helpPillText}>Help</Text>
             </Pressable>
@@ -516,5 +522,24 @@ const styles = StyleSheet.create({
     color: colors.gray,
     textAlign: 'center',
     lineHeight: 19,
+  },
+  memberGate: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 88,
+  },
+  memberGateTitle: {
+    fontFamily: typography.serif.medium,
+    fontSize: typography.sizes.screenTitle,
+    color: colors.black,
+    lineHeight: 34,
+  },
+  memberGateCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: typography.sizes.body,
+    color: colors.gray,
+    lineHeight: 21,
+    marginTop: 10,
   },
 });

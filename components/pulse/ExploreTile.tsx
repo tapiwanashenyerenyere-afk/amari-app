@@ -33,7 +33,7 @@ export function ExploreTile({ tile, width, onPress }: ExploreTileProps) {
       {tile.image_url ? (
         <>
           <Image
-            source={{ uri: tile.image_url }}
+            source={typeof tile.image_url === 'string' ? { uri: tile.image_url } : tile.image_url}
             style={StyleSheet.absoluteFillObject}
             contentFit="cover"
             transition={300}

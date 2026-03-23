@@ -6,9 +6,13 @@ import {
   StyleSheet,
   Text,
   View,
+  Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getEditorialStory } from '@/data/editorialStories';
 import { useAuth } from '@/providers/AuthProvider';
 import { usePulseEdition } from '@/queries/pulse';
 import { colors, radius, spacing, typography } from '@/lib/theme';
@@ -32,14 +36,95 @@ function extractBlocks(content: unknown): string[] {
   return [];
 }
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString('en-AU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export default function PulseEditionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const { tier } = useAuth();
-  const pulseId = Number(params.id);
-  const { data, isLoading, isError } = usePulseEdition(Number.isFinite(pulseId) ? pulseId : 0);
+  const routeId = typeof params.id === 'string' ? params.id : '';
+  const editorialStory = routeId ? getEditorialStory(routeId) : null;
+  const pulseId = Number(routeId);
   const hasFullEditorial = tier === 'platinum' || tier === 'laureate';
+  const { data, isLoading, isError } = usePulseEdition(
+    !editorialStory && Number.isFinite(pulseId) ? pulseId : 0,
+  );
+
+  if (editorialStory) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
+
+          <Text style={styles.eyebrow}>The Pulse</Text>
+          <Text style={styles.category}>{editorialStory.category}</Text>
+          <Text style={styles.headline}>{editorialStory.headline}</Text>
+          <Text style={styles.meta}>{formatDate(editorialStory.publishedAt)}</Text>
+
+          <View style={styles.imageWrap}>
+            {editorialStory.image ? (
+              <Image source={editorialStory.image} style={styles.heroImage} contentFit="cover" transition={300} />
+            ) : (
+              <LinearGradient
+                colors={['#F0ECE5', '#E4D9CA']}
+                style={styles.heroImage}
+              />
+            )}
+          </View>
+          {editorialStory.imageCredit ? (
+            <Text style={styles.credit}>Image: {editorialStory.imageCredit}</Text>
+          ) : null}
+
+          {editorialStory.amariConnection ? (
+            <View style={styles.connectionCard}>
+              <Text style={styles.connectionLabel}>AMARI Connection</Text>
+              <Text style={styles.connectionBody}>{editorialStory.amariConnection}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.bodyCard}>
+            {editorialStory.body.map((block, index) => (
+              <Text key={`${editorialStory.id}-${index}`} style={styles.bodyText}>
+                {block}
+              </Text>
+            ))}
+          </View>
+
+          <View style={styles.sourcesCard}>
+            <Text style={styles.sourcesTitle}>Sources</Text>
+            {editorialStory.sources.map((source, index) => (
+              <Pressable
+                key={`${source.url}-${index}`}
+                style={[styles.sourceRow, index === editorialStory.sources.length - 1 && styles.sourceRowLast]}
+                onPress={() => Linking.openURL(source.url)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open source: ${source.label}`}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sourceLabel}>{source.label}</Text>
+                  <Text style={styles.sourceUrl} numberOfLines={1}>{source.url}</Text>
+                </View>
+                <Text style={styles.sourceArrow}>Open</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   if (!Number.isFinite(pulseId)) {
     return (
@@ -70,13 +155,7 @@ export default function PulseEditionScreen() {
   const summaryBlocks = extractBlocks(data.summary_content);
   const fullBlocks = extractBlocks(data.full_content);
   const contentBlocks = fullBlocks.length > 0 ? fullBlocks : summaryBlocks;
-  const publishDate = data.publish_date
-    ? new Date(data.publish_date).toLocaleDateString('en-AU', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
-    : null;
+  const publishDate = data.publish_date ? formatDate(data.publish_date) : null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -154,8 +233,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.sand,
     letterSpacing: 2,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
+  },
+  category: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 11,
+    color: colors.gray,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
   },
   headline: {
     fontFamily: typography.serif.medium,
@@ -169,7 +255,42 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.regular,
     fontSize: 12,
     color: colors.gray,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  imageWrap: {
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  heroImage: {
+    width: '100%',
+    height: 220,
+  },
+  credit: {
+    fontFamily: typography.body.regular,
+    fontSize: 10,
+    color: colors.gray,
+    marginBottom: spacing.lg,
+  },
+  connectionCard: {
+    marginBottom: spacing.lg,
+    backgroundColor: colors.black,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+  },
+  connectionLabel: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    color: colors.sandOnDark,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing.xs,
+  },
+  connectionBody: {
+    fontFamily: typography.body.medium,
+    fontSize: 13,
+    color: colors.white,
+    lineHeight: 20,
   },
   bodyCard: {
     backgroundColor: colors.white,
@@ -182,6 +303,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.black,
     lineHeight: 26,
+  },
+  sourcesCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+  },
+  sourcesTitle: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 12,
+    color: colors.black,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  sourceRowLast: {
+    borderBottomWidth: 0,
+  },
+  sourceLabel: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.black,
+    marginBottom: 2,
+  },
+  sourceUrl: {
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: colors.gray,
+  },
+  sourceArrow: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sand,
   },
   noticeCard: {
     marginTop: spacing.lg,

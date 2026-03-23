@@ -46,6 +46,10 @@ export const queryKeys = {
     me: ['member', 'me'] as const,
     barcode: ['member', 'barcode'] as const,
   },
+  invites: {
+    all: ['invites'] as const,
+    status: () => [...queryKeys.invites.all, 'status'] as const,
+  },
 };
 
 export const staleTimes = {
@@ -56,4 +60,5 @@ export const staleTimes = {
   cityPresence: 60 * 1000,
   barcode: 12 * 60 * 60 * 1000,
   member: 5 * 60 * 1000,
+  invites: 60 * 1000,
 };

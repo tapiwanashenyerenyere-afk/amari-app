@@ -13,6 +13,7 @@ export interface AlignedDiscoveryTile {
   image_url: string | null;
   image_path: string | null;
   owner_tier: MembershipTier;
+  contact_enabled: boolean;
   created_at: string;
 }
 
@@ -45,6 +46,15 @@ export interface AlignedInterestResult {
   mutual: boolean;
   connection_id: string | null;
   revealed_member: AlignedRevealMember | null;
+  error?: string;
+}
+
+export interface AlignedTileContactResult {
+  success: boolean;
+  email: string;
+  full_name: string | null;
+  subject: string | null;
+  tile_description: string | null;
   error?: string;
 }
 
@@ -149,6 +159,33 @@ export function useSkipAlignedTile() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.aligned.all });
+    },
+  });
+}
+
+export function useAlignedTileContact() {
+  return useMutation({
+    mutationFn: async (tileId: string) => {
+      const { data, error } = await (supabase as any).rpc('get_aligned_tile_contact_details', {
+        p_tile_id: tileId,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const result = (data ?? {}) as Partial<AlignedTileContactResult>;
+      if (!result.success || !result.email) {
+        throw new Error(result.error ?? 'Email contact is not available for this project');
+      }
+
+      return {
+        success: true,
+        email: result.email,
+        full_name: result.full_name ?? null,
+        subject: result.subject ?? null,
+        tile_description: result.tile_description ?? null,
+      } satisfies AlignedTileContactResult;
     },
   });
 }

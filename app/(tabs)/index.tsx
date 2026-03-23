@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Linking, Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useLatestPulse } from '../../queries/pulse';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { getEditorialStories } from '../../data/editorialStories';
+import { getRecommendedEditorialLead, rankEditorialStories } from '../../lib/editorialRecommendations';
 import { useEventDetail, useEvents, useRsvpToEvent } from '../../queries/events';
 import { useMyProfile } from '../../queries/members';
 import { useAlignedConnections } from '../../queries/aligned';
@@ -11,7 +14,6 @@ import { useCorridorOpportunities } from '../../hooks/useCorridorInterest';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import {
   WhiteCard,
-  HeroCard,
   SectionLabel,
   EventRow,
   ProgressBar,
@@ -34,6 +36,14 @@ function parseTileId(id: string, prefix: string) {
   return Number.isFinite(value) ? value : null;
 }
 
+function formatEditorialDate(value: string) {
+  return new Date(value).toLocaleDateString('en-AU', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -46,13 +56,21 @@ export default function PulseScreen() {
   const router = useRouter();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const { data: profile } = useMyProfile();
-  const { data: pulse } = useLatestPulse();
   const { data: events } = useEvents('upcoming');
   const { data: selectedEventDetail } = useEventDetail(selectedEventId ?? 0);
   const rsvpToEvent = useRsvpToEvent();
   const { data: alignedConnections = [] } = useAlignedConnections(12);
   const { data: corridorOpportunities = [] } = useCorridorOpportunities();
   const explore = useExploreFeed();
+  const editorialRankings = useMemo(
+    () => rankEditorialStories(profile || null, getEditorialStories()),
+    [profile],
+  );
+  const featuredStory = editorialRankings[0]?.story ?? getRecommendedEditorialLead(profile || null)?.story ?? null;
+  const featuredStoryReason = editorialRankings[0]?.reason ?? null;
+  const pulseArchive = editorialRankings
+    .slice(1, 4)
+    .map((item) => item.story);
 
   const profileCompletion = useMemo(() => {
     if (!profile) return 0;
@@ -65,10 +83,6 @@ export default function PulseScreen() {
   }, [profile]);
 
   const upcomingEvents = events?.slice(0, 3) || [];
-  const pulseSummary =
-    typeof pulse?.summary_content === 'object' && pulse?.summary_content !== null
-      ? ((pulse.summary_content as any).blocks || []).map((b: any) => b.content).join(' ')
-      : pulse?.summary_content;
   const selectedEvent =
     (selectedEventDetail ?? upcomingEvents.find((event: any) => event.id === selectedEventId)) || null;
 
@@ -77,6 +91,8 @@ export default function PulseScreen() {
       const pulseId = parseTileId(tile.id, 'pulse-');
       if (pulseId != null) {
         router.push({ pathname: '/pulse/[id]', params: { id: String(pulseId) } });
+      } else if (tile.id.startsWith('pulse-')) {
+        router.push({ pathname: '/pulse/[id]', params: { id: tile.id.slice('pulse-'.length) } });
       }
       return;
     }
@@ -158,32 +174,81 @@ export default function PulseScreen() {
           <View style={styles.rule} />
 
           {/* The Pulse — Editorial Hero */}
-          <SectionLabel>The Pulse</SectionLabel>
-          {pulse?.headline ? (
-            <HeroCard
-              onPress={() =>
-                pulse?.id
-                  ? router.push({ pathname: '/pulse/[id]', params: { id: String(pulse.id) } })
-                  : undefined
-              }
+          <View style={styles.sectionHeaderRow}>
+            <SectionLabel>The Pulse</SectionLabel>
+            <Pressable
+              onPress={() => router.push('/pulse' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Browse all Pulse stories"
             >
-              <View style={styles.pulseIndicator}>
-                <BreathingDot size={5} />
-                <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
-              </View>
-              <Text style={styles.pulseHeadline}>{pulse.headline}</Text>
-              {pulseSummary ? (
-                <Text style={styles.pulseDesc}>{pulseSummary}</Text>
-              ) : null}
-              <View style={styles.pulseFooter}>
-                <Text style={styles.pulseRead}>3 min read</Text>
-                <Text style={styles.pulseLink}>Read →</Text>
-              </View>
-            </HeroCard>
+              <Text style={styles.sectionLink}>Archive →</Text>
+            </Pressable>
+          </View>
+          {featuredStory ? (
+            <>
+              <Pressable
+                style={styles.editorialLeadCard}
+                onPress={() => router.push({ pathname: '/pulse/[id]', params: { id: featuredStory.slug } })}
+                accessibilityRole="button"
+                accessibilityLabel={`Open Pulse story: ${featuredStory.headline}`}
+              >
+                {featuredStory.image ? (
+                  <Image source={featuredStory.image} style={StyleSheet.absoluteFillObject} contentFit="cover" transition={300} />
+                ) : (
+                  <LinearGradient
+                    colors={['#1C1815', '#111111', '#14120F']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                )}
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+                  locations={[0, 0.5, 1]}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <View style={styles.editorialLeadContent}>
+                  <View style={styles.pulseIndicator}>
+                    <BreathingDot size={5} />
+                    <Text style={styles.pulseLabel}>RECOMMENDED FOR YOU</Text>
+                  </View>
+                  <Text style={styles.editorialLeadCategory}>{featuredStory.category}</Text>
+                  <Text style={styles.pulseHeadline}>{featuredStory.headline}</Text>
+                  <Text style={styles.pulseDesc}>{featuredStory.summary}</Text>
+                  {featuredStoryReason ? (
+                    <Text style={styles.editorialReason}>{featuredStoryReason}</Text>
+                  ) : null}
+                  {featuredStory.amariConnection ? (
+                    <Text style={styles.editorialConnection}>{featuredStory.amariConnection}</Text>
+                  ) : null}
+                  <View style={styles.pulseFooter}>
+                    <Text style={styles.pulseRead}>{formatEditorialDate(featuredStory.publishedAt)}</Text>
+                    <Text style={styles.pulseLink}>Read →</Text>
+                  </View>
+                </View>
+              </Pressable>
+
+              <WhiteCard static>
+                {pulseArchive.map((story, index) => (
+                  <Pressable
+                    key={story.id}
+                    style={[styles.archiveRow, index === pulseArchive.length - 1 && styles.archiveRowLast]}
+                    onPress={() => router.push({ pathname: '/pulse/[id]', params: { id: story.slug } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open Pulse story: ${story.headline}`}
+                  >
+                    <View style={styles.archiveMeta}>
+                      <Text style={styles.archiveCategory}>{story.shortLabel}</Text>
+                      <Text style={styles.archiveHeadline}>{story.headline}</Text>
+                      <Text style={styles.archiveDate}>{formatEditorialDate(story.publishedAt)}</Text>
+                    </View>
+                    <Text style={styles.archiveLink}>Open</Text>
+                  </Pressable>
+                ))}
+              </WhiteCard>
+            </>
           ) : (
             <WhiteCard static>
               <Text style={styles.emptyText}>
-                This week&apos;s editorial note is still being prepared. Check back after the next AMARI release.
+                The Pulse archive is being prepared. Check back after the next AMARI release.
               </Text>
             </WhiteCard>
           )}
@@ -244,7 +309,7 @@ export default function PulseScreen() {
                 <Text style={styles.profileEdit}>Edit →</Text>
               </View>
               <ProgressBar progress={profileCompletion} />
-              <Text style={styles.profileHint}>Complete your profile to unlock Aligned.</Text>
+              <Text style={styles.profileHint}>Complete your profile to get more from Aligned.</Text>
             </View>
           </WhiteCard>
         </StaggerReveal>
@@ -286,14 +351,94 @@ const styles = StyleSheet.create({
   exploreTitle: { fontFamily: typography.serif.medium, fontSize: 30, color: colors.black, letterSpacing: -0.3, marginBottom: 16 },
   greeting: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, lineHeight: 30, letterSpacing: -0.3 },
   rule: { height: 1, backgroundColor: colors.rule, marginVertical: 14 },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionLink: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sand,
+  },
+  editorialLeadCard: {
+    minHeight: 320,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  editorialLeadContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
   pulseIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   pulseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.sand },
   pulseLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 1.5 },
+  editorialLeadCategory: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 1.6,
+    marginBottom: 8,
+  },
   pulseHeadline: { fontFamily: typography.serif.medium, fontSize: 21, fontWeight: '500', color: colors.white, lineHeight: 26, marginBottom: 8, letterSpacing: -0.3 },
   pulseDesc: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 19, marginBottom: 12 },
+  editorialReason: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.76)',
+    marginBottom: 10,
+  },
+  editorialConnection: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sandOnDark,
+    marginBottom: 10,
+  },
   pulseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pulseRead: { fontFamily: typography.mono.regular, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
   pulseLink: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.sandOnDark },
+  archiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  archiveRowLast: {
+    borderBottomWidth: 0,
+  },
+  archiveMeta: {
+    flex: 1,
+  },
+  archiveCategory: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    color: colors.sand,
+    letterSpacing: 1.3,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  archiveHeadline: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 14,
+    color: colors.black,
+    lineHeight: 19,
+    marginBottom: 4,
+  },
+  archiveDate: {
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: colors.gray,
+  },
+  archiveLink: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sand,
+  },
   featuredInner: { backgroundColor: colors.black, borderRadius: radius.md, padding: 18 },
   featuredLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 2, marginBottom: 8 },
   featuredTitle: { fontFamily: typography.serif.medium, fontSize: 19, fontWeight: '500', color: colors.white, marginBottom: 4, letterSpacing: -0.3 },

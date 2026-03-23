@@ -11,19 +11,29 @@ import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { queryClient, queryKeys } from '@/lib/queryClient';
+import { Platform } from 'react-native';
 
 type MembershipTier = 'member' | 'silver' | 'platinum' | 'laureate';
+type AdminRole = 'owner' | 'admin' | 'editor' | 'door_staff' | null;
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   tier: MembershipTier;
   isAdmin: boolean;
+  isOwner: boolean;
+  adminRole: AdminRole;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthState>({
-  session: null, user: null, tier: 'member', isAdmin: false, isLoading: true,
+  session: null,
+  user: null,
+  tier: 'member',
+  isAdmin: false,
+  isOwner: false,
+  adminRole: null,
+  isLoading: true,
 });
 
 export function useAuth() {
@@ -32,27 +42,94 @@ export function useAuth() {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthState>({
-    session: null, user: null, tier: 'member', isAdmin: false, isLoading: true,
+    session: null,
+    user: null,
+    tier: 'member',
+    isAdmin: false,
+    isOwner: false,
+    adminRole: null,
+    isLoading: true,
   });
   const userMetadata = state.user?.user_metadata;
 
-  function extractTierFromSession(session: Session | null): { tier: MembershipTier; isAdmin: boolean } {
+  function extractAccessFromAppMetadata(session: Session | null): {
+    tier: MembershipTier;
+    isAdmin: boolean;
+    isOwner: boolean;
+    adminRole: AdminRole;
+  } {
     const appMeta = session?.user?.app_metadata;
+    const adminRole = (appMeta?.admin_role as AdminRole) || null;
+    const isAdmin = appMeta?.is_admin === true || adminRole !== null;
     return {
       tier: (appMeta?.tier as MembershipTier) || 'member',
-      isAdmin: appMeta?.is_admin === true,
+      isAdmin,
+      isOwner: adminRole === 'owner',
+      adminRole,
     };
   }
 
+  const resolveAccessFromSession = useCallback(async (session: Session | null) => {
+    const fallback = extractAccessFromAppMetadata(session);
+
+    if (!session?.user?.id) {
+      return fallback;
+    }
+
+    try {
+      const [{ data: member }, { data: adminRoleData, error: adminRoleError }] = await Promise.all([
+        supabase
+          .from('members')
+          .select('tier')
+          .eq('id', session.user.id)
+          .maybeSingle(),
+        (supabase as any).rpc('get_admin_role', { p_member_id: session.user.id }),
+      ]);
+
+      const adminRole = adminRoleError ? fallback.adminRole : ((adminRoleData as AdminRole) || null);
+      const tier = (member?.tier as MembershipTier | undefined) || fallback.tier;
+      const isAdmin = adminRole !== null || fallback.isAdmin;
+
+      return {
+        tier,
+        isAdmin,
+        isOwner: adminRole === 'owner',
+        adminRole,
+      };
+    } catch (error) {
+      console.warn('Access resolution fallback:', error);
+      return fallback;
+    }
+  }, []);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const { tier, isAdmin } = extractTierFromSession(session);
-      setState({ session, user: session?.user ?? null, tier, isAdmin, isLoading: false });
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const { tier, isAdmin, isOwner, adminRole } = await resolveAccessFromSession(session);
+      setState({
+        session,
+        user: session?.user ?? null,
+        tier,
+        isAdmin,
+        isOwner,
+        adminRole,
+        isLoading: false,
+      });
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const { tier, isAdmin } = extractTierFromSession(session);
-      setState(prev => ({ ...prev, session, user: session?.user ?? null, tier, isAdmin, isLoading: false }));
+      void (async () => {
+        const { tier, isAdmin, isOwner, adminRole } = await resolveAccessFromSession(session);
+        setState(prev => ({
+          ...prev,
+          session,
+          user: session?.user ?? null,
+          tier,
+          isAdmin,
+          isOwner,
+          adminRole,
+          isLoading: false,
+        }));
+      })();
 
       if (event === 'SIGNED_IN') {
         queryClient.invalidateQueries();
@@ -63,6 +140,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.aligned.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.member.me });
+        queryClient.invalidateQueries({ queryKey: queryKeys.invites.all });
       }
 
       if (event === 'SIGNED_OUT') {
@@ -71,7 +149,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [resolveAccessFromSession]);
 
   // Sync profile data from user_metadata / SecureStore to the members table.
   // Covers cases where the member row exists but has empty fields:
@@ -130,6 +208,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [userMetadata]);
 
+  const getPendingInvitePayload = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      return window.localStorage.getItem('pending_invitation_code');
+    }
+
+    return SecureStore.getItemAsync('pending_invitation_code');
+  }, []);
+
+  const clearPendingInvitePayload = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      window.localStorage.removeItem('pending_invitation_code');
+      return;
+    }
+
+    await SecureStore.deleteItemAsync('pending_invitation_code');
+  }, []);
+
   // Redeem pending invitation code after sign-in
   const redeemingRef = useRef(false);
   useEffect(() => {
@@ -138,7 +233,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const redeemPendingCode = async () => {
       redeemingRef.current = true;
       try {
-        const pending = await SecureStore.getItemAsync('pending_invitation_code');
+        const pending = await getPendingInvitePayload();
         if (!pending) {
           // No pending code — still sync user_metadata to profile in case fields are empty
           await syncProfileData(state.user!.id);
@@ -167,18 +262,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         if (data?.success) {
-          await SecureStore.deleteItemAsync('pending_invitation_code');
+          await clearPendingInvitePayload();
           // Refresh session so JWT reflects new tier + admin status
-          await supabase.auth.refreshSession();
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          const refreshedSession = refreshed.session ?? state.session;
+          const access = await resolveAccessFromSession(refreshedSession);
+          setState((prev) => ({
+            ...prev,
+            session: refreshedSession,
+            user: refreshedSession?.user ?? prev.user,
+            tier: access.tier,
+            isAdmin: access.isAdmin,
+            isOwner: access.isOwner,
+            adminRole: access.adminRole,
+            isLoading: false,
+          }));
           // Invalidate profile cache so UI shows the new data immediately
           queryClient.invalidateQueries({ queryKey: queryKeys.member.me });
         } else {
           if (data?.error === 'already_member') {
             // Member exists but might have empty profile fields — sync from SecureStore/user_metadata
             await syncProfileData(state.user!.id, { fullName, city, industry });
-            await SecureStore.deleteItemAsync('pending_invitation_code');
+            await clearPendingInvitePayload();
           } else if (data?.error === 'invalid_or_expired') {
-            await SecureStore.deleteItemAsync('pending_invitation_code');
+            await clearPendingInvitePayload();
           }
           console.warn('Code redemption failed:', data?.error);
         }
@@ -190,7 +297,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
 
     redeemPendingCode();
-  }, [state.isLoading, state.user, syncProfileData]);
+  }, [clearPendingInvitePayload, getPendingInvitePayload, resolveAccessFromSession, state.isLoading, state.session, state.user, syncProfileData]);
 
   // Listen for tier change notifications via Supabase Realtime
   useEffect(() => {

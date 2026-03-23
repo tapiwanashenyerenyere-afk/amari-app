@@ -41,7 +41,7 @@ export default function MutualRevealOverlay({
           <Text style={styles.cardTitle}>Mutual alignment</Text>
           <Text style={styles.cardSub}>
             They expressed interest in your work too. Here&apos;s who&apos;s behind
-            the project.
+            the project. Reach out outside the app when you are ready.
           </Text>
 
           {/* Identity reveal */}
@@ -65,9 +65,9 @@ export default function MutualRevealOverlay({
               onStartConversation();
             }}
             accessibilityRole="button"
-            accessibilityLabel="Start conversation"
+            accessibilityLabel="Continue"
           >
-            <Text style={styles.ctaBtnText}>Start Conversation</Text>
+            <Text style={styles.ctaBtnText}>Continue</Text>
           </Pressable>
         </Animated.View>
       </Pressable>

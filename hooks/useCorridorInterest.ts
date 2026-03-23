@@ -122,14 +122,16 @@ export function useHasExpressedInterest(opportunityId: number) {
     queryFn: async () => {
       if (!user?.id) return false;
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('corridor_interests')
         .select('id')
         .eq('member_id', user.id)
         .eq('opportunity_id', opportunityId)
-        .maybeSingle();
+        .limit(1);
 
-      return !!data;
+      if (error) throw error;
+
+      return (data?.length ?? 0) > 0;
     },
     enabled: !!user?.id,
   });

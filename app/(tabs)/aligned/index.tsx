@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   View,
   Text,
   ScrollView,
@@ -16,9 +17,10 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { colors, typography, spacing, radius } from '../../../lib/theme';
+import { colors, typography, spacing, radius, TIER_LEVELS } from '../../../lib/theme';
 import { StaggerReveal, SectionLabel } from '../../../components/v2';
 import { useAlignedConnections } from '../../../queries/aligned';
+import { useAuth } from '../../../providers/AuthProvider';
 
 function getInitials(name: string) {
   return name
@@ -181,7 +183,9 @@ function ConnectionRow({
 export default function AlignedLanding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { tier } = useAuth();
   const { data: connections = [] } = useAlignedConnections();
+  const canCreate = (TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 0) >= TIER_LEVELS.silver;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -233,16 +237,22 @@ export default function AlignedLanding() {
             style={styles.createBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/(tabs)/aligned/create');
+              if (canCreate) {
+                router.push('/(tabs)/aligned/create');
+              } else {
+                Alert.alert('Publishing opens from Silver membership', 'You can explore Aligned on your current membership, but publishing a tile requires Silver, Platinum, or Laureate access.');
+              }
             }}
             accessibilityRole="button"
-            accessibilityLabel="Add your tile"
+            accessibilityLabel={canCreate ? 'Add your tile' : 'Aligned publishing opens from Silver membership'}
           >
             <Text style={styles.createBtnPlus}>+</Text>
             <View>
-              <Text style={styles.createBtnTitle}>Add your tile</Text>
+              <Text style={styles.createBtnTitle}>{canCreate ? 'Add your tile' : 'Browse only on Member'}</Text>
               <Text style={styles.createBtnSub}>
-                Share a project or interest for others to discover
+                {canCreate
+                  ? 'Share a project or interest for others to discover'
+                  : 'Publishing opens from Silver membership and above'}
               </Text>
             </View>
           </Pressable>

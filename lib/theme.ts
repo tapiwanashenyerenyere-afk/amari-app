@@ -161,7 +161,7 @@ export const TIER_DISPLAY_NAMES: Record<string, string> = {
 export const TAB_VISIBILITY: Record<string, number> = {
   pulse: 1,
   events: 1,
-  aligned: 3,
+  aligned: 1,
   corridor: 2,
   profile: 1,
 };

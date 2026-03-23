@@ -5,7 +5,7 @@ export interface ExploreTile {
   type: ExploreTileType;
   title: string;
   description: string | null;
-  image_url: string | null;
+  image_url: string | number | null;
   image_path: string | null;
   tags: string[];
   score: number;

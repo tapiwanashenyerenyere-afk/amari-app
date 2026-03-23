@@ -10,7 +10,14 @@ interface CreateTileInput {
   type: 'project' | 'interest';
   description: string;
   tags: string[];
+  visibilityTiers: Array<'member' | 'silver' | 'platinum' | 'laureate'>;
+  contactEnabled?: boolean;
   imageUri?: string | null;
+}
+
+interface CreateTileResult {
+  success: boolean;
+  moderationStatus: 'pending' | 'approved' | 'rejected' | null;
 }
 
 export function useCreateTile() {
@@ -78,15 +85,20 @@ export function useCreateTile() {
   /**
    * Create a tile — upload image if provided, then insert row
    */
-  const createTile = async (input: CreateTileInput): Promise<boolean> => {
+  const createTile = async (input: CreateTileInput): Promise<CreateTileResult> => {
     if (!user?.id) {
       Alert.alert('Error', 'You must be signed in to create a tile.');
-      return false;
+      return { success: false, moderationStatus: null };
     }
 
     if (!input.description.trim()) {
       Alert.alert('Missing info', 'Please add a description for your tile.');
-      return false;
+      return { success: false, moderationStatus: null };
+    }
+
+    if (!input.visibilityTiers.length) {
+      Alert.alert('Missing audience', 'Choose at least one membership level that can view this tile.');
+      return { success: false, moderationStatus: null };
     }
 
     setLoading(true);
@@ -98,19 +110,21 @@ export function useCreateTile() {
         imagePath = await uploadImage(input.imageUri);
         if (!imagePath) {
           Alert.alert('Upload Failed', 'Could not upload image. Please try again.');
-          return false;
+          return { success: false, moderationStatus: null };
         }
       }
 
-      const { error } = await supabase.from('aligned_tiles').insert({
+      const { data, error } = await (supabase as any).from('aligned_tiles').insert({
         user_id: user!.id,
         type: input.type,
         description: input.description.trim(),
         tags: input.tags,
+        visibility_tiers: input.visibilityTiers,
+        contact_enabled: input.type === 'project' && input.contactEnabled === true,
         image_url: null,
         image_path: imagePath,
         is_active: true,
-      });
+      }).select('id, moderation_status').single();
 
       if (error) {
         console.error('Insert error:', error);
@@ -119,14 +133,17 @@ export function useCreateTile() {
           await supabase.storage.from('uploads').remove([imagePath]);
         }
         Alert.alert('Error', 'Could not create tile. Please try again.');
-        return false;
+        return { success: false, moderationStatus: null };
       }
 
-      return true;
+      return {
+        success: true,
+        moderationStatus: (data?.moderation_status as CreateTileResult['moderationStatus']) ?? 'approved',
+      };
     } catch (err) {
       console.error('Create tile failed:', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
-      return false;
+      return { success: false, moderationStatus: null };
     } finally {
       setLoading(false);
     }

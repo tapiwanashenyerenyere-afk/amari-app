@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeOut } from 'react-native-reanimated';
@@ -18,6 +19,7 @@ import { colors, typography, spacing, radius } from '../../lib/theme';
 import { useMyProfile } from '../../queries/members';
 import {
   useAlignedDiscoveryTiles,
+  useAlignedTileContact,
   useExpressAlignedInterest,
   useSkipAlignedTile,
   type AlignedDiscoveryTile,
@@ -29,6 +31,7 @@ import MutualRevealOverlay from './MutualRevealOverlay';
 // ─── Types ──────────────────────────────────────────────
 interface AlignedTileUI extends Pick<AlignedDiscoveryTile, 'id' | 'type' | 'description' | 'tags'> {
   tier: MembershipTier;
+  contactEnabled: boolean;
   gradientKey: string;
   recommendationScore: number;
 }
@@ -133,10 +136,12 @@ function TileItem({
   tile,
   onSkip,
   onAlign,
+  onEmail,
 }: {
   tile: AlignedTileUI;
   onSkip: (id: string) => void;
   onAlign: (id: string) => void;
+  onEmail: (tile: AlignedTileUI) => void;
 }) {
   const gradient = GRADIENTS[tile.gradientKey] || GRADIENTS.warm;
   const tierColor = TIER_COLORS[tile.tier];
@@ -196,6 +201,11 @@ function TileItem({
             </View>
           ))}
         </View>
+        {tile.type === 'project' && tile.contactEnabled ? (
+          <View style={styles.contactHint}>
+            <Text style={styles.contactHintText}>Email contact available</Text>
+          </View>
+        ) : null}
         <View style={styles.tileActions}>
           <Pressable
             style={styles.btnSkip}
@@ -219,6 +229,19 @@ function TileItem({
           >
             <Text style={styles.btnAlignText}>Align</Text>
           </Pressable>
+          {tile.type === 'project' && tile.contactEnabled ? (
+            <Pressable
+              style={styles.btnEmail}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onEmail(tile);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Open your email app to contact this project owner"
+            >
+              <Text style={styles.btnEmailText}>Email</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Animated.View>
@@ -267,6 +290,7 @@ export default function AlignedListScreen({
   const { data: tiles = [], isLoading, isError } = useAlignedDiscoveryTiles(tileType);
   const skipTile = useSkipAlignedTile();
   const expressInterest = useExpressAlignedInterest();
+  const tileContact = useAlignedTileContact();
 
   const visibleTiles = useMemo(() => {
     return tiles
@@ -276,6 +300,7 @@ export default function AlignedListScreen({
         description: tile.description,
         tags: tile.tags ?? [],
         tier: tile.owner_tier,
+        contactEnabled: tile.contact_enabled === true,
         gradientKey: pickGradientKey(tile),
         recommendationScore: computeRecommendationScore(tile, profile),
       }))
@@ -331,6 +356,48 @@ export default function AlignedListScreen({
       });
     },
     [expressInterest]
+  );
+
+  const handleEmail = useCallback(
+    (tile: AlignedTileUI) => {
+      Alert.alert(
+        'Open your email app?',
+        'AMARI will hand this over to your installed email app. The project owner chose to be contacted by email for this project.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            onPress: () => {
+              tileContact.mutate(tile.id, {
+                onSuccess: async (result) => {
+                  const subject = encodeURIComponent(result.subject || 'AMARI project enquiry');
+                  const body = encodeURIComponent(
+                    `Hello${result.full_name ? ` ${result.full_name}` : ''},\n\nI saw your project on AMARI and wanted to reach out.\n\nProject: ${result.tile_description || tile.description}\n\nBest,\n`
+                  );
+                  const mailtoUrl = `mailto:${result.email}?subject=${subject}&body=${body}`;
+
+                  try {
+                    const supported = await Linking.canOpenURL(mailtoUrl);
+                    if (!supported) {
+                      Alert.alert('Email unavailable', 'No email app is available on this device right now.');
+                      return;
+                    }
+                    await Linking.openURL(mailtoUrl);
+                  } catch (error) {
+                    console.error('Open mail app failed:', error);
+                    Alert.alert('Email unavailable', 'Could not open your email app on this device.');
+                  }
+                },
+                onError: (error: Error) => {
+                  Alert.alert('Email unavailable', error.message || 'Email contact is not available for this project.');
+                },
+              });
+            },
+          },
+        ]
+      );
+    },
+    [tileContact]
   );
 
   const title = mode === 'projects' ? 'Projects' : 'Interests';
@@ -406,6 +473,7 @@ export default function AlignedListScreen({
             tile={item}
             onSkip={handleSkip}
             onAlign={handleAlign}
+            onEmail={handleEmail}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -423,8 +491,8 @@ export default function AlignedListScreen({
           onStartConversation={() => {
             setShowReveal(false);
             Alert.alert(
-              'Coming Soon',
-              'Messaging will be available in a future update.'
+              'Use Email For Outreach',
+              'AMARI is not using in-app messaging yet. Outreach should happen through email outside the app.'
             );
           }}
           onClose={() => setShowReveal(false)}
@@ -553,6 +621,19 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 8,
   },
+  contactHint: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(139,115,85,0.1)',
+    marginBottom: 8,
+  },
+  contactHintText: {
+    fontFamily: typography.body.medium,
+    fontSize: 10,
+    color: colors.sand,
+  },
   tag: {
     paddingVertical: 3,
     paddingHorizontal: 8,
@@ -606,6 +687,19 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.semiBold,
     fontSize: 11,
     color: colors.bone,
+  },
+  btnEmail: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(139,115,85,0.25)',
+  },
+  btnEmailText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 11,
+    color: colors.sand,
   },
 
   // Empty state
