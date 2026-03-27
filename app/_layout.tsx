@@ -97,7 +97,7 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
 
   return (
     <View style={splashStyles.container}>
-      <StatusBar style="light" backgroundColor={colors.black} />
+      <StatusBar style="light" backgroundColor={colors.void} />
       <View style={splashStyles.ambientMesh}>
         <MotiView
           from={{ translateX: 0, translateY: 0, scale: 1, rotate: '0deg' }}
@@ -221,7 +221,7 @@ function AnimatedSplash({ onComplete }: { onComplete: () => void }) {
 const splashStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.black,
+    backgroundColor: colors.void,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

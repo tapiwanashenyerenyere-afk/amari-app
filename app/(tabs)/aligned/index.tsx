@@ -205,10 +205,10 @@ function BoardView({
       />
 
       <ActionRow
-        description="Send your saved notes to Notes, Mail, or Messages"
+        description="Open the share sheet for Notes, Mail, Messages, or another app"
         icon={<PenLine color={colors.white} size={16} strokeWidth={1.9} />}
         onPress={onOpenNotes}
-        title="Export notes"
+        title="Share board"
       />
 
       <ActionRow
@@ -638,9 +638,17 @@ export default function AlignedScreen() {
 
   const switchView = useCallback((nextView: AlignedView) => {
     Haptics.selectionAsync();
+    if (nextView !== 'map') {
+      setShowFullscreenMap(false);
+    }
     startTransition(() => {
       setActiveView(nextView);
     });
+  }, []);
+
+  const closeFullscreenMap = useCallback(() => {
+    Haptics.selectionAsync();
+    setShowFullscreenMap(false);
   }, []);
 
   const handleToggleBookmark = useCallback(
@@ -694,8 +702,18 @@ export default function AlignedScreen() {
 
   const handleOpenNotes = useCallback(async () => {
     const savedProjects = directoryProjects.filter((project) => bookmarkedProjectIds.has(project.project_id));
+    const hasShareContent = savedProjects.length > 0 || recentConnections.length > 0;
+
+    if (!hasShareContent) {
+      Alert.alert(
+        'Nothing to share yet',
+        'Save a project or make a connection first, then share your board to Notes, Mail, Messages, or another app.',
+      );
+      return;
+    }
+
     const noteLines = [
-      'AMARI Aligned Notes',
+      'AMARI Aligned Board',
       '',
       savedProjects.length ? 'Saved projects' : 'Saved projects: none yet',
       ...savedProjects.flatMap((project, index) => ([
@@ -712,11 +730,11 @@ export default function AlignedScreen() {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       await Share.share({
-        title: 'AMARI Aligned Notes',
+        title: 'AMARI Aligned Board',
         message: noteLines.join('\n'),
       });
     } catch {
-      Alert.alert('Share unavailable', 'Notes export could not be opened right now.');
+      Alert.alert('Share unavailable', 'The share sheet could not be opened right now.');
     }
   }, [bookmarkedProjectIds, directoryProjects, recentConnections]);
 
@@ -726,7 +744,7 @@ export default function AlignedScreen() {
         activeRegion={activeRegion}
         categoryFilter={activeCategory}
         expanded={showFullscreenMap}
-        onCollapse={() => setShowFullscreenMap(false)}
+        onCollapse={closeFullscreenMap}
         onExpand={() => setShowFullscreenMap(true)}
         onProjectSelect={(project) => setSelectedProjectId(project.project_id)}
         onRegionChange={setActiveRegion}
@@ -829,8 +847,21 @@ export default function AlignedScreen() {
           </ScrollView>
         )}
 
-        <Modal animationType="slide" transparent={false} visible={showFullscreenMap}>
-          <View style={[styles.fullscreenMap, { paddingTop: insets.top }]}>{mapScene}</View>
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={showFullscreenMap}
+          onRequestClose={closeFullscreenMap}
+        >
+          <View style={styles.fullscreenMap}>
+            <View style={[styles.fullscreenMapHeader, { paddingTop: insets.top + 8 }]}>
+              <Text style={styles.fullscreenMapTitle}>Aligned Map</Text>
+              <Pressable onPress={closeFullscreenMap} style={styles.fullscreenMapClose}>
+                <Text style={styles.fullscreenMapCloseText}>Close</Text>
+              </Pressable>
+            </View>
+            <View style={styles.fullscreenMapBody}>{mapScene}</View>
+          </View>
         </Modal>
 
         {searchOpen ? (
@@ -1333,6 +1364,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
     paddingBottom: 0,
+  },
+  fullscreenMapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 12,
+    backgroundColor: colors.black,
+  },
+  fullscreenMapTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 15,
+    color: colors.white,
+    letterSpacing: 0.2,
+  },
+  fullscreenMapClose: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  fullscreenMapCloseText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.white,
+  },
+  fullscreenMapBody: {
+    flex: 1,
   },
   searchBackdrop: {
     flex: 1,

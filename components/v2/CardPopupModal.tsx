@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Linking, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import { colors, typography } from '@/lib/theme';
+import { useBarcode } from '@/hooks/useBarcode';
 import { ProfileMembershipCard } from './ProfileMembershipCard';
 
 const AMARI_LOGO_DARK = require('../../assets/images/amari-logo-dark.png');
@@ -28,27 +29,38 @@ export function CardPopupModal({
   memberUuid,
 }: CardPopupModalProps) {
   const [mounted, setMounted] = useState(visible);
+  const { data: barcode, isLoading: barcodeLoading, refetch } = useBarcode();
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
+      void refetch();
       return;
     }
 
     const timeout = setTimeout(() => setMounted(false), 420);
     return () => clearTimeout(timeout);
-  }, [visible]);
+  }, [visible, refetch]);
 
   if (!mounted) {
     return null;
   }
 
-  const qrValue = `https://amari.app/member/${memberUuid}`;
+  const memberProfileUrl = `https://amari.app/member/${memberUuid}`;
+  const qrValue = barcode?.token ?? '';
+  const expiryLabel = barcode?.expires_at
+    ? new Date(barcode.expires_at).toLocaleString('en-AU', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
   const shareMessage = [
     `${fullName} · ${tierLabel}`,
     city || 'AMARI Member',
     displayId,
-    qrValue,
+    memberProfileUrl,
   ].join('\n');
 
   const handleEmailPress = async () => {
@@ -114,16 +126,32 @@ export function CardPopupModal({
             style={styles.qrSection}
           >
             <View style={styles.qrShell}>
-              <QRCode
-                value={qrValue}
-                size={156}
-                color={colors.black}
-                backgroundColor={colors.white}
-                ecl="H"
-              />
+              {qrValue ? (
+                <QRCode
+                  value={qrValue}
+                  size={156}
+                  color={colors.black}
+                  backgroundColor={colors.white}
+                  ecl="H"
+                />
+              ) : barcodeLoading ? (
+                <View style={styles.qrState}>
+                  <ActivityIndicator color={colors.black} />
+                  <Text style={styles.qrStateTitle}>Generating secure pass</Text>
+                  <Text style={styles.qrStateText}>Preparing today&apos;s event access code.</Text>
+                </View>
+              ) : (
+                <Pressable onPress={() => refetch()} style={styles.qrState}>
+                  <Text style={styles.qrStateTitle}>Pass unavailable</Text>
+                  <Text style={styles.qrStateText}>
+                    Tap to retry loading your secure event access code.
+                  </Text>
+                </Pressable>
+              )}
             </View>
             <Image source={AMARI_LOGO_DARK} style={styles.qrLogoMark} resizeMode="contain" />
             <Text style={styles.qrId}>{displayId}</Text>
+            {expiryLabel ? <Text style={styles.qrExpiry}>Valid until {expiryLabel}</Text> : null}
           </MotiView>
 
           <MotiView
@@ -138,7 +166,7 @@ export function CardPopupModal({
                 handleEmailPress();
               }}
             >
-              <Text style={styles.walletButtonText}>Email pass</Text>
+              <Text style={styles.walletButtonText}>Email details</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.walletButton, pressed && styles.walletButtonPressed]}
@@ -155,7 +183,9 @@ export function CardPopupModal({
             animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : 10 }}
             transition={{ type: 'timing', duration: 220, delay: 320 }}
           >
-            <Text style={styles.dismissText}>Email directly or use the share sheet for Notes, Messages, and Mail.</Text>
+            <Text style={styles.dismissText}>
+              The QR rotates daily for secure event access. Use the share sheet for Notes, Messages, Mail, and other apps.
+            </Text>
           </MotiView>
         </View>
       </View>
@@ -201,6 +231,27 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  qrState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  qrStateTitle: {
+    marginTop: 10,
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.black,
+    textAlign: 'center',
+  },
+  qrStateText: {
+    marginTop: 6,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.56)',
+    lineHeight: 16,
+    textAlign: 'center',
+  },
   qrLogoMark: {
     width: 30,
     height: 30,
@@ -213,6 +264,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(255,255,255,0.50)',
     letterSpacing: 2.5,
+  },
+  qrExpiry: {
+    marginTop: 8,
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.58)',
   },
   walletRow: {
     marginTop: 18,
