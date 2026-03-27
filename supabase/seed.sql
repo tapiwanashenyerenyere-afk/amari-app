@@ -18,11 +18,27 @@ INSERT INTO pulse_editions (publish_date, status, headline, summary_content, ful
   );
 
 -- Test events
-INSERT INTO events (type, title, description, min_tier, capacity, starts_at, ends_at, venue_name, venue_address) VALUES
-  ('vibes', 'AfroBeats x Jazz Night', 'An evening of connection and conversation', 'member', 100, now() + interval '14 days', now() + interval '14 days' + interval '4 hours', 'Rooftop Bar Melbourne', '123 Collins St, Melbourne VIC 3000'),
-  ('dinner', 'Platinum Table', 'An intimate dinner for our Platinum and Laureate members', 'platinum', 20, now() + interval '21 days', now() + interval '21 days' + interval '3 hours', 'Flower Drum', '17 Market Ln, Melbourne VIC 3000'),
-  ('talk', 'Alchemist Talks: Future of AI', 'A deep dive into AI with industry leaders', 'silver', 50, now() + interval '7 days', now() + interval '7 days' + interval '2 hours', 'State Library Victoria', '328 Swanston St, Melbourne VIC 3000'),
-  ('gala', 'AMARI Gala 2026', 'The annual celebration of our community', 'member', 300, '2026-11-15 18:00:00+11', '2026-11-16 01:00:00+11', 'Melbourne Convention Centre', '1 Convention Centre Pl, South Wharf VIC 3006');
+INSERT INTO events (
+  type,
+  title,
+  description,
+  min_tier,
+  capacity,
+  starts_at,
+  ends_at,
+  venue_name,
+  venue_address,
+  dress_code,
+  registration_url,
+  is_featured
+) VALUES
+  ('gala', 'AMARI Gala 2026', 'The annual celebration of our community.', 'member', 300, '2026-11-15 18:00:00+11', '2026-11-16 01:00:00+11', 'Melbourne Convention Centre', '1 Convention Centre Pl, South Wharf VIC 3006', 'Black Tie', 'https://www.eventbrite.com/e/amari-gala-2026-tickets-1981656906151', true),
+  ('networking', 'Founders Connect Melbourne', 'A sharp evening of curated introductions and operator conversations.', 'member', 120, now() + interval '7 days', now() + interval '7 days' + interval '3 hours', 'Buro, Flinders Lane', '333 Flinders Lane, Melbourne VIC 3000', 'Smart Casual', 'https://www.eventbrite.com/e/founders-connect-melbourne', false),
+  ('dinner', 'Platinum Table', 'An intimate dinner for Platinum and Laureate members.', 'platinum', 20, now() + interval '21 days', now() + interval '21 days' + interval '3 hours', 'Flower Drum', '17 Market Ln, Melbourne VIC 3000', 'Evening Formal', 'https://www.eventbrite.com/e/platinum-table', false),
+  ('lifestyle', 'AfroBeats x Jazz Night', 'An evening of connection and conversation.', 'member', 100, now() + interval '14 days', now() + interval '14 days' + interval '4 hours', 'Rooftop Bar Melbourne', '123 Collins St, Melbourne VIC 3000', 'Elevated Casual', 'https://www.eventbrite.com/e/afrobeats-x-jazz-night', false),
+  ('collaboration', 'AMARI x Deloitte Strategy Salon', 'A partner room focused on cross-border growth, procurement, and collaboration.', 'silver', 60, now() + interval '28 days', now() + interval '28 days' + interval '2 hours', 'Deloitte Melbourne', '477 Collins St, Melbourne VIC 3000', 'Business Formal', 'https://www.eventbrite.com/e/amari-x-deloitte-strategy-salon', false),
+  ('gala', 'AMARI Gala 2025', 'A past gala used to populate the archive state.', 'member', 280, now() - interval '120 days', now() - interval '120 days' + interval '6 hours', 'Plaza Ballroom', '191 Collins St, Melbourne VIC 3000', 'Black Tie', 'https://www.eventbrite.com/e/amari-gala-2025', false),
+  ('dinner', 'Laureate Supper Club', 'A smaller room for the archive section and attended badge state.', 'laureate', 16, now() - interval '48 days', now() - interval '48 days' + interval '3 hours', 'Embla', '122 Russell St, Melbourne VIC 3000', 'Evening Formal', 'https://www.eventbrite.com/e/laureate-supper-club', false);
 
 -- Test corridor opportunities
 INSERT INTO corridor_opportunities (type, title, description, min_tier, closing_date, partner_name) VALUES

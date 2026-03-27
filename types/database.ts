@@ -3,7 +3,7 @@
 
 export type MembershipTier = 'member' | 'silver' | 'platinum' | 'laureate';
 export type MemberStatus = 'pending' | 'active' | 'suspended' | 'inactive';
-export type EventType = 'vibes' | 'dinner' | 'talk' | 'gala';
+export type EventType = 'gala' | 'networking' | 'dinner' | 'lifestyle' | 'collaboration';
 export type RsvpStatus = 'confirmed' | 'waitlisted' | 'cancelled';
 export type OpportunityType = 'co_invest' | 'board' | 'speaking' | 'procurement' | 'advisory';
 export type AlignedStage = 'new' | 'accepted' | 'revealed' | 'expired' | 'declined';
@@ -56,6 +56,9 @@ export interface Event {
   venue_lng: number | null;
   eventbrite_id: string | null;
   cover_image_path: string | null;
+  dress_code: string | null;
+  registration_url: string | null;
+  is_featured: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -155,4 +158,80 @@ export interface Connection {
   tile_b_id: string | null;
   status: 'mutual' | 'archived';
   connected_at: string;
+}
+
+// ─── Map Feature Types ─────────────────────────────────────
+
+export type ProjectCategory = 'venture' | 'advisory' | 'creative' | 'impact' | 'culture' | 'health' | 'tech';
+export type ProjectStatus = 'pending' | 'approved' | 'rejected';
+export type GeoLevel = 'country' | 'state' | 'city';
+
+export interface RegionCentroid {
+  id: string;
+  country_code: string;
+  country_name: string;
+  state_province: string | null;
+  city_name: string | null;
+  population: number | null;
+  display_label: string;
+  geo_level: GeoLevel;
+}
+
+export interface Project {
+  id: string;
+  creator_id: string;
+  name: string;
+  description: string;
+  category: ProjectCategory;
+  region_id: string;
+  image_url: string | null;
+  image_path: string | null;
+  external_link: string | null;
+  status: ProjectStatus;
+  rejection_reason: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  region?: RegionCentroid;
+  creator?: Pick<Member, 'id' | 'full_name' | 'photo_url'>;
+}
+
+export interface ProjectBookmark {
+  id: string;
+  member_id: string;
+  project_id: string;
+  created_at: string;
+}
+
+// Map cache types (returned from RPCs)
+export interface MapCountryCluster {
+  country_code: string;
+  country_name: string;
+  project_count: number;
+  categories: Record<ProjectCategory, number>;
+  lat: number;
+  lng: number;
+}
+
+export interface MapStateCluster {
+  state_province: string;
+  display_label: string;
+  project_count: number;
+  categories: Record<ProjectCategory, number>;
+  lat: number;
+  lng: number;
+}
+
+export interface MapProject {
+  project_id: string;
+  name: string;
+  description: string;
+  category: ProjectCategory;
+  creator_first_name: string;
+  display_label: string;
+  image_url: string | null;
+  external_link: string | null;
+  lat: number;
+  lng: number;
 }

@@ -2,24 +2,46 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { queryKeys, staleTimes } from '@/lib/queryClient';
 import { useAuth } from '@/providers/AuthProvider';
+import type { Event, EventType } from '@/types/database';
 
-export function useEvents(type?: string) {
+export type EventQueryScope = 'upcoming' | 'past' | 'all';
+
+interface UseEventsOptions {
+  scope?: EventQueryScope;
+  type?: EventType | 'all';
+}
+
+export function useEvents(options: UseEventsOptions = {}) {
+  const scope = options.scope ?? 'upcoming';
+  const type = options.type ?? 'all';
+
   return useQuery({
-    queryKey: queryKeys.events.list(type),
+    queryKey: queryKeys.events.list(scope, type),
     queryFn: async () => {
+      const now = new Date().toISOString();
       let query = supabase
         .from('events')
-        .select('*')
-        .gte('starts_at', new Date().toISOString())
-        .order('starts_at', { ascending: true });
+        .select('*');
 
-      if (type) {
+      if (scope === 'upcoming') {
+        query = query
+          .gte('starts_at', now)
+          .order('starts_at', { ascending: true });
+      } else if (scope === 'past') {
+        query = query
+          .lt('starts_at', now)
+          .order('starts_at', { ascending: false });
+      } else {
+        query = query.order('starts_at', { ascending: true });
+      }
+
+      if (type !== 'all') {
         query = query.eq('type', type);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as Event[];
     },
     staleTime: staleTimes.events,
   });

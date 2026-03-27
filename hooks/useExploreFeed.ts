@@ -1,5 +1,3 @@
-import { useAuth } from '@/providers/AuthProvider';
-import { useMyProfile } from '@/queries/members';
 import { useLatestPulse } from '@/queries/pulse';
 import { useEvents } from '@/queries/events';
 import { FALLBACK_TILES } from '@/constants/explore';
@@ -8,7 +6,6 @@ import type { ExploreTile, ExploreState } from '@/types/explore';
 function buildExploreTiles(
   pulse: any,
   events: any[],
-  profile: any,
 ): ExploreTile[] {
   const tiles: ExploreTile[] = [];
 
@@ -77,8 +74,7 @@ function buildExploreTiles(
 
 export function useExploreFeed(): ExploreState {
   const { data: pulse, isLoading: pulseLoading } = useLatestPulse();
-  const { data: events, isLoading: eventsLoading } = useEvents('upcoming');
-  const { data: profile } = useMyProfile();
+  const { data: events, isLoading: eventsLoading } = useEvents({ scope: 'upcoming' });
 
   const isLoading = pulseLoading || eventsLoading;
 
@@ -86,7 +82,7 @@ export function useExploreFeed(): ExploreState {
     return { tiles: [], isLoading: true, isError: false, source: 'live' };
   }
 
-  const tiles = buildExploreTiles(pulse, events || [], profile);
+  const tiles = buildExploreTiles(pulse, events || []);
   const source = tiles.some((t) => t.source === 'live') ? 'live' : 'fallback';
 
   return {

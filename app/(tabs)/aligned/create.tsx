@@ -16,44 +16,35 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, radius } from '../../../lib/theme';
-import { useCreateTile } from '../../../hooks/useCreateTile';
+import { RegionPicker } from '../../../components/aligned/RegionPicker';
+import { useCreateProject } from '../../../hooks/useCreateProject';
+import type { ProjectCategory, RegionCentroid } from '../../../types/database';
 
-const PROJECT_TAG_OPTIONS = [
-  'AI/ML', 'Fintech', 'HealthTech', 'EdTech', 'CleanTech',
-  'Culture', 'E-Commerce', 'Legal', 'Marketing', 'Data Science',
-  'Operations', 'Engineering', 'Design', 'Community',
+const CATEGORIES: { key: ProjectCategory; label: string; accent: string }[] = [
+  { key: 'venture', label: 'Venture', accent: '#C9A962' },
+  { key: 'advisory', label: 'Advisory', accent: '#722F37' },
+  { key: 'creative', label: 'Creative', accent: '#C9A962' },
+  { key: 'impact', label: 'Impact', accent: '#722F37' },
+  { key: 'culture', label: 'Culture', accent: '#C9A962' },
+  { key: 'health', label: 'Health', accent: '#722F37' },
+  { key: 'tech', label: 'Tech', accent: '#C9A962' },
 ];
 
-const INTEREST_TAG_OPTIONS = [
-  'Ethics', 'Investing', 'Climate', 'Policy', 'Design',
-  'Culture', 'Mentorship', 'Startups', 'Wellness', 'Advocacy',
-  'Community', 'Technology',
-];
+const MAX_CHARS = 100;
 
-export default function CreateTileScreen() {
+export default function CreateProjectScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { pickImage, createTile, loading } = useCreateTile();
+  const { pickImage, createProject, loading } = useCreateProject();
 
-  const [tileType, setTileType] = useState<'project' | 'interest'>('project');
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [category, setCategory] = useState<ProjectCategory | null>(null);
+  const [region, setRegion] = useState<RegionCentroid | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [externalLink, setExternalLink] = useState('');
 
-  const tagOptions = tileType === 'project' ? PROJECT_TAG_OPTIONS : INTEREST_TAG_OPTIONS;
   const charCount = description.length;
-  const maxChars = 150;
-
-  const toggleTag = (tag: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : prev.length < 4
-        ? [...prev, tag]
-        : prev
-    );
-  };
 
   const handlePickImage = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -62,27 +53,41 @@ export default function CreateTileScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!description.trim()) {
-      Alert.alert('Missing description', 'Describe what you are building or what you care about.');
+    if (!name.trim()) {
+      Alert.alert('Missing name', 'Give your project a name.');
       return;
     }
-    if (selectedTags.length === 0) {
-      Alert.alert('Missing tags', 'Select at least one tag.');
+    if (!description.trim()) {
+      Alert.alert('Missing description', 'Describe your project in one sentence.');
+      return;
+    }
+    if (!category) {
+      Alert.alert('Missing category', 'Select a category for your project.');
+      return;
+    }
+    if (!region) {
+      Alert.alert('Missing region', 'Select the region where your project is based.');
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const success = await createTile({
-      type: tileType,
+    const success = await createProject({
+      name,
       description,
-      tags: selectedTags,
+      category,
+      regionId: region.id,
       imageUri,
+      externalLink: externalLink.trim() || null,
     });
 
     if (success) {
-      Alert.alert('Tile created', 'Your tile is now visible to the community.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert(
+        'Project submitted',
+        'Your project is pending review. It will appear on the map once approved.',
+        [{ text: 'OK', onPress: () => router.back() }],
+      );
+    } else {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
 
@@ -105,7 +110,7 @@ export default function CreateTileScreen() {
           >
             <Text style={styles.backIcon}>{'\u2039'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>New Tile</Text>
+          <Text style={styles.headerTitle}>New Project</Text>
           <View style={{ width: 36 }} />
         </View>
 
@@ -113,47 +118,18 @@ export default function CreateTileScreen() {
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Type selector */}
-          <Text style={styles.label}>Type</Text>
-          <View style={styles.typeRow}>
-            <Pressable
-              style={[styles.typeBtn, tileType === 'project' && styles.typeBtnActive]}
-              onPress={() => {
-                setTileType('project');
-                setSelectedTags([]);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Select project type"
-            >
-              <Text
-                style={[styles.typeBtnText, tileType === 'project' && styles.typeBtnTextActive]}
-              >
-                Project
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[styles.typeBtn, tileType === 'interest' && styles.typeBtnActive]}
-              onPress={() => {
-                setTileType('interest');
-                setSelectedTags([]);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Select interest type"
-            >
-              <Text
-                style={[styles.typeBtnText, tileType === 'interest' && styles.typeBtnTextActive]}
-              >
-                Interest
-              </Text>
-            </Pressable>
-          </View>
-
           {/* Image upload */}
           <Text style={styles.label}>
-            Image <Text style={styles.labelHint}>(optional)</Text>
+            Cover image <Text style={styles.labelHint}>(optional)</Text>
           </Text>
-          <Pressable style={styles.imageUpload} onPress={handlePickImage} accessibilityRole="button" accessibilityLabel="Upload image">
+          <Pressable
+            style={styles.imageUpload}
+            onPress={handlePickImage}
+            accessibilityRole="button"
+            accessibilityLabel="Upload cover image"
+          >
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.imagePreview} />
             ) : (
@@ -162,56 +138,98 @@ export default function CreateTileScreen() {
                 style={styles.imagePlaceholder}
               >
                 <Text style={styles.imagePlaceholderIcon}>+</Text>
-                <Text style={styles.imagePlaceholderText}>Tap to add image</Text>
+                <Text style={styles.imagePlaceholderText}>Tap to add</Text>
               </LinearGradient>
             )}
           </Pressable>
 
+          {/* Project name */}
+          <Text style={styles.label}>Project name</Text>
+          <TextInput
+            style={styles.nameInput}
+            placeholder="e.g. Diaspora Capital Fund"
+            placeholderTextColor={colors.grayLight}
+            value={name}
+            onChangeText={setName}
+            maxLength={60}
+          />
+
           {/* Description */}
-          <Text style={styles.label}>
-            {tileType === 'project' ? 'What are you building?' : 'What do you care about?'}
-          </Text>
+          <Text style={styles.label}>Description</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.textInput}
-              placeholder={
-                tileType === 'project'
-                  ? 'One sentence about your project...'
-                  : 'One sentence about what interests you...'
-              }
+              placeholder="One sentence about your project..."
               placeholderTextColor={colors.grayLight}
               value={description}
-              onChangeText={(text) => setDescription(text.slice(0, maxChars))}
+              onChangeText={(text) => setDescription(text.slice(0, MAX_CHARS))}
               multiline
-              maxLength={maxChars}
+              maxLength={MAX_CHARS}
             />
-            <Text style={[styles.charCount, charCount > 130 && styles.charCountWarn]}>
-              {charCount}/{maxChars}
+            <Text
+              style={[styles.charCount, charCount > 85 && styles.charCountWarn]}
+            >
+              {charCount}/{MAX_CHARS}
             </Text>
           </View>
 
-          {/* Tags */}
-          <Text style={styles.label}>
-            Tags <Text style={styles.labelHint}>(up to 4)</Text>
-          </Text>
-          <View style={styles.tagsWrap}>
-            {tagOptions.map((tag) => {
-              const active = selectedTags.includes(tag);
+          {/* Category */}
+          <Text style={styles.label}>Category</Text>
+          <View style={styles.categoryWrap}>
+            {CATEGORIES.map((cat) => {
+              const isActive = category === cat.key;
               return (
                 <Pressable
-                  key={tag}
-                  style={[styles.tagPill, active && styles.tagPillActive]}
-                  onPress={() => toggleTag(tag)}
+                  key={cat.key}
+                  style={[
+                    styles.categoryPill,
+                    isActive && { backgroundColor: colors.black, borderColor: colors.black },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCategory(cat.key);
+                  }}
                   accessibilityRole="button"
-                  accessibilityLabel={`${active ? 'Remove' : 'Add'} ${tag} tag`}
+                  accessibilityState={{ selected: isActive }}
                 >
-                  <Text style={[styles.tagPillText, active && styles.tagPillTextActive]}>
-                    {tag}
+                  {isActive && (
+                    <View
+                      style={[styles.categoryDot, { backgroundColor: cat.accent }]}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      isActive && { color: colors.white },
+                    ]}
+                  >
+                    {cat.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
+
+          {/* Region */}
+          <Text style={styles.label}>Region</Text>
+          <RegionPicker selectedRegion={region} onSelect={setRegion} />
+          <Text style={styles.regionNote}>
+            Australia is always stored and displayed at state level for member privacy.
+          </Text>
+
+          {/* External link */}
+          <Text style={styles.label}>
+            External link <Text style={styles.labelHint}>(optional)</Text>
+          </Text>
+          <TextInput
+            style={styles.nameInput}
+            placeholder="https://..."
+            placeholderTextColor={colors.grayLight}
+            value={externalLink}
+            onChangeText={setExternalLink}
+            keyboardType="url"
+            autoCapitalize="none"
+          />
 
           {/* Submit */}
           <Pressable
@@ -219,12 +237,17 @@ export default function CreateTileScreen() {
             onPress={handleSubmit}
             disabled={loading}
             accessibilityRole="button"
-            accessibilityLabel={loading ? 'Creating tile' : 'Create tile'}
+            accessibilityLabel={loading ? 'Submitting project' : 'Submit for review'}
           >
             <Text style={styles.submitBtnText}>
-              {loading ? 'Creating...' : 'Create Tile'}
+              {loading ? 'Submitting...' : 'Submit for Review'}
             </Text>
           </Pressable>
+
+          <Text style={styles.reviewNote}>
+            Projects are reviewed before appearing on the map. You will be
+            notified once approved.
+          </Text>
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -276,29 +299,6 @@ const styles = StyleSheet.create({
     color: colors.gray,
   },
 
-  // Type selector
-  typeRow: { flexDirection: 'row', gap: 8 },
-  typeBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.rule,
-    alignItems: 'center',
-  },
-  typeBtnActive: {
-    backgroundColor: colors.black,
-    borderColor: colors.black,
-  },
-  typeBtnText: {
-    fontFamily: typography.body.semiBold,
-    fontSize: 13,
-    color: colors.gray,
-  },
-  typeBtnTextActive: {
-    color: colors.bone,
-  },
-
   // Image upload
   imageUpload: {
     width: 120,
@@ -327,6 +327,19 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
   },
 
+  // Name input
+  nameInput: {
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.black,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+
   // Text input
   inputWrap: {
     backgroundColor: colors.white,
@@ -334,7 +347,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.rule,
     padding: 14,
-    minHeight: 100,
+    minHeight: 80,
+  },
+  regionNote: {
+    marginTop: 8,
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
   },
   textInput: {
     fontFamily: typography.body.regular,
@@ -354,31 +374,31 @@ const styles = StyleSheet.create({
     color: colors.warning,
   },
 
-  // Tags
-  tagsWrap: {
+  // Category
+  categoryWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
-  tagPill: {
-    paddingVertical: 7,
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.rule,
-    backgroundColor: 'transparent',
   },
-  tagPillActive: {
-    backgroundColor: colors.black,
-    borderColor: colors.black,
+  categoryDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  tagPillText: {
+  categoryText: {
     fontFamily: typography.body.medium,
     fontSize: 12,
     color: colors.gray,
-  },
-  tagPillTextActive: {
-    color: colors.bone,
   },
 
   // Submit
@@ -396,5 +416,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.semiBold,
     fontSize: 14,
     color: colors.bone,
+  },
+  reviewNote: {
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: colors.gray,
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 16,
   },
 });

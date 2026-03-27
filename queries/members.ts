@@ -35,6 +35,14 @@ export function useUpdateProfile() {
       company?: string;
       title?: string;
       photo_url?: string;
+      skills?: string[];
+      interests?: string[];
+      current_project?: string | null;
+      notification_preferences?: {
+        pulse: boolean;
+        aligned: boolean;
+        events: boolean;
+      };
     }) => {
       const { data, error } = await supabase
         .from('members')

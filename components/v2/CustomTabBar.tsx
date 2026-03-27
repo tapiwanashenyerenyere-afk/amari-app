@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../providers/AuthProvider';
@@ -27,7 +27,7 @@ interface CustomTabBarProps {
   navigation: any;
 }
 
-export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
+export function CustomTabBar({ state, descriptors: _descriptors, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { tier } = useAuth();
   const userLevel = TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 1;
@@ -48,6 +48,9 @@ export function CustomTabBar({ state, descriptors, navigation }: CustomTabBarPro
         const isFocused = state.index === routeIndex;
 
         const requiredLevel = TAB_VISIBILITY[visibilityKey] ?? 1;
+        const isHidden = requiredLevel >= 99;
+        if (isHidden) return null;
+
         const isLocked = userLevel < requiredLevel;
         const tierName = TIER_NAMES[requiredLevel] || 'Member';
 

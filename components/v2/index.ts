@@ -14,6 +14,12 @@ export { PressableCard } from './PressableCard';
 export { BreathingDot } from './BreathingDot';
 export { AnimatedCounter } from './AnimatedCounter';
 export { AmariEmblem } from './AmariEmblem';
+export { ProfileMembershipCard } from './ProfileMembershipCard';
+export { CardPopupModal } from './CardPopupModal';
+export { ProfileTabSwitcher } from './ProfileTabSwitcher';
+export { CanvasTile } from './CanvasTile';
+export { InterestedCard } from './InterestedCard';
+export { EmblemFooter } from './EmblemFooter';
 export {
   PulseIcon,
   EventsIcon,

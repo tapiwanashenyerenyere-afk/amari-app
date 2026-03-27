@@ -18,11 +18,13 @@ export const queryKeys = {
   pulse: {
     all: ['pulse'] as const,
     latest: () => [...queryKeys.pulse.all, 'latest'] as const,
+    feed: (limit = 8) => [...queryKeys.pulse.all, 'feed', limit] as const,
+    mapSummary: () => [...queryKeys.pulse.all, 'map-summary'] as const,
     edition: (id: number) => [...queryKeys.pulse.all, id] as const,
   },
   events: {
     all: ['events'] as const,
-    list: (type?: string) => [...queryKeys.events.all, 'list', type] as const,
+    list: (scope?: string, type?: string) => [...queryKeys.events.all, 'list', scope ?? 'upcoming', type ?? 'all'] as const,
     detail: (id: number) => [...queryKeys.events.all, id] as const,
     myRsvps: () => [...queryKeys.events.all, 'my-rsvps'] as const,
   },

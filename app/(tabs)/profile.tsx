@@ -1,95 +1,332 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  Linking,
+  Alert,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '../../providers/AuthProvider';
-import { useMyProfile, useUpdateProfile } from '../../queries/members';
-import { supabase } from '../../lib/supabase';
-import { colors, typography, spacing, radius } from '../../lib/theme';
-import { TIER_DISPLAY_NAMES } from '../../lib/theme';
-import {
-  WhiteCard,
-  SectionLabel,
-  InfoRow,
-  Barcode,
-  ProgressBar,
-  Badge,
-  StaggerReveal,
-} from '../../components/v2';
-import { EditFieldModal } from '../../components/EditFieldModal';
-import { useCorridorActivity } from '../../hooks/useCorridorInterest';
+import { useAuth } from '@/providers/AuthProvider';
+import { useMyProfile, useUpdateProfile } from '@/queries/members';
+import { supabase } from '@/lib/supabase';
+import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '@/lib/theme';
+import { EditFieldModal } from '@/components/EditFieldModal';
+import { CardPopupModal } from '@/components/v2/CardPopupModal';
+import { CanvasTile } from '@/components/v2/CanvasTile';
+import { EmblemFooter } from '@/components/v2/EmblemFooter';
+import { InterestedCard } from '@/components/v2/InterestedCard';
+import { ProfileMembershipCard } from '@/components/v2/ProfileMembershipCard';
+import { ProfileTabSwitcher } from '@/components/v2/ProfileTabSwitcher';
+import { ChevronRight } from '@/components/v2/TabIcons';
+import type { AlignedTile } from '@/types/database';
+
+type EditableFieldKey =
+  | 'full_name'
+  | 'city'
+  | 'company'
+  | 'industry'
+  | 'interests'
+  | 'bio';
+
+interface EditFieldState {
+  key: EditableFieldKey;
+  label: string;
+  value: string;
+  placeholder?: string;
+  multiline?: boolean;
+}
+
+type ProfileTile = Pick<
+  AlignedTile,
+  'id' | 'type' | 'description' | 'tags' | 'is_active' | 'created_at' | 'location'
+>;
+
+interface InterestedProject {
+  id: string;
+  expressedAt: string | null;
+  category: string;
+  title: string;
+  author: string;
+}
+
+const TAB_LABELS = ['My Projects', 'Interested In', 'Account'];
+
+function sentenceCase(value: string) {
+  return value
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function choosePalette(tile: ProfileTile, index: number): 'warm' | 'navy' | 'forest' | 'wine' | 'smoke' {
+  const source = `${tile.type} ${(tile.tags || []).join(' ')} ${tile.description}`.toLowerCase();
+
+  if (/(finance|fund|invest|capital|venture)/.test(source)) {
+    return 'warm';
+  }
+  if (/(community|collective|housing|network)/.test(source)) {
+    return 'navy';
+  }
+  if (/(health|care|impact|climate|policy|research)/.test(source)) {
+    return 'forest';
+  }
+  if (/(event|summit|media|creative|culture|story)/.test(source)) {
+    return 'wine';
+  }
+
+  return ['warm', 'navy', 'forest', 'wine', 'smoke'][index % 5] as
+    | 'warm'
+    | 'navy'
+    | 'forest'
+    | 'wine'
+    | 'smoke';
+}
+
+function tileCategory(tile: ProfileTile) {
+  return sentenceCase(tile.tags?.[0] || tile.type || 'Project');
+}
+
+function tileTitle(tile: ProfileTile, fallbackTitle?: string | null) {
+  if (fallbackTitle?.trim()) {
+    return fallbackTitle.trim();
+  }
+
+  return tile.description.trim() || 'Untitled project';
+}
+
+function tileDescription(tile: ProfileTile, title: string) {
+  const description = tile.description.trim();
+  if (!description || description === title) {
+    return null;
+  }
+
+  return description;
+}
+
+function tileStatus(tile: ProfileTile, index: number) {
+  if (!tile.is_active) {
+    return 'Paused';
+  }
+  if (tile.type === 'project' && index === 0) {
+    return 'Active';
+  }
+  if (tile.type === 'project') {
+    return 'Building';
+  }
+  return 'Exploring';
+}
+
+function AccountSectionLabel({ children }: { children: string }) {
+  return <Text style={styles.sectionLabel}>{children}</Text>;
+}
+
+function AccountRow({
+  label,
+  value,
+  emptyLabel,
+  onPress,
+  isLast = false,
+  danger = false,
+}: {
+  label: string;
+  value?: string | null;
+  emptyLabel?: string;
+  onPress?: () => void | Promise<void>;
+  isLast?: boolean;
+  danger?: boolean;
+}) {
+  const displayValue = value?.trim() || emptyLabel || '';
+  const isEmpty = !value?.trim();
+
+  return (
+    <Pressable
+      onPress={
+        onPress
+          ? async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              await onPress();
+            }
+          : undefined
+      }
+      disabled={!onPress}
+      style={({ pressed }) => [
+        styles.accountRow,
+        !isLast ? styles.accountRowBorder : null,
+        pressed && onPress ? styles.accountRowPressed : null,
+      ]}
+      accessibilityRole={onPress ? 'button' : undefined}
+    >
+      <View style={styles.accountRowCopy}>
+        <Text style={styles.accountRowLabel}>{label}</Text>
+        <Text style={[styles.accountRowValue, isEmpty ? styles.accountRowValueEmpty : null, danger ? styles.accountRowValueDanger : null]}>
+          {displayValue}
+        </Text>
+      </View>
+      <ChevronRight color={danger ? 'rgba(180,68,68,0.20)' : 'rgba(0,0,0,0.10)'} size={14} />
+    </Pressable>
+  );
+}
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { session, user, tier } = useAuth();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const pagerRef = useRef<ScrollView>(null);
+  const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const updateProfile = useUpdateProfile();
-  const { data: corridorActivity } = useCorridorActivity();
 
-  // Query aligned tiles for current user
-  const { data: myTiles } = useQuery({
-    queryKey: ['my-aligned-tiles', user?.id],
+  const [activeTab, setActiveTab] = useState(0);
+  const [showCardPopup, setShowCardPopup] = useState(false);
+  const [editField, setEditField] = useState<EditFieldState | null>(null);
+  const [panelHeights, setPanelHeights] = useState<Record<number, number>>({});
+
+  const { data: myTiles = [] } = useQuery<ProfileTile[]>({
+    queryKey: ['profile', 'my-project-tiles', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('aligned_tiles')
-        .select('id, type, description, is_active')
+        .select('id, type, description, tags, is_active, created_at, location')
         .eq('user_id', user.id)
+        .eq('type', 'project')
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
+
+      if (error) {
+        throw error;
+      }
+
+      return (data || []).sort((left, right) => {
+        if (left.is_active === right.is_active) {
+          return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+        }
+        return left.is_active ? -1 : 1;
+      });
     },
     enabled: !!user?.id,
   });
-  const [editField, setEditField] = useState<{ label: string; key: string; value: string } | null>(null);
 
-  const handleSave = useCallback(
-    (value: string) => {
-      if (!editField) return;
-      const parsed =
-        editField.key === 'skills' || editField.key === 'interests'
-          ? value.split(',').map((s) => s.trim()).filter(Boolean)
-          : value;
-      updateProfile.mutate(
-        { [editField.key]: parsed },
-        {
-          onSuccess: () => {
-            setEditField(null);
-          },
-        },
-      );
-    },
-    [editField, updateProfile],
-  );
-
-  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
-
-  const initials = useMemo(() => {
-    if (!profile?.full_name) return 'AA';
-    return profile.full_name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  }, [profile]);
-
-  const profileCompletion = useMemo(() => {
-    if (!profile) return 0;
-    let filled = 0;
-    const fields = ['full_name', 'bio', 'company', 'industry', 'city', 'skills', 'interests'];
-    fields.forEach((f) => {
-      const val = profile[f as keyof typeof profile];
-      if (Array.isArray(val)) {
-        if (val.length > 0) filled++;
-      } else if (val) {
-        filled++;
+  const { data: interestedProjects = [] } = useQuery<InterestedProject[]>({
+    queryKey: ['profile', 'aligned-interests', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        return [];
       }
+
+      const { data: bookmarkRows, error: bookmarkError } = await supabase
+        .from('project_bookmarks')
+        .select('id, project_id, created_at')
+        .eq('member_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (bookmarkError) {
+        throw bookmarkError;
+      }
+
+      if (!bookmarkRows?.length) {
+        return [];
+      }
+
+      const projectIds = bookmarkRows.map((row) => row.project_id);
+      const { data: projects, error: projectError } = await supabase
+        .from('map_cache_projects')
+        .select('project_id, name, description, category, creator_first_name')
+        .in('project_id', projectIds);
+
+      if (projectError || !projects) {
+        return bookmarkRows.map((row, index) => ({
+          id: row.id,
+          expressedAt: row.created_at,
+          category: 'Project',
+          title: `Saved project ${index + 1}`,
+          author: 'AMARI member',
+        }));
+      }
+
+      const projectMap = new Map(projects.map((project) => [project.project_id, project]));
+
+      return bookmarkRows.map((row) => {
+        const project = projectMap.get(row.project_id);
+        if (!project) {
+          return {
+            id: row.id,
+            expressedAt: row.created_at,
+            category: 'Project',
+            title: 'Saved project',
+            author: 'AMARI member',
+          };
+        }
+
+        return {
+          id: row.id,
+          expressedAt: row.created_at,
+          category: sentenceCase(project.category || 'Project'),
+          title: project.name || project.description || 'Saved project',
+          author: project.creator_first_name || 'AMARI member',
+        };
+      });
+    },
+    enabled: !!user?.id,
+  });
+
+  const fullName = profile?.full_name?.trim() || 'AMARI Member';
+  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
+  const displayId = profile?.display_id || `AMARI-${new Date().getFullYear()}-0000`;
+  const locationLabel = profile?.city?.trim() || 'Australia';
+  const currentProjectLabel = profile?.current_project?.trim() || myTiles[0]?.description?.trim() || '';
+  const openToLabel = Array.isArray(profile?.interests) ? profile.interests.join(', ') : '';
+  const contentWidth = Math.min(Math.max(width - spacing.xl * 2, 280), 460);
+  const pagerHeight = Math.max(360, ...Object.values(panelHeights));
+
+  const projectTiles = useMemo(() => myTiles.slice(0, 3), [myTiles]);
+
+  const heroTile = projectTiles[0];
+  const secondaryLeftTile = projectTiles[1];
+  const secondaryRightTile = projectTiles[2];
+
+  const openEditor = (
+    key: EditableFieldKey,
+    label: string,
+    value: string,
+    options?: { placeholder?: string; multiline?: boolean }
+  ) => {
+    setEditField({
+      key,
+      label,
+      value,
+      placeholder: options?.placeholder,
+      multiline: options?.multiline,
     });
-    return Math.round((filled / fields.length) * 100);
-  }, [profile]);
+  };
+
+  const handleSave = (value: string) => {
+    if (!editField) {
+      return;
+    }
+
+    const payload =
+      editField.key === 'interests'
+        ? { interests: value.split(',').map((item) => item.trim()).filter(Boolean) }
+        : { [editField.key]: value };
+
+    updateProfile.mutate(payload as any, {
+      onSuccess: () => setEditField(null),
+    });
+  };
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -97,16 +334,58 @@ export default function ProfileScreen() {
       {
         text: 'Sign Out',
         style: 'destructive',
-        onPress: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-          supabase.auth.signOut();
+        onPress: async () => {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          await supabase.auth.signOut();
         },
       },
     ]);
   };
 
-  const fullName = profile?.full_name || 'AMARI Member';
-  const nameParts = fullName.split(' ');
+  const handleTabChange = async (index: number) => {
+    setActiveTab(index);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    pagerRef.current?.scrollTo({ x: width * index, animated: true });
+  };
+
+  const handlePagerEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    setActiveTab(nextIndex);
+  };
+
+  const openAlignedBoard = () => {
+    router.push({ pathname: '/(tabs)/aligned', params: { view: 'board' } } as never);
+  };
+
+  const openAlignedInterests = () => {
+    router.push({ pathname: '/(tabs)/aligned', params: { view: 'interests' } } as never);
+  };
+
+  const handleOpenSupport = async () => {
+    const subject = encodeURIComponent('AMARI support');
+    const body = encodeURIComponent(`Hi AMARI,\n\nI need help with my account.\n\nMember: ${displayId}`);
+    const mailtoUrl = `mailto:support@amari.app?subject=${subject}&body=${body}`;
+    const canOpen = await Linking.canOpenURL(mailtoUrl);
+
+    if (!canOpen) {
+      Alert.alert('Support unavailable', 'No mail app is available on this device.');
+      return;
+    }
+
+    await Linking.openURL(mailtoUrl);
+  };
+
+  const handleOpenSettings = async () => {
+    try {
+      await Linking.openSettings();
+    } catch {
+      Alert.alert('Settings unavailable', 'System notification settings could not be opened on this device.');
+    }
+  };
+
+  const setPanelHeight = (index: number, height: number) => {
+    setPanelHeights((current) => (current[index] === height ? current : { ...current, [index]: height }));
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -115,238 +394,249 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <StaggerReveal delay={45}>
-          {/* Profile Header */}
-          <WhiteCard static>
-            <View style={styles.profileHeader}>
-              <MotiView
-                from={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', damping: 14, delay: 100 }}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.cardSection}>
+          <View style={{ width: contentWidth }}>
+            <ProfileMembershipCard
+              fullName={fullName}
+              city={locationLabel}
+              tierLabel={tierLabel}
+              displayId={displayId}
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowCardPopup(true);
+              }}
+            />
+          </View>
+        </View>
+
+        <ProfileTabSwitcher
+          tabs={TAB_LABELS}
+          activeIndex={activeTab}
+          onChange={handleTabChange}
+          maxWidth={contentWidth}
+        />
+
+        <View style={[styles.pagerShell, { height: pagerHeight }]}>
+          <ScrollView
+            ref={pagerRef}
+            horizontal
+            pagingEnabled
+            bounces={false}
+            nestedScrollEnabled
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            onMomentumScrollEnd={handlePagerEnd}
+            scrollEventThrottle={16}
+          >
+            <View style={[styles.panel, { width }]} onLayout={(event) => setPanelHeight(0, event.nativeEvent.layout.height)}>
+              <View style={[styles.panelInner, { width: contentWidth }]}>
+                <View style={styles.counterRow}>
+                  <Text style={styles.counterText}>{`${projectTiles.length} of 3 slots`}</Text>
                 </View>
-              </MotiView>
-              <View>
-                <Text style={styles.name}>
-                  {nameParts[0]}
-                  {nameParts.length > 1 && `\n${nameParts.slice(1).join(' ')}`}
-                </Text>
-                <Text style={styles.role}>
-                  {profile?.company || 'Tap to set your role'}
-                </Text>
+
+                <View style={styles.pinboard}>
+                  {heroTile ? (
+                    <CanvasTile
+                      title={tileTitle(heroTile, currentProjectLabel)}
+                      description={tileDescription(heroTile, tileTitle(heroTile, currentProjectLabel))}
+                      category={tileCategory(heroTile)}
+                      rank={1}
+                      status={tileStatus(heroTile, 0)}
+                      variant="hero"
+                      palette={choosePalette(heroTile, 0)}
+                      onPress={openAlignedBoard}
+                    />
+                  ) : (
+                    <CanvasTile variant="hero" isAddSlot onPress={() => router.push('/(tabs)/aligned/create')} />
+                  )}
+
+                  <View style={styles.secondaryRow}>
+                    {secondaryLeftTile ? (
+                      <View style={styles.secondaryTile}>
+                        <CanvasTile
+                          title={tileTitle(secondaryLeftTile)}
+                          category={tileCategory(secondaryLeftTile)}
+                          rank={2}
+                          status={tileStatus(secondaryLeftTile, 1)}
+                          variant="left"
+                          palette={choosePalette(secondaryLeftTile, 1)}
+                          onPress={openAlignedBoard}
+                        />
+                      </View>
+                    ) : (
+                      <View style={styles.secondaryTile}>
+                        <CanvasTile variant="left" isAddSlot onPress={() => router.push('/(tabs)/aligned/create')} />
+                      </View>
+                    )}
+
+                    {secondaryRightTile ? (
+                      <View style={styles.secondaryTile}>
+                        <CanvasTile
+                          title={tileTitle(secondaryRightTile)}
+                          category={tileCategory(secondaryRightTile)}
+                          rank={3}
+                          status={tileStatus(secondaryRightTile, 2)}
+                          variant="right"
+                          palette={choosePalette(secondaryRightTile, 2)}
+                          onPress={openAlignedBoard}
+                        />
+                      </View>
+                    ) : (
+                      <View style={styles.secondaryTile}>
+                        <CanvasTile variant="right" isAddSlot onPress={() => router.push('/(tabs)/aligned/create')} />
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <EmblemFooter />
               </View>
             </View>
-          </WhiteCard>
 
-          {/* Tier Badge */}
-          <View style={styles.badgeCenter}>
-            <Badge>{tierLabel}</Badge>
-          </View>
-
-          {/* Barcode */}
-          <Barcode memberId={profile?.display_id || `AMARI-2026-${profile?.id?.slice(-4).toUpperCase() || '0000'}`} />
-
-          {/* Profile completion */}
-          <View style={styles.completionRow}>
-            <View style={styles.completionHeader}>
-              <Text style={styles.completionLabel}>PROFILE COMPLETION</Text>
-              <Text style={styles.completionPercent}>{profileCompletion}%</Text>
-            </View>
-            <ProgressBar progress={profileCompletion} />
-          </View>
-
-          {/* Details */}
-          <SectionLabel>Details</SectionLabel>
-          <WhiteCard static>
-            <InfoRow
-              label="City Presence"
-              value={profile?.city || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'City', key: 'city', value: profile?.city || '' })
-              }
-            />
-            <InfoRow
-              label="Building"
-              value={profile?.company || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'Building', key: 'company', value: profile?.company || '' })
-              }
-            />
-            <InfoRow
-              label="Interests"
-              value={profile?.industry || 'Tap to add'}
-              onPress={() =>
-                setEditField({ label: 'Interests', key: 'industry', value: profile?.industry || '' })
-              }
-            />
-            <InfoRow
-              label="Open To"
-              value={profile?.bio || 'Tap to add'}
-              isLast
-              onPress={() =>
-                setEditField({ label: 'Open To', key: 'bio', value: profile?.bio || '' })
-              }
-            />
-          </WhiteCard>
-
-          {/* Skills & Interests */}
-          <SectionLabel>Skills & Interests</SectionLabel>
-          <WhiteCard static>
-            <View style={styles.tagRow}>
-              {(profile?.skills as string[] | undefined)?.length ? (
-                (profile.skills as string[]).map((skill: string) => (
-                  <View key={skill} style={styles.skillTag}>
-                    <Text style={styles.skillTagText}>{skill}</Text>
-                  </View>
-                ))
-              ) : (
-                <Pressable
-                  onPress={() =>
-                    setEditField({
-                      label: 'Skills (comma-separated)',
-                      key: 'skills',
-                      value: '',
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Add your skills"
-                >
-                  <Text style={styles.projectText}>Tap to add your skills</Text>
-                </Pressable>
-              )}
-            </View>
-            <View style={styles.tagRow}>
-              {(profile?.interests as string[] | undefined)?.length ? (
-                (profile.interests as string[]).map((interest: string) => (
-                  <View key={interest} style={styles.interestTag}>
-                    <Text style={styles.interestTagText}>{interest}</Text>
-                  </View>
-                ))
-              ) : (
-                <Pressable
-                  onPress={() =>
-                    setEditField({
-                      label: 'Interests (comma-separated)',
-                      key: 'interests',
-                      value: '',
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Add your interests"
-                >
-                  <Text style={styles.projectText}>Tap to add your interests</Text>
-                </Pressable>
-              )}
-            </View>
-            {profile?.current_project ? (
-              <Text style={styles.projectText}>{profile.current_project as string}</Text>
-            ) : null}
-            <Pressable
-              style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.6 }]}
-              onPress={() =>
-                setEditField({
-                  label: 'Skills (comma-separated)',
-                  key: 'skills',
-                  value: Array.isArray(profile?.skills) ? (profile.skills as string[]).join(', ') : '',
-                })
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Edit skills and interests"
-            >
-              <Text style={styles.editBtnText}>Edit</Text>
-            </Pressable>
-          </WhiteCard>
-
-          {/* My Tiles */}
-          <SectionLabel>My Tiles</SectionLabel>
-          <WhiteCard static>
-            {myTiles && myTiles.length > 0 ? (
-              <>
-                <Text style={[styles.completionLabel, { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }]}>
-                  {myTiles.filter((t) => t.is_active).length} ACTIVE TILES
-                </Text>
-                {myTiles.map((tile) => (
-                  <View key={tile.id} style={styles.tileRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.tileType}>{tile.type || 'PROJECT'}</Text>
-                      <Text style={styles.tileDesc} numberOfLines={1}>
-                        {tile.description || 'Untitled tile'}
-                      </Text>
+            <View style={[styles.panel, { width }]} onLayout={(event) => setPanelHeight(1, event.nativeEvent.layout.height)}>
+              <View style={[styles.panelInner, { width: contentWidth }]}>
+                <View style={styles.interestedSection}>
+                  <View style={styles.interestedHeader}>
+                    <View style={styles.interestedHeaderIcon}>
+                      <Svg width={14} height={18} viewBox="0 0 14 18" fill="none" color={colors.goldDark}>
+                        <Path
+                          d="M1 1h12v16l-6-3.5L1 17V1z"
+                          stroke="currentColor"
+                          strokeWidth={1.2}
+                          fill="rgba(196,162,101,0.1)"
+                        />
+                      </Svg>
                     </View>
-                    <Badge>{tile.is_active ? 'ACTIVE' : 'PAUSED'}</Badge>
+                    <Text style={styles.interestedHeaderText}>Projects I&apos;m interested in</Text>
                   </View>
-                ))}
-              </>
-            ) : (
-              <Text style={[styles.projectText, { paddingTop: 14 }]}>
-                Create your first tile on the Aligned tab
-              </Text>
-            )}
-          </WhiteCard>
 
-          {/* Corridor Activity */}
-          <SectionLabel>Corridor Activity</SectionLabel>
-          <WhiteCard static>
-            {corridorActivity && corridorActivity.length > 0 ? (
-              corridorActivity.map((item: Record<string, unknown>) => {
-                const opp = item.opportunity as { id: number; title: string; type: string; closing_date: string; min_tier: string } | null;
-                const status = (item.status as string) || 'pending';
-                const itemId = item.id as string;
-                const expressedAt = item.expressed_at as string | null;
-                const statusColors: Record<string, { bg: string; text: string }> = {
-                  pending: { bg: 'rgba(0,0,0,0.05)', text: colors.gray },
-                  reviewed: { bg: 'rgba(139,115,85,0.1)', text: colors.sand },
-                  accepted: { bg: 'rgba(16,185,129,0.1)', text: colors.success },
-                  declined: { bg: 'rgba(239,68,68,0.1)', text: colors.error },
-                };
-                const sc = statusColors[status] || statusColors.pending;
-                return (
-                  <View key={itemId} style={styles.activityRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.activityTitle} numberOfLines={1}>
-                        {opp?.title || 'Opportunity'}
-                      </Text>
-                      <Text style={styles.activityDate}>
-                        {expressedAt
-                          ? new Date(expressedAt).toLocaleDateString('en-AU', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })
-                          : ''}
-                      </Text>
-                    </View>
-                    <View style={[styles.activityBadge, { backgroundColor: sc.bg }]}>
-                      <Text style={[styles.activityBadgeText, { color: sc.text }]}>
-                        {status.toUpperCase()}
-                      </Text>
-                    </View>
+                  <View style={styles.interestedList}>
+                    {interestedProjects.length ? (
+                      interestedProjects.map((item) => (
+                        <InterestedCard
+                          key={item.id}
+                          category={item.category}
+                          title={item.title}
+                          author={item.author}
+                          onPress={openAlignedInterests}
+                        />
+                      ))
+                    ) : (
+                      <View style={styles.emptyCard}>
+                        <Text style={styles.emptyTitle}>Nothing saved yet</Text>
+                        <Text style={styles.emptyBody}>
+                          Projects you save in Aligned will appear here for quick access.
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                );
-              })
-            ) : (
-              <Text style={[styles.projectText, { paddingTop: 14 }]}>
-                Express interest in opportunities on the Corridor tab
-              </Text>
-            )}
-          </WhiteCard>
+                </View>
 
-          {/* Sign out */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.signOutBtn,
-              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
-            ]}
-            onPress={handleSignOut}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out"
-          >
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </Pressable>
-        </StaggerReveal>
+                <EmblemFooter />
+              </View>
+            </View>
+
+            <View style={[styles.panel, { width }]} onLayout={(event) => setPanelHeight(2, event.nativeEvent.layout.height)}>
+              <View style={[styles.panelInner, { width: contentWidth }]}>
+                <View style={styles.accountSection}>
+                  <AccountSectionLabel>Details</AccountSectionLabel>
+                  <View style={styles.accountCard}>
+                    <AccountRow
+                      label="City"
+                      value={profile?.city || ''}
+                      emptyLabel="Add city"
+                      onPress={() => openEditor('city', 'City', profile?.city || '', { placeholder: 'Enter your city' })}
+                    />
+                    <AccountRow
+                      label="Company"
+                      value={profile?.company || ''}
+                      emptyLabel="Add company"
+                      onPress={() => openEditor('company', 'Company', profile?.company || '', { placeholder: 'Enter your company' })}
+                    />
+                    <AccountRow
+                      label="Sector"
+                      value={profile?.industry || ''}
+                      emptyLabel="Add sector"
+                      onPress={() => openEditor('industry', 'Sector', profile?.industry || '', { placeholder: 'Enter your sector' })}
+                    />
+                    <AccountRow
+                      label="Open to"
+                      value={openToLabel}
+                      emptyLabel="Add interests"
+                      onPress={() =>
+                        openEditor('interests', 'Open to', openToLabel, {
+                          placeholder: 'Comma-separated interests',
+                        })
+                      }
+                    />
+                    <AccountRow
+                      label="Current project"
+                      value={currentProjectLabel}
+                      emptyLabel="Set a project in Aligned"
+                      isLast
+                      onPress={() => router.push('/(tabs)/aligned/create')}
+                    />
+                  </View>
+
+                  <View style={styles.accountSpacer} />
+
+                  <AccountSectionLabel>Settings</AccountSectionLabel>
+                  <View style={styles.accountCard}>
+                    <AccountRow
+                      label="Edit profile"
+                      value={fullName}
+                      onPress={() =>
+                        openEditor('full_name', 'Full name', profile?.full_name || '', {
+                          placeholder: 'Enter your full name',
+                        })
+                      }
+                    />
+                    <AccountRow
+                      label="Notifications"
+                      value="Manage preferences"
+                      onPress={handleOpenSettings}
+                    />
+                    <AccountRow
+                      label="Privacy"
+                      value="Membership visibility"
+                      onPress={() =>
+                        Alert.alert(
+                          'Privacy',
+                          'Your membership card is visible only to you unless you share it. Project map locations stay privacy-degraded, and Australian map locations are state-level only.',
+                        )
+                      }
+                    />
+                    <AccountRow
+                      label="Help"
+                      value="Support and guidance"
+                      onPress={handleOpenSupport}
+                    />
+                    <AccountRow
+                      label="Sign out"
+                      value="End current session"
+                      isLast
+                      danger
+                      onPress={handleSignOut}
+                    />
+                  </View>
+                </View>
+
+                <EmblemFooter />
+              </View>
+            </View>
+          </ScrollView>
+        </View>
       </ScrollView>
+
+      <CardPopupModal
+        visible={showCardPopup}
+        onClose={() => setShowCardPopup(false)}
+        fullName={fullName}
+        city={locationLabel}
+        tierLabel={tierLabel}
+        displayId={displayId}
+        memberUuid={user?.id || profile?.id || ''}
+      />
 
       <EditFieldModal
         visible={!!editField}
@@ -354,7 +644,8 @@ export default function ProfileScreen() {
         onSave={handleSave}
         label={editField?.label || ''}
         currentValue={editField?.value || ''}
-        multiline={editField?.key === 'bio'}
+        placeholder={editField?.placeholder}
+        multiline={editField?.multiline}
         isSaving={updateProfile.isPending}
       />
     </View>
@@ -362,48 +653,154 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bone },
-  scroll: { flex: 1 },
-  content: { padding: spacing.xl, paddingBottom: 88 },
-  // Header
-  profileHeader: { padding: 16, flexDirection: 'row', gap: 14, alignItems: 'center' },
-  avatar: {
-    width: 56, height: 56, borderRadius: 16, backgroundColor: colors.black,
-    alignItems: 'center', justifyContent: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: colors.bone,
   },
-  avatarText: { fontFamily: typography.serif.medium, fontSize: 20, fontWeight: '500', color: colors.white, letterSpacing: -0.5 },
-  name: { fontFamily: typography.serif.medium, fontSize: 20, fontWeight: '500', color: colors.black, lineHeight: 23, letterSpacing: -0.3 },
-  role: { fontFamily: typography.body.regular, fontSize: 12, fontStyle: 'italic', color: colors.gray, marginTop: 2 },
-  // Badge
-  badgeCenter: { alignItems: 'center', marginVertical: 2 },
-  // Completion
-  completionRow: { paddingHorizontal: 4, marginTop: 12 },
-  completionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  completionLabel: { fontFamily: typography.geo.medium, fontSize: typography.sizes.caption, color: colors.grayLight, letterSpacing: 1 },
-  completionPercent: { fontFamily: typography.serif.medium, fontSize: 18, fontWeight: '500', color: colors.sand },
-  // Skills section
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 16, paddingTop: 0 },
-  skillTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(139,115,85,0.08)', borderWidth: 1, borderColor: 'rgba(139,115,85,0.1)' },
-  skillTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
-  interestTag: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.ghost, borderWidth: 1, borderColor: colors.rule },
-  interestTagText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.gray },
-  projectText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray, fontStyle: 'italic', paddingHorizontal: 16, paddingBottom: 12, lineHeight: 18 },
-  editBtn: { paddingHorizontal: 16, paddingBottom: 14, alignSelf: 'flex-start' as const },
-  editBtnText: { fontFamily: typography.body.medium, fontSize: 11, color: colors.sand },
-  // Tiles section
-  tileRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderBottomWidth: 1, borderBottomColor: colors.rule },
-  tileType: { fontFamily: typography.geo.medium, fontSize: 9, color: colors.sand, letterSpacing: 1, textTransform: 'uppercase' as const },
-  tileDesc: { fontFamily: typography.body.regular, fontSize: 12, color: colors.black, marginTop: 2 },
-  // Activity section
-  activityRow: { padding: 14, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.rule },
-  activityTitle: { fontFamily: typography.body.medium, fontSize: 13, color: colors.black },
-  activityDate: { fontFamily: typography.body.regular, fontSize: 10, color: colors.grayLight, marginTop: 2 },
-  activityBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 },
-  activityBadgeText: { fontFamily: typography.body.semiBold, fontSize: 9 },
-  // Sign out
-  signOutBtn: {
-    marginTop: 10, paddingVertical: 12, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.rule, alignItems: 'center',
+  scroll: {
+    flex: 1,
   },
-  signOutText: { fontFamily: typography.body.regular, fontSize: 12, color: colors.gray },
+  content: {
+    paddingBottom: 120,
+  },
+  cardSection: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 12,
+  },
+  pagerShell: {
+    marginTop: 4,
+  },
+  panel: {
+    paddingTop: 6,
+  },
+  panelInner: {
+    alignSelf: 'center',
+  },
+  counterRow: {
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.xl,
+  },
+  counterText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 9,
+    color: 'rgba(0,0,0,0.34)',
+    letterSpacing: 0.5,
+  },
+  pinboard: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 8,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  secondaryTile: {
+    flex: 1,
+  },
+  interestedSection: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 16,
+  },
+  interestedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  interestedHeaderIcon: {
+    opacity: 0.5,
+  },
+  interestedHeaderText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: 'rgba(0,0,0,0.58)',
+  },
+  interestedList: {
+    gap: 6,
+  },
+  emptyCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    borderRadius: 14,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  emptyTitle: {
+    fontFamily: typography.serif.medium,
+    fontSize: 16,
+    color: colors.black,
+  },
+  emptyBody: {
+    marginTop: 6,
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
+  },
+  accountSection: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 24,
+  },
+  sectionLabel: {
+    marginBottom: 10,
+    fontFamily: typography.mono.regular,
+    fontSize: 8,
+    color: 'rgba(0,0,0,0.34)',
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+  },
+  accountCard: {
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.cream,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  accountRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.04)',
+  },
+  accountRowPressed: {
+    backgroundColor: colors.warm,
+  },
+  accountRowCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  accountRowLabel: {
+    fontFamily: typography.mono.regular,
+    fontSize: 9,
+    color: 'rgba(0,0,0,0.40)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  accountRowValue: {
+    marginTop: 2,
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.black,
+  },
+  accountRowValueEmpty: {
+    fontStyle: 'italic',
+    fontSize: 12,
+    color: 'rgba(0,0,0,0.46)',
+  },
+  accountRowValueDanger: {
+    color: 'rgba(160,52,52,0.80)',
+  },
+  accountSpacer: {
+    height: 24,
+  },
 });

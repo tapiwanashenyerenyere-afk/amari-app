@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, radius } from '../../lib/theme';
 
@@ -11,7 +11,12 @@ interface FilterPillsProps {
 
 export function FilterPills({ options, selected, onSelect }: FilterPillsProps) {
   return (
-    <View style={styles.row}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.row}
+      contentContainerStyle={styles.rowContent}
+    >
       {options.map((option) => {
         const active = option === selected;
         return (
@@ -32,15 +37,18 @@ export function FilterPills({ options, selected, onSelect }: FilterPillsProps) {
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
+    marginBottom: 14,
+  },
+  rowContent: {
     flexDirection: 'row',
     gap: 6,
-    marginBottom: 14,
+    paddingRight: 8,
   },
   pill: {
     paddingVertical: 8,

@@ -1,49 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { queryKeys, staleTimes } from '@/lib/queryClient';
-import { useAuth } from '@/providers/AuthProvider';
-import { TIER_LEVELS } from '@/lib/constants';
+import type { PulseEdition } from '@/types/database';
 
 export function useLatestPulse() {
-  const { tier } = useAuth();
-  const tierLevel = TIER_LEVELS[tier];
-
   return useQuery({
     queryKey: queryKeys.pulse.latest(),
     queryFn: async () => {
-      // All members see headline; silver+ sees summary; platinum+ sees full
-      let query = supabase
-        .from('pulse_editions')
-        .select('id, publish_date, headline, stats, hero_image_path')
-        .eq('status', 'published')
-        .order('publish_date', { ascending: false })
-        .limit(1)
-        .single();
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc('get_pulse_feed', { p_limit: 1 });
       if (error) throw error;
-
-      // Fetch tier-specific content separately
-      let content = null;
-      if (tierLevel >= 3) {
-        // Platinum+: full content
-        const { data: full } = await supabase
-          .from('pulse_editions')
-          .select('full_content, summary_content')
-          .eq('id', data.id)
-          .single();
-        content = full;
-      } else if (tierLevel >= 2) {
-        // Silver: summary only
-        const { data: summary } = await supabase
-          .from('pulse_editions')
-          .select('summary_content')
-          .eq('id', data.id)
-          .single();
-        content = summary;
-      }
-
-      return { ...data, ...content };
+      return ((data ?? [])[0] ?? null) as PulseEdition | null;
     },
     staleTime: staleTimes.pulse,
   });
@@ -53,15 +19,53 @@ export function usePulseEdition(id: number) {
   return useQuery({
     queryKey: queryKeys.pulse.edition(id),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pulse_editions')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data, error } = await supabase.rpc('get_pulse_edition', { p_id: id });
       if (error) throw error;
-      return data;
+      return ((data ?? [])[0] ?? null) as PulseEdition | null;
     },
     staleTime: staleTimes.pulse,
     enabled: !!id,
+  });
+}
+
+export function usePulseFeed(limit = 8) {
+  return useQuery({
+    queryKey: queryKeys.pulse.feed(limit),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_pulse_feed', { p_limit: limit });
+      if (error) throw error;
+      return (data ?? []) as PulseEdition[];
+    },
+    staleTime: staleTimes.pulse,
+  });
+}
+
+export function usePulseMapSummary() {
+  return useQuery({
+    queryKey: queryKeys.pulse.mapSummary(),
+    queryFn: async () => {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [{ count: totalCount, error: totalError }, { count: newCount, error: newError }] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'approved'),
+        supabase
+          .from('projects')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'approved')
+          .gte('created_at', weekAgo),
+      ]);
+
+      if (totalError) throw totalError;
+      if (newError) throw newError;
+
+      return {
+        total: totalCount ?? 0,
+        newThisWeek: newCount ?? 0,
+      };
+    },
+    staleTime: staleTimes.pulse,
   });
 }

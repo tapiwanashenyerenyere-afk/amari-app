@@ -57,5 +57,39 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
+      - name: Inject build env and local signing
+        env:
+          BUILD_PROFILE: ${{ github.event.inputs.profile }}
+          EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_TOKEN }}
+        run: |
+          node -e "const fs=require('fs'); const path='eas.json'; const eas=JSON.parse(fs.readFileSync(path,'utf8')); for (const profileName of ['development','preview','production']) { eas.build[profileName]=eas.build[profileName]||{}; eas.build[profileName].env={...(eas.build[profileName].env||{})}; if (process.env.EXPO_PUBLIC_MAPBOX_TOKEN) { eas.build[profileName].env.EXPO_PUBLIC_MAPBOX_TOKEN=process.env.EXPO_PUBLIC_MAPBOX_TOKEN; } } if (process.env.BUILD_PROFILE==='production') { eas.build.production=eas.build.production||{}; eas.build.production.android={...(eas.build.production.android||{}), credentialsSource:'local'}; } fs.writeFileSync(path, JSON.stringify(eas, null, 2) + '\n');"
+
       - name: Build
-        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+        run: eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive --wait --json > build.json
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-build-metadata-${{ github.event.inputs.profile }}
+          path: build.json
+          retention-days: 7
+
+      - name: Download signed Android artifact
+        if: github.event.inputs.profile == 'production'
+        shell: bash
+        run: |
+          BUILD_URL=$(node -e "const fs=require('fs'); const raw=fs.readFileSync('build.json','utf8'); const start=raw.indexOf('{'); const end=raw.lastIndexOf('}'); if (start === -1 || end === -1 || end < start) process.exit(1); const data=JSON.parse(raw.slice(start, end + 1)); process.stdout.write(data.artifacts?.applicationArchiveUrl || data.artifacts?.buildUrl || '');")
+          if [ -z "$BUILD_URL" ]; then
+            echo "Missing application archive URL in build.json"
+            cat build.json
+            exit 1
+          fi
+          curl -L "$BUILD_URL" -o amari-production-signed.aab
+
+      - name: Upload signed Android artifact
+        if: github.event.inputs.profile == 'production'
+        uses: actions/upload-artifact@v4
+        with:
+          name: amari-production-signed-aab
+          path: amari-production-signed.aab
+          retention-days: 7

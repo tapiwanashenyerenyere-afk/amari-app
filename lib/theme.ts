@@ -5,12 +5,14 @@
 // ─── Colors ───────────────────────────────────────────────
 export const colors = {
   // Core palette — ONLY these three plus functional grays
-  black: '#111111',
+  black: '#0A0A0A',
   white: '#FFFFFF',
   sand: '#8B7355',          // Darkened from #A0856B for WCAG AA on bone (4.54:1)
 
   // Backgrounds
-  bone: '#F5F4F0',          // App canvas (warm off-white)
+  bone: '#F2EDE6',          // App canvas (warm off-white)
+  cream: '#FDFCFA',
+  warm: '#EDE7DE',
   onboard: '#0A0A0A',       // Onboarding dark screens
   void: '#000000',           // Step 0
 
@@ -22,8 +24,8 @@ export const colors = {
 
   // Grays
   gray: '#767676',           // Darkened from #999 for WCAG AA on white (4.54:1)
-  grayLight: '#AAAAAA',     // Darkened from #CCC for better contrast
-  grayGhost: '#DDDDDD',
+  grayLight: '#8A8A8A',
+  grayGhost: '#C9C9C9',
 
   // Functional
   ghost: 'rgba(0, 0, 0, 0.04)',
@@ -42,40 +44,66 @@ export const colors = {
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
+
+  // Profile redesign accents
+  gold: '#C4A265',
+  goldLight: '#D4B87A',
+  goldDark: '#A8884F',
+  cardBase: '#1C1C1C',
+  cardDark: '#0F0F0F',
+  cardWarm: '#1A1510',
+  tileNavy: '#141822',
+  tileNavyDark: '#0E1218',
+  tileNavyAccent: 'rgba(140,170,210,0.45)',
+  tileForest: '#141F17',
+  tileForestDark: '#0E1810',
+  tileForestAccent: 'rgba(120,180,130,0.4)',
+  tileWine: '#1F1418',
+  tileWineDark: '#180E12',
+  tileWineAccent: 'rgba(196,130,140,0.4)',
+  tileSmoke: '#181818',
+  tileSmokeDark: '#121212',
+  tileSmokeAccent: 'rgba(180,180,190,0.4)',
+  overlayHeavy: 'rgba(5,5,5,0.97)',
 } as const;
 
 // ─── Typography ───────────────────────────────────────────
 export const typography = {
-  // EB Garamond — Headlines, dates, names (precise classical serif)
+  // Plus Jakarta Sans — app-wide titles and editorial emphasis
   serif: {
-    regular: 'EBGaramond-Regular',
-    italic: 'EBGaramond-Italic',
-    medium: 'EBGaramond-Medium',
-    semiBold: 'EBGaramond-SemiBold',
-    bold: 'EBGaramond-Bold',
+    regular: 'PlusJakartaSans_500Medium',
+    italic: 'PlusJakartaSans_400Regular_Italic',
+    medium: 'PlusJakartaSans_600SemiBold',
+    semiBold: 'PlusJakartaSans_700Bold',
+    bold: 'PlusJakartaSans_700Bold',
+    extraBold: 'PlusJakartaSans_700Bold',
   },
 
-  // Syne — Section labels, tab labels, badges, navigation
+  // Plus Jakarta Sans — UI labels, tabs, and navigation
   geo: {
-    regular: 'Syne-Regular',
-    medium: 'Syne-Medium',
-    semiBold: 'Syne-SemiBold',
-    bold: 'Syne-Bold',
-    extraBold: 'Syne-ExtraBold',
+    regular: 'PlusJakartaSans_600SemiBold',
+    medium: 'PlusJakartaSans_700Bold',
+    semiBold: 'PlusJakartaSans_700Bold',
+    bold: 'PlusJakartaSans_700Bold',
+    extraBold: 'PlusJakartaSans_700Bold',
   },
 
-  // DM Sans — Body text, descriptions, buttons
+  // Plus Jakarta Sans — Body text, descriptions, buttons
   body: {
-    regular: 'DMSans-Regular',
-    medium: 'DMSans-Medium',
-    semiBold: 'DMSans-SemiBold',
-    bold: 'DMSans-Bold',
+    light: 'PlusJakartaSans_300Light',
+    regular: 'PlusJakartaSans_500Medium',
+    medium: 'PlusJakartaSans_600SemiBold',
+    semiBold: 'PlusJakartaSans_700Bold',
+    bold: 'PlusJakartaSans_700Bold',
+    lightItalic: 'PlusJakartaSans_300Light_Italic',
+    italic: 'PlusJakartaSans_500Medium_Italic',
   },
 
-  // IBM Plex Mono — Metadata, dates, codes, tier badges
+  // JetBrains Mono — Metadata, dates, codes, tier badges
   mono: {
-    regular: 'IBMPlexMono-Regular',
-    medium: 'IBMPlexMono-Medium',
+    light: 'JetBrainsMono_300Light',
+    regular: 'JetBrainsMono_500Medium',
+    medium: 'JetBrainsMono_500Medium',
   },
 
   // Scale
@@ -162,6 +190,6 @@ export const TAB_VISIBILITY: Record<string, number> = {
   pulse: 1,
   events: 1,
   aligned: 3,
-  corridor: 2,
+  corridor: 99,
   profile: 1,
 };

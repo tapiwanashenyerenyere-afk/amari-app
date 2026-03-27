@@ -1,74 +1,136 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { useAuth } from '../../providers/AuthProvider';
-import { useLatestPulse } from '../../queries/pulse';
-import { useEvents } from '../../queries/events';
-import { useMyProfile } from '../../queries/members';
-import { colors, typography, spacing, radius } from '../../lib/theme';
-import { TIER_DISPLAY_NAMES } from '../../lib/theme';
+import React, { useState } from 'react';
 import {
-  WhiteCard,
-  HeroCard,
-  SectionLabel,
-  EventRow,
-  Badge,
-  ProgressBar,
-  AvatarStack,
-  StaggerReveal,
-} from '../../components/v2';
-import { BreathingDot } from '../../components/v2/BreathingDot';
-import { ExploreCarousel, QuickActions } from '../../components/pulse';
-import { useExploreFeed } from '../../hooks/useExploreFeed';
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { CardPopupModal, EmblemFooter } from '@/components/v2';
+import { BreathingDot } from '@/components/v2/BreathingDot';
+import {
+  PulseArticleModal,
+  PulseBridgeTiles,
+  PulseHeroCarousel,
+} from '@/components/pulse';
+import { useEvents } from '@/queries/events';
+import { useMyProfile } from '@/queries/members';
+import { usePulseFeed, usePulseMapSummary } from '@/queries/pulse';
+import { useAuth } from '@/providers/AuthProvider';
+import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '@/lib/theme';
+import {
+  formatPulseDate,
+  getPulseCategoryLabel,
+  getPulseExcerpt,
+  getPulseMatchFooter,
+} from '@/lib/pulse';
+import type { PulseEdition } from '@/types/database';
 
-const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
-
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 }
 
-function formatDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).toUpperCase();
+function getInitials(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'AM';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function FeedRow({
+  article,
+  onPress,
+}: {
+  article: PulseEdition;
+  onPress: () => void;
+}) {
+  const excerpt = getPulseExcerpt(article);
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.feedRow, pressed ? styles.feedRowPressed : null]}>
+      <View style={styles.feedInfo}>
+        <Text style={styles.feedCategory}>{getPulseCategoryLabel(article)}</Text>
+        <Text style={styles.feedTitle}>{article.headline}</Text>
+        {excerpt ? (
+          <Text style={styles.feedDescription} numberOfLines={2}>
+            {excerpt}
+          </Text>
+        ) : null}
+        <Text style={styles.feedDate}>{formatPulseDate(article.publish_date)}</Text>
+      </View>
+
+      <View style={styles.feedThumb}>
+        {article.hero_image_path ? (
+          <Image source={{ uri: article.hero_image_path }} style={StyleSheet.absoluteFillObject} contentFit="cover" />
+        ) : (
+          <Text style={styles.feedThumbLetter}>{article.headline.slice(0, 1).toUpperCase()}</Text>
+        )}
+      </View>
+    </Pressable>
+  );
 }
 
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { session, tier } = useAuth();
+  const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
-  const { data: pulse } = useLatestPulse();
-  const { data: events } = useEvents('upcoming');
-  const explore = useExploreFeed();
+  const { data: pulseStories = [] } = usePulseFeed(8);
+  const { data: upcomingEvents = [] } = useEvents({ scope: 'upcoming' });
+  const { data: mapSummary = { total: 0, newThisWeek: 0 } } = usePulseMapSummary();
 
-  const firstName = useMemo(() => {
-    if (profile?.full_name) {
-      return profile.full_name.split(' ')[0];
-    }
-    return 'there';
-  }, [profile]);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<PulseEdition | null>(null);
 
-  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
+  const fullName = profile?.full_name?.trim() || 'AMARI Member';
+  const firstName = fullName.split(/\s+/)[0] || 'there';
+  const initials = getInitials(fullName);
+  const locationLabel = profile?.city?.trim() || 'Australia';
+  const displayId = profile?.display_id || `AMARI-${new Date().getFullYear()}-0000`;
+  const tierLabel = TIER_DISPLAY_NAMES[tier] || tier.toUpperCase();
+  const matchFooter = getPulseMatchFooter(profile);
 
-  const profileCompletion = useMemo(() => {
-    if (!profile) return 0;
-    let filled = 0;
-    const fields = ['full_name', 'bio', 'company', 'industry', 'city'];
-    fields.forEach((f) => {
-      if (profile[f as keyof typeof profile]) filled++;
-    });
-    return Math.round((filled / fields.length) * 100);
-  }, [profile]);
+  const heroStories = pulseStories.slice(0, 2);
+  const feedStories = pulseStories.slice(2);
+  const archiveTarget = pulseStories[pulseStories.length - 1] ?? null;
+  const nextEvent = upcomingEvents[0] ?? null;
 
-  const upcomingEvents = events?.slice(0, 3) || [];
+  const openArticle = (article: PulseEdition) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedArticle(article);
+  };
+
+  const openCard = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCardOpen(true);
+  };
+
+  const closeCard = () => {
+    Haptics.selectionAsync();
+    setCardOpen(false);
+  };
+
+  const closeArticle = () => {
+    Haptics.selectionAsync();
+    setSelectedArticle(null);
+  };
+
+  const openEvents = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(tabs)/events');
+  };
+
+  const openMap = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(tabs)/aligned');
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -77,140 +139,276 @@ export default function PulseScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <StaggerReveal>
-          {/* Greeting + Explore */}
-          <View>
-            <Text style={styles.timeLabel}>{getGreeting()}</Text>
-            <Text style={styles.exploreTitle} accessibilityRole="header">Explore</Text>
-          </View>
-        </StaggerReveal>
+        <View style={styles.topBar}>
+          <Text style={styles.greeting}>{`${getGreeting()}, ${firstName}`}</Text>
 
-        {/* Explore Carousel — outside StaggerReveal for full-bleed scroll */}
-        <ExploreCarousel tiles={explore.tiles} isLoading={explore.isLoading} />
-
-        <StaggerReveal>
-          {/* Quick Actions */}
-          <View style={{ paddingHorizontal: spacing.xl, marginTop: 20 }}>
-            <QuickActions
-              matchCount={0}
-              opportunityCount={0}
-              eventCount={upcomingEvents.length}
-            />
-          </View>
-
-          {/* Divider */}
-          <View style={styles.rule} />
-
-          {/* The Pulse — Editorial Hero */}
-          <SectionLabel>The Pulse</SectionLabel>
-          <HeroCard onPress={() => {}}>
-            <View style={styles.pulseIndicator}>
-              <BreathingDot size={5} />
-              <Text style={styles.pulseLabel}>NEW THIS WEEK</Text>
+          <Pressable onPress={openCard} style={({ pressed }) => [styles.cardButton, pressed ? styles.cardButtonPressed : null]}>
+            <View style={styles.cardAvatar}>
+              <Text style={styles.cardAvatarText}>{initials}</Text>
             </View>
-            <Text style={styles.pulseHeadline}>
-              {pulse?.headline || 'What It Means to\nBe an Alchemist'}
+            <Text style={styles.cardButtonText}>My Card</Text>
+            <BreathingDot size={6} />
+          </Pressable>
+        </View>
+
+        <View style={styles.header}>
+          <Text style={styles.title}>Explore</Text>
+        </View>
+
+        {heroStories.length ? (
+          <PulseHeroCarousel onPressStory={openArticle} stories={heroStories} />
+        ) : (
+          <View style={styles.emptyHero}>
+            <Text style={styles.emptyHeroTitle}>The next Pulse edition is warming up.</Text>
+            <Text style={styles.emptyHeroText}>
+              Published stories will appear here once the editorial desk sends them live.
             </Text>
-            <Text style={styles.pulseDesc}>
-              {pulse?.summary_content || 'AMARI exists for the people who refuse to wait for permission. Not the loudest in the room — the ones who change what the room looks like. We call them alchemists. Founders who build before the market believes. Operators who turn disorder into systems. The ones who define what comes next, not what came before.'}
-            </Text>
-            <View style={styles.pulseFooter}>
-              <Text style={styles.pulseRead}>3 min read</Text>
-              <Text style={styles.pulseLink}>Read →</Text>
-            </View>
-          </HeroCard>
+          </View>
+        )}
 
-          {/* Upcoming Events */}
-          <SectionLabel>Upcoming</SectionLabel>
-          {upcomingEvents.length > 0 ? (
-            upcomingEvents.map((event: any, i: number) => {
-              const date = new Date(event.event_date || event.date);
-              return (
-                <EventRow
-                  key={event.id || i}
-                  day={date.getDate().toString().padStart(2, '0')}
-                  month={date.toLocaleString('en-US', { month: 'short' }).toUpperCase()}
-                  title={event.title}
-                  meta={[event.location, event.type].filter(Boolean).join(' · ')}
-                  tier={event.min_tier?.toUpperCase().slice(0, 4)}
-                  dimDate={i > 0}
-                  onPress={() => {}}
-                />
-              );
-            })
-          ) : (
-            <WhiteCard static>
-              <Text style={styles.emptyText}>No upcoming events yet. Stay tuned.</Text>
-            </WhiteCard>
-          )}
+        <PulseBridgeTiles
+          mapSummary={mapSummary}
+          nextEvent={nextEvent}
+          onOpenEvents={openEvents}
+          onOpenMap={openMap}
+        />
 
-          {/* Featured Event — Dark card inside white card */}
-          <WhiteCard onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            Linking.openURL(GALA_URL);
-          }}>
-            <View style={styles.featuredInner}>
-              <Text style={styles.featuredLabel}>FEATURED</Text>
-              <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
-              <Text style={styles.featuredMeta}>May 2 · Plaza Ballroom, 191 Collins St · Black Tie</Text>
-              <View style={styles.featuredFooter}>
-                <AvatarStack initials={['A', 'K', 'N']} extra={12} />
-                <Text style={styles.featuredLink}>Details →</Text>
-              </View>
-            </View>
-          </WhiteCard>
-
-          {/* Profile Completion */}
-          <SectionLabel>Profile</SectionLabel>
-          <WhiteCard
-            static
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/(tabs)/profile');
-            }}
+        <View style={styles.feedHeader}>
+          <Text style={styles.feedHeaderTitle}>The Pulse</Text>
+          <Pressable
+            disabled={!archiveTarget}
+            onPress={() => archiveTarget && openArticle(archiveTarget)}
+            style={({ pressed }) => [
+              styles.archiveButton,
+              !archiveTarget ? styles.archiveButtonDisabled : null,
+              pressed && archiveTarget ? styles.archiveButtonPressed : null,
+            ]}
           >
-            <View style={styles.profileNudge}>
-              <View style={styles.profileHeader}>
-                <Text style={styles.profilePercent}>{profileCompletion}% complete</Text>
-                <Text style={styles.profileEdit}>Edit →</Text>
-              </View>
-              <ProgressBar progress={profileCompletion} />
-              <Text style={styles.profileHint}>Complete your profile to unlock Aligned.</Text>
-            </View>
-          </WhiteCard>
-        </StaggerReveal>
+            <Text style={styles.archiveButtonText}>Archive →</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.feedList}>
+          {feedStories.length ? (
+            feedStories.map((article) => (
+              <FeedRow article={article} key={article.id} onPress={() => openArticle(article)} />
+            ))
+          ) : (
+            <Text style={styles.feedEmpty}>
+              Archived editions will collect here once more Pulse stories are published.
+            </Text>
+          )}
+        </View>
+
+        <EmblemFooter />
       </ScrollView>
+
+      <CardPopupModal
+        visible={cardOpen}
+        onClose={closeCard}
+        fullName={fullName}
+        city={locationLabel}
+        tierLabel={tierLabel}
+        displayId={displayId}
+        memberUuid={user?.id || profile?.id || ''}
+      />
+
+      <PulseArticleModal
+        article={selectedArticle}
+        matchFooter={matchFooter}
+        onClose={closeArticle}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bone },
-  scroll: { flex: 1 },
-  content: { padding: spacing.xl, paddingBottom: 88 },
-  date: { fontFamily: typography.mono.regular, fontSize: 11, color: colors.sand, letterSpacing: 1.5, marginBottom: 3 },
-  timeLabel: { fontFamily: typography.body.regular, fontSize: 12, color: colors.sand, marginBottom: 4 },
-  exploreTitle: { fontFamily: typography.serif.medium, fontSize: 30, color: colors.black, letterSpacing: -0.3, marginBottom: 16 },
-  greeting: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, lineHeight: 30, letterSpacing: -0.3 },
-  rule: { height: 1, backgroundColor: colors.rule, marginVertical: 14 },
-  pulseIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  pulseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.sand },
-  pulseLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 1.5 },
-  pulseHeadline: { fontFamily: typography.serif.medium, fontSize: 21, fontWeight: '500', color: colors.white, lineHeight: 26, marginBottom: 8, letterSpacing: -0.3 },
-  pulseDesc: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 19, marginBottom: 12 },
-  pulseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pulseRead: { fontFamily: typography.mono.regular, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
-  pulseLink: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.sandOnDark },
-  featuredInner: { backgroundColor: colors.black, borderRadius: radius.md, padding: 18 },
-  featuredLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 2, marginBottom: 8 },
-  featuredTitle: { fontFamily: typography.serif.medium, fontSize: 19, fontWeight: '500', color: colors.white, marginBottom: 4, letterSpacing: -0.3 },
-  featuredMeta: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
-  featuredFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
-  featuredLink: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sandOnDark },
-  profileNudge: { padding: 14, paddingHorizontal: 16 },
-  profileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  profilePercent: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.black },
-  profileEdit: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sand },
-  profileHint: { fontFamily: typography.body.regular, fontSize: 11, fontStyle: 'italic', color: colors.gray, marginTop: 6 },
-  emptyText: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray, textAlign: 'center', paddingVertical: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.bone,
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 108,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: 4,
+  },
+  greeting: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: 'rgba(0,0,0,0.42)',
+  },
+  cardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: 10,
+    paddingRight: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: colors.cardBase,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardButtonPressed: {
+    transform: [{ scale: 0.97 }],
+  },
+  cardAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
+  cardAvatarText: {
+    fontFamily: typography.body.bold,
+    fontSize: 10,
+    color: colors.black,
+  },
+  cardButtonText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 11,
+    color: colors.white,
+  },
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 6,
+    paddingBottom: 18,
+  },
+  title: {
+    fontFamily: typography.body.bold,
+    fontSize: 32,
+    color: colors.black,
+    letterSpacing: -0.5,
+  },
+  emptyHero: {
+    minHeight: 240,
+    marginHorizontal: spacing.xl,
+    marginBottom: 18,
+    borderRadius: radius.xl,
+    backgroundColor: colors.cardBase,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHeroTitle: {
+    fontFamily: typography.body.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: colors.white,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptyHeroText: {
+    marginTop: 10,
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.58)',
+    textAlign: 'center',
+  },
+  feedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 14,
+  },
+  feedHeaderTitle: {
+    fontFamily: typography.body.bold,
+    fontSize: 18,
+    color: colors.black,
+    letterSpacing: -0.3,
+  },
+  archiveButton: {
+    paddingVertical: 4,
+  },
+  archiveButtonDisabled: {
+    opacity: 0.45,
+  },
+  archiveButtonPressed: {
+    opacity: 0.7,
+  },
+  archiveButtonText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.goldDark,
+  },
+  feedList: {
+    paddingBottom: 8,
+  },
+  feedRow: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  feedRowPressed: {
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
+  feedInfo: {
+    flex: 1,
+  },
+  feedCategory: {
+    fontFamily: typography.mono.medium,
+    fontSize: 8,
+    color: 'rgba(0,0,0,0.30)',
+    letterSpacing: 1.5,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+  },
+  feedTitle: {
+    fontFamily: typography.body.bold,
+    fontSize: 16,
+    lineHeight: 21,
+    color: colors.black,
+    marginBottom: 4,
+  },
+  feedDescription: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: 'rgba(0,0,0,0.45)',
+  },
+  feedDate: {
+    marginTop: 6,
+    fontFamily: typography.mono.regular,
+    fontSize: 9,
+    color: 'rgba(0,0,0,0.25)',
+  },
+  feedThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: colors.cardBase,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedThumbLetter: {
+    fontFamily: typography.body.bold,
+    fontSize: 28,
+    color: 'rgba(255,255,255,0.08)',
+  },
+  feedEmpty: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 6,
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
+  },
 });
