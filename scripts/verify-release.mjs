@@ -79,19 +79,34 @@ function validateStaticReleaseConfig() {
   }
 
   assert(
-    packageJson.scripts?.['update:preview']?.includes('--channel preview') &&
-      packageJson.scripts?.['update:preview']?.includes('--environment preview'),
-    'update:preview must publish to the preview channel with the preview EAS environment.',
+    packageJson.scripts?.['update:preview:ios']?.includes('--channel preview') &&
+      packageJson.scripts?.['update:preview:ios']?.includes('--environment preview') &&
+      packageJson.scripts?.['update:preview:ios']?.includes('--platform ios'),
+    'update:preview:ios must publish iOS only to the preview channel with the preview EAS environment.',
   );
   assert(
-    packageJson.scripts?.['update:production']?.includes('--channel production') &&
-      packageJson.scripts?.['update:production']?.includes('--environment production'),
-    'update:production must publish to the production channel with the production EAS environment.',
+    packageJson.scripts?.['update:preview:android']?.includes('--channel preview') &&
+      packageJson.scripts?.['update:preview:android']?.includes('--environment preview') &&
+      packageJson.scripts?.['update:preview:android']?.includes('--platform android'),
+    'update:preview:android must publish Android only to the preview channel with the preview EAS environment.',
+  );
+  assert(
+    packageJson.scripts?.['update:production:ios']?.includes('--channel production') &&
+      packageJson.scripts?.['update:production:ios']?.includes('--environment production') &&
+      packageJson.scripts?.['update:production:ios']?.includes('--platform ios'),
+    'update:production:ios must publish iOS only to the production channel with the production EAS environment.',
+  );
+  assert(
+    packageJson.scripts?.['update:production:android']?.includes('--channel production') &&
+      packageJson.scripts?.['update:production:android']?.includes('--environment production') &&
+      packageJson.scripts?.['update:production:android']?.includes('--platform android'),
+    'update:production:android must publish Android only to the production channel with the production EAS environment.',
   );
 
   const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
   const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
   const layoutSource = readFileSync('app/_layout.tsx', 'utf8');
+  const projectMapSource = readFileSync('components/aligned/ProjectMap.tsx', 'utf8');
 
   assert(registerSource.includes('getAuthRedirectUrl()'), 'registration must use getAuthRedirectUrl() for magic links.');
   assert(registerSource.includes('signInWithApple'), 'iOS registration must expose Sign in with Apple.');
@@ -99,6 +114,8 @@ function validateStaticReleaseConfig() {
   assert(inviteSource.includes('signInWithPassword'), 'reviewer access must keep password sign-in fallback.');
   assert(layoutSource.includes('completeAuthFromUrl'), 'root layout must handle auth callback deep links centrally.');
   assert(!/localhost:3000/i.test(registerSource + inviteSource + layoutSource), 'auth source must not reference localhost:3000.');
+  assert(!projectMapSource.includes('attributionEnabled={false}'), 'Mapbox attribution must not be disabled.');
+  assert(!projectMapSource.includes('logoEnabled={false}'), 'Mapbox logo must not be disabled.');
 }
 
 const steps = [
