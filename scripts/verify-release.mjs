@@ -1,4 +1,71 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+
+const requiredEnvKeys = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'EXPO_PUBLIC_AUTH_REDIRECT_URL',
+];
+
+const allowedRedirects = new Set([
+  'amari://auth-callback',
+  'https://www.amarigroupau.com/auth-callback',
+]);
+
+function parseJsonFile(path) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function assert(condition, message) {
+  if (!condition) {
+    console.error(`[verify:release] ${message}`);
+    process.exit(1);
+  }
+}
+
+function validateStaticReleaseConfig() {
+  const appJson = parseJsonFile('app.json');
+  const easJson = parseJsonFile('eas.json');
+  const appConfig = appJson.expo ?? {};
+  const iosConfig = appConfig.ios ?? {};
+  const plugins = appConfig.plugins ?? [];
+
+  assert(appConfig.scheme === 'amari', 'expo.scheme must stay "amari" for auth callbacks.');
+  assert(iosConfig.usesAppleSignIn === true, 'ios.usesAppleSignIn must be true when Google login is available on iOS.');
+  assert(
+    plugins.some((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) === 'expo-apple-authentication'),
+    'expo-apple-authentication plugin must be configured.',
+  );
+  assert(
+    iosConfig.infoPlist?.ITSAppUsesNonExemptEncryption === false,
+    'ITSAppUsesNonExemptEncryption must be set to false for App Store Connect export compliance.',
+  );
+
+  for (const profileName of ['preview', 'production']) {
+    const env = easJson.build?.[profileName]?.env ?? {};
+
+    for (const key of requiredEnvKeys) {
+      assert(Boolean(env[key]), `${profileName} is missing ${key}.`);
+    }
+
+    assert(
+      allowedRedirects.has(env.EXPO_PUBLIC_AUTH_REDIRECT_URL),
+      `${profileName} auth redirect must be one of: ${Array.from(allowedRedirects).join(', ')}.`,
+    );
+    assert(!/localhost|127\.0\.0\.1/i.test(JSON.stringify(env)), `${profileName} env must not contain localhost redirects.`);
+  }
+
+  const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
+  const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
+  const layoutSource = readFileSync('app/_layout.tsx', 'utf8');
+
+  assert(registerSource.includes('getAuthRedirectUrl()'), 'registration must use getAuthRedirectUrl() for magic links.');
+  assert(registerSource.includes('signInWithApple'), 'iOS registration must expose Sign in with Apple.');
+  assert(registerSource.includes('handleOtpVerification'), 'email auth must keep OTP fallback verification.');
+  assert(inviteSource.includes('signInWithPassword'), 'reviewer access must keep password sign-in fallback.');
+  assert(layoutSource.includes('completeAuthFromUrl'), 'root layout must handle auth callback deep links centrally.');
+  assert(!/localhost:3000/i.test(registerSource + inviteSource + layoutSource), 'auth source must not reference localhost:3000.');
+}
 
 const steps = [
   {
@@ -14,6 +81,8 @@ const steps = [
     label: 'Expo config',
   },
 ];
+
+validateStaticReleaseConfig();
 
 for (const step of steps) {
   process.stdout.write(`\n[verify:release] ${step.label}\n`);

@@ -19,6 +19,8 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle } from '../../lib/googleAuth';
+import { signInWithApple } from '../../lib/appleAuth';
+import { getAuthRedirectUrl } from '../../lib/authRedirect';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -31,6 +33,8 @@ export default function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authMethod, setAuthMethod] = useState<'email' | 'google' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpError, setOtpError] = useState('');
 
   const storePendingCode = async () => {
     await SecureStore.setItemAsync(
@@ -49,9 +53,10 @@ export default function RegisterScreen() {
     try {
       await storePendingCode();
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: email.trim().toLowerCase(),
         options: {
-          emailRedirectTo: 'amari://auth-callback',
+          emailRedirectTo: getAuthRedirectUrl(),
+          shouldCreateUser: true,
           data: {
             full_name: fullName,
             city,
@@ -74,6 +79,34 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleOtpVerification = async () => {
+    const token = otpCode.trim();
+
+    if (token.length < 6) {
+      setOtpError('Enter the 6-digit code from your email.');
+      return;
+    }
+
+    setOtpError('');
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token,
+        type: 'email',
+      });
+
+      if (error) throw error;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      setOtpError(err.message || 'Code verification failed. Try the link or request a new code.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGoogleAuth = async () => {
     setIsSubmitting(true);
     try {
@@ -81,6 +114,20 @@ export default function RegisterScreen() {
       await signInWithGoogle();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Google sign-in failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAppleAuth = async () => {
+    setIsSubmitting(true);
+    try {
+      await storePendingCode();
+      await signInWithApple();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('Error', err.message || 'Apple sign-in failed.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -100,6 +147,45 @@ export default function RegisterScreen() {
             <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.sm }]}>
               We sent a magic link to {email}. Tap it to complete your registration.
             </Text>
+            <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.md }]}>
+              If the link opens in a browser instead of AMARI, enter the one-time code from the email below.
+            </Text>
+
+            <TextInput
+              style={[styles.fieldInput, styles.otpInput]}
+              value={otpCode}
+              onChangeText={(value) => {
+                setOtpCode(value.replace(/\D/g, '').slice(0, 6));
+                setOtpError('');
+              }}
+              placeholder="123456"
+              placeholderTextColor={colors.grayLight}
+              keyboardType="number-pad"
+              textContentType="oneTimeCode"
+              maxLength={6}
+              autoFocus
+            />
+
+            {otpError ? <Text style={styles.otpError}>{otpError}</Text> : null}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.submitBtn,
+                styles.otpSubmit,
+                isSubmitting && styles.submitBtnDisabled,
+                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+              ]}
+              onPress={handleOtpVerification}
+              disabled={isSubmitting}
+              accessibilityRole="button"
+              accessibilityLabel="Verify one-time code"
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.submitBtnText}>Verify Code</Text>
+              )}
+            </Pressable>
           </MotiView>
         </View>
       </SafeAreaView>
@@ -145,6 +231,17 @@ export default function RegisterScreen() {
                 transition={{ type: 'timing', duration: 500, delay: 200 }}
                 style={styles.methodSection}
               >
+                {Platform.OS === 'ios' ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.methodBtn, styles.appleBtn, pressed && { opacity: 0.85 }]}
+                    onPress={handleAppleAuth}
+                    accessibilityRole="button"
+                    accessibilityLabel="Continue with Apple"
+                  >
+                    <Text style={[styles.methodBtnText, styles.appleBtnText]}>Continue with Apple</Text>
+                  </Pressable>
+                ) : null}
+
                 <Pressable
                   style={({ pressed }) => [styles.methodBtn, pressed && { opacity: 0.85 }]}
                   onPress={handleGoogleAuth}
@@ -308,6 +405,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     color: colors.success,
   },
+  otpInput: {
+    marginTop: spacing.xl,
+    textAlign: 'center',
+    letterSpacing: 8,
+    fontSize: 22,
+  },
+  otpSubmit: {
+    marginTop: spacing.md,
+  },
+  otpError: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.error,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
 
   // Method selection
   methodSection: { marginTop: spacing.xxxl, gap: spacing.md },
@@ -320,6 +433,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
+  },
+  appleBtn: {
+    backgroundColor: colors.black,
+    borderColor: colors.black,
+  },
+  appleBtnText: {
+    color: colors.white,
   },
   methodBtnText: {
     fontFamily: typography.body.medium,

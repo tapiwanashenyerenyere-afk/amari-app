@@ -20,6 +20,9 @@ import { supabase } from '../../lib/supabase';
 export default function InviteScreen() {
   const router = useRouter();
   const [code, setCode] = useState('');
+  const [mode, setMode] = useState<'invite' | 'password'>('invite');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
   const [isValid, setIsValid] = useState(false);
@@ -71,6 +74,32 @@ export default function InviteScreen() {
     }
   };
 
+  const handlePasswordSignIn = async () => {
+    if (!email.trim() || !password) {
+      setError('Enter the review account email and password');
+      return;
+    }
+
+    setError('');
+    setIsValidating(true);
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err: any) {
+      setError(err.message || 'Sign in failed. Check the review account credentials.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Ambient gradient */}
@@ -103,44 +132,84 @@ export default function InviteScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600 }}
           >
-            <Text style={styles.title}>Invitation Code</Text>
+            <Text style={styles.title}>{mode === 'invite' ? 'Invitation Code' : 'Reviewer Access'}</Text>
             <Text style={styles.subtitle}>
-              Enter your code to join the convergence
+              {mode === 'invite'
+                ? 'Enter your code to join the convergence'
+                : 'Use the demo credentials supplied in App Store Connect'}
             </Text>
           </MotiView>
 
-          <MotiView
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600, delay: 250 }}
-            style={styles.inputSection}
-          >
-            <TextInput
-              ref={inputRef}
-              style={[
-                styles.input,
-                isValid && styles.inputValid,
-                error ? styles.inputError : null,
-              ]}
-              value={code}
-              onChangeText={(text) => {
-                setCode(text.toUpperCase());
-                setError('');
-                setIsValid(false);
-              }}
-              placeholder="AMARI-XXXX-XXX"
-              placeholderTextColor="rgba(255,255,255,0.15)"
-              autoCapitalize="characters"
-              autoCorrect={false}
-              autoFocus
-            />
+          {mode === 'invite' ? (
+            <MotiView
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 250 }}
+              style={styles.inputSection}
+            >
+              <TextInput
+                ref={inputRef}
+                style={[
+                  styles.input,
+                  isValid && styles.inputValid,
+                  error ? styles.inputError : null,
+                ]}
+                value={code}
+                onChangeText={(text) => {
+                  setCode(text.toUpperCase());
+                  setError('');
+                  setIsValid(false);
+                }}
+                placeholder="AMARI-XXXX-XXX"
+                placeholderTextColor="rgba(255,255,255,0.15)"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoFocus
+              />
 
-            {error ? (
-              <Text style={styles.errorText}>{error}</Text>
-            ) : isValid ? (
-              <Text style={styles.successText}>Code verified</Text>
-            ) : null}
-          </MotiView>
+              {error ? (
+                <Text style={styles.errorText}>{error}</Text>
+              ) : isValid ? (
+                <Text style={styles.successText}>Code verified</Text>
+              ) : null}
+            </MotiView>
+          ) : (
+            <MotiView
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 250 }}
+              style={styles.inputSection}
+            >
+              <TextInput
+                style={[styles.input, styles.passwordInput, error ? styles.inputError : null]}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setError('');
+                }}
+                placeholder="reviewer@example.com"
+                placeholderTextColor="rgba(255,255,255,0.15)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+              />
+              <TextInput
+                style={[styles.input, styles.passwordInput, error ? styles.inputError : null]}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setError('');
+                }}
+                placeholder="Password"
+                placeholderTextColor="rgba(255,255,255,0.15)"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            </MotiView>
+          )}
         </View>
 
         <MotiView
@@ -155,18 +224,33 @@ export default function InviteScreen() {
               (isValidating || isValid) && styles.validateBtnDisabled,
               pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
             ]}
-            onPress={handleValidate}
-            disabled={isValidating || isValid || code.length < 4}
+            onPress={mode === 'invite' ? handleValidate : handlePasswordSignIn}
+            disabled={isValidating || (mode === 'invite' && (isValid || code.length < 4))}
             accessibilityRole="button"
-            accessibilityLabel="Validate invitation code"
+            accessibilityLabel={mode === 'invite' ? 'Validate invitation code' : 'Sign in with review credentials'}
           >
             {isValidating ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={styles.validateBtnText}>
-                {isValid ? 'Verified' : 'Validate'}
+                {mode === 'invite' ? (isValid ? 'Verified' : 'Validate') : 'Sign In'}
               </Text>
             )}
+          </Pressable>
+
+          <Pressable
+            style={styles.modeSwitchBtn}
+            onPress={() => {
+              setError('');
+              setIsValid(false);
+              setMode((current) => (current === 'invite' ? 'password' : 'invite'));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={mode === 'invite' ? 'Use review credentials' : 'Use invitation code'}
+          >
+            <Text style={styles.modeSwitchText}>
+              {mode === 'invite' ? 'Reviewer or existing member sign in' : 'Use invitation code instead'}
+            </Text>
           </Pressable>
         </MotiView>
       </KeyboardAvoidingView>
@@ -221,6 +305,12 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     textAlign: 'center',
   },
+  passwordInput: {
+    marginBottom: spacing.md,
+    textAlign: 'left',
+    letterSpacing: 0,
+    fontSize: 15,
+  },
   inputValid: { borderColor: colors.sand },
   inputError: { borderColor: colors.error },
   errorText: {
@@ -258,5 +348,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.white,
     letterSpacing: 0.3,
+  },
+  modeSwitchBtn: {
+    marginTop: spacing.md,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeSwitchText: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.45)',
   },
 });
