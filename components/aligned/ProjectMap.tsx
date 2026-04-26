@@ -8,6 +8,7 @@ import {
   CATEGORY_COLORS,
   HAS_MAPBOX_TOKEN,
   MAP_CONFIG,
+  MAPBOX_COMPOSITE_SOURCE,
   MAP_REGIONS,
   getMapboxStyleProps,
 } from '../../lib/mapbox';
@@ -174,6 +175,117 @@ export function ProjectMap({
           maxZoomLevel={MAP_CONFIG.maxZoomLevel}
           minZoomLevel={MAP_CONFIG.minZoomLevel}
         />
+
+        <Mapbox.VectorSource id="amari-admin-boundaries" url={MAPBOX_COMPOSITE_SOURCE}>
+          <Mapbox.LineLayer
+            id="amari-country-boundary-halo"
+            sourceLayerID="admin"
+            filter={[
+              'all',
+              ['==', ['get', 'maritime'], 0],
+              ['any', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'admin_level'], '2']],
+            ]}
+            style={{
+              lineBlur: 0.6,
+              lineColor: 'rgba(8,8,8,0.92)',
+              lineOpacity: 0.82,
+              lineWidth: [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                1.15,
+                3,
+                1.45,
+                6,
+                2.2,
+                8,
+                2.8,
+              ],
+            }}
+          />
+
+          <Mapbox.LineLayer
+            id="amari-country-boundary"
+            sourceLayerID="admin"
+            filter={[
+              'all',
+              ['==', ['get', 'maritime'], 0],
+              ['any', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'admin_level'], '2']],
+            ]}
+            style={{
+              lineColor: '#E0C884',
+              lineOpacity: [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.5,
+                3,
+                0.72,
+                6,
+                0.86,
+                8,
+                0.92,
+              ],
+              lineWidth: [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                0,
+                0.45,
+                3,
+                0.75,
+                6,
+                1.1,
+                8,
+                1.35,
+              ],
+            }}
+          />
+
+          <Mapbox.LineLayer
+            id="amari-region-boundary"
+            sourceLayerID="admin"
+            minZoomLevel={3.25}
+            filter={[
+              'all',
+              ['==', ['get', 'maritime'], 0],
+              [
+                'any',
+                ['==', ['get', 'admin_level'], 3],
+                ['==', ['get', 'admin_level'], 4],
+                ['==', ['get', 'admin_level'], '3'],
+                ['==', ['get', 'admin_level'], '4'],
+              ],
+            ]}
+            style={{
+              lineColor: '#FFFFFF',
+              lineOpacity: [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                3.25,
+                0.12,
+                6,
+                0.24,
+                8,
+                0.34,
+              ],
+              lineWidth: [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                3.25,
+                0.35,
+                6,
+                0.55,
+                8,
+                0.85,
+              ],
+            }}
+          />
+        </Mapbox.VectorSource>
 
         <Mapbox.ShapeSource
           id="aligned-map-data"

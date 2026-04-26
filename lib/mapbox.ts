@@ -10,7 +10,7 @@ export const HAS_MAPBOX_TOKEN = MAPBOX_PUBLIC_TOKEN.length > 0;
 // cartography focused on water, boundaries, and place labels.
 export const MAPBOX_STYLE_URL = process.env.EXPO_PUBLIC_MAPBOX_STYLE_URL || '';
 
-const MAPBOX_COMPOSITE_SOURCE = 'mapbox://mapbox.mapbox-streets-v8';
+export const MAPBOX_COMPOSITE_SOURCE = 'mapbox://mapbox.mapbox-streets-v8';
 const MAPBOX_GLYPHS = 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf';
 
 export const MAPBOX_FALLBACK_STYLE_JSON = JSON.stringify({
