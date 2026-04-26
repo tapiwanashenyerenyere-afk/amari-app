@@ -7,16 +7,19 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "environment": "development",
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdm51eGNjZHhxeXp2bnNwbWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzU0NzEsImV4cCI6MjA4NzY1MTQ3MX0.TkpLMFV7LMbBbs8Ah7klXc-Pgxqzwm_f7HCyPTH3Ms8",
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "861621303626-1i6po67gaaneefsag2pbao7psanerfu8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "861621303626-bs11fckgmaakhgea0ptgi78js0jfu8c6.apps.googleusercontent.com"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
+      "environment": "preview",
       "android": {
         "buildType": "apk",
         "credentialsSource": "remote",
@@ -28,7 +31,8 @@
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "861621303626-1i6po67gaaneefsag2pbao7psanerfu8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "861621303626-bs11fckgmaakhgea0ptgi78js0jfu8c6.apps.googleusercontent.com"
-      }
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
@@ -45,7 +49,8 @@
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "861621303626-1i6po67gaaneefsag2pbao7psanerfu8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "861621303626-bs11fckgmaakhgea0ptgi78js0jfu8c6.apps.googleusercontent.com"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
