@@ -375,6 +375,35 @@ export default function ProfileScreen() {
     await Linking.openURL(mailtoUrl);
   };
 
+  const handleOpenPrivacyPolicy = async () => {
+    await Linking.openURL('https://www.amarigroupau.com/privacy-policy');
+  };
+
+  const handleRequestAccountDeletion = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will request deletion of your AMARI account and associated personal data. AMARI will complete manual deletion and confirm by email.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Request Deletion',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error: deletionError } = await supabase.rpc('request_account_deletion');
+              if (deletionError) throw deletionError;
+
+              await supabase.auth.signOut();
+              Alert.alert('Deletion requested', 'Your account deletion request has been recorded.');
+            } catch (err: any) {
+              Alert.alert('Deletion unavailable', err.message || 'Please contact AMARI support to delete your account.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleOpenSettings = async () => {
     try {
       await Linking.openSettings();
@@ -607,9 +636,20 @@ export default function ProfileScreen() {
                       }
                     />
                     <AccountRow
+                      label="Privacy policy"
+                      value="Open policy"
+                      onPress={handleOpenPrivacyPolicy}
+                    />
+                    <AccountRow
                       label="Help"
                       value="Support and guidance"
                       onPress={handleOpenSupport}
+                    />
+                    <AccountRow
+                      label="Delete account"
+                      value="Request deletion"
+                      danger
+                      onPress={handleRequestAccountDeletion}
                     />
                     <AccountRow
                       label="Sign out"

@@ -24,4 +24,4 @@ attrib -R "$destination\*" /S /D
 Write-Host 'Release copy is ready.' -ForegroundColor Green
 Write-Host "Source:      $source"
 Write-Host "Destination: $destination"
-Write-Host 'Next: run npm ci, npm run verify:release, and npm run release:android from the clean path.'
+Write-Host 'Next: run npm ci, npm run verify:release, then npm run release:ios or npm run release:android from the clean path.'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { completeAuthFromUrl } from '../../lib/authCallback';
 import { colors, typography, spacing } from '../../lib/theme';
 
 export default function AuthCallbackScreen() {
@@ -10,30 +10,24 @@ export default function AuthCallbackScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const verifyOtp = async () => {
-      const { token_hash, type } = params;
-
-      if (!token_hash || !type) {
-        setError('Invalid verification link. Please try signing up again.');
-        return;
-      }
-
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash,
-        type: type as 'email' | 'signup' | 'magiclink',
+    const completeCallback = async () => {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (typeof value === 'string') query.set(key, value);
       });
 
-      if (verifyError) {
-        setError(verifyError.message);
-        return;
+      try {
+        const result = await completeAuthFromUrl(`amari://auth-callback?${query.toString()}`);
+        if (!result.handled || !result.sessionEstablished) {
+          setError('Invalid verification link. Please try signing up again.');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Verification failed. Please try signing up again.');
       }
-
-      // Auth state change will be picked up by AuthProvider,
-      // which will redeem the pending invite code and redirect to (tabs)
     };
 
-    verifyOtp();
-  }, []);
+    completeCallback();
+  }, [params]);
 
   if (error) {
     return (

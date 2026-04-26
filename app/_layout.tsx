@@ -50,7 +50,7 @@ import { AuthProvider, useAuth } from '../providers/AuthProvider';
 import { QueryProvider } from '../providers/QueryProvider';
 import { configureGoogleSignIn } from '../lib/googleAuth';
 import { initMapbox } from '../lib/mapbox';
-import { supabase } from '../lib/supabase';
+import { completeAuthFromUrl } from '../lib/authCallback';
 import { AmariEmblem } from '../components/v2/AmariEmblem';
 
 SplashScreen.preventAutoHideAsync();
@@ -387,26 +387,10 @@ export default function RootLayout() {
   // Handle deep link auth callbacks
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
-      const url = event.url;
-      if (!url.includes('auth-callback')) return;
-
-      const hashIndex = url.indexOf('#');
-      if (hashIndex === -1) return;
-
-      const hash = url.substring(hashIndex + 1);
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (accessToken && refreshToken) {
-        try {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-        } catch (err) {
-          console.error('Deep link session error:', err);
-        }
+      try {
+        await completeAuthFromUrl(event.url);
+      } catch (err) {
+        console.error('Deep link auth callback error:', err);
       }
     };
 
