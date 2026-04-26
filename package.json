@@ -18,8 +18,10 @@
     "release:ios": "npx eas build --platform ios --profile production",
     "release:ios:ci": "npx eas build --platform ios --profile production --non-interactive",
     "submit:ios": "npx eas submit --platform ios --profile production --latest",
-    "update:preview": "npx eas update --channel preview --environment preview",
-    "update:production": "npx eas update --channel production --environment production",
+    "update:preview:android": "npx eas update --channel preview --environment preview --platform android",
+    "update:preview:ios": "npx eas update --channel preview --environment preview --platform ios",
+    "update:production:android": "npx eas update --channel production --environment production --platform android",
+    "update:production:ios": "npx eas update --channel production --environment production --platform ios",
     "prepare": "husky"
   },
   "lint-staged": {

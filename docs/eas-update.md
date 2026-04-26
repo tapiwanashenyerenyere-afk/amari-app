@@ -20,14 +20,18 @@ After testers install that baseline build, OTA-safe changes can be published wit
 Preview:
 
 ```powershell
-npm run update:preview -- --message "Describe the preview update"
+npm run update:preview:ios -- --message "Describe the preview update"
+npm run update:preview:android -- --message "Describe the preview update"
 ```
 
 Production:
 
 ```powershell
-npm run update:production -- --message "Describe the production update"
+npm run update:production:ios -- --message "Describe the production update"
+npm run update:production:android -- --message "Describe the production update"
 ```
+
+Publish mobile updates by explicit platform. This app is mobile-first and uses RNMapbox; `eas update --platform all` also tries to export web and can fail on Mapbox web dependencies that are not part of the native app runtime.
 
 The build profiles are mapped to matching EAS Update channels:
 

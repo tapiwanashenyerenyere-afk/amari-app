@@ -148,10 +148,10 @@ export function ProjectMap({
     <View style={[styles.shell, expanded ? styles.shellExpanded : null]}>
       <Mapbox.MapView
         style={styles.map}
-        attributionEnabled={false}
+        attributionEnabled
         compassEnabled={false}
         localizeLabels={{ locale: 'current' }}
-        logoEnabled={false}
+        logoEnabled
         onMapIdle={onMapIdle}
         onPress={() => {
           if (!expanded) {
