@@ -26,11 +26,23 @@ function assert(condition, message) {
 function validateStaticReleaseConfig() {
   const appJson = parseJsonFile('app.json');
   const easJson = parseJsonFile('eas.json');
+  const packageJson = parseJsonFile('package.json');
   const appConfig = appJson.expo ?? {};
   const iosConfig = appConfig.ios ?? {};
   const plugins = appConfig.plugins ?? [];
+  const easProjectId = appConfig.extra?.eas?.projectId;
 
   assert(appConfig.scheme === 'amari', 'expo.scheme must stay "amari" for auth callbacks.');
+  assert(Boolean(packageJson.dependencies?.['expo-updates']), 'expo-updates must stay installed for EAS Update support.');
+  assert(Boolean(easProjectId), 'expo.extra.eas.projectId is required for EAS Update support.');
+  assert(
+    appConfig.updates?.url === `https://u.expo.dev/${easProjectId}`,
+    'expo.updates.url must target the EAS project update endpoint.',
+  );
+  assert(
+    appConfig.runtimeVersion?.policy === 'appVersion',
+    'expo.runtimeVersion.policy must stay "appVersion" so OTA updates match native runtime compatibility.',
+  );
   assert(iosConfig.usesAppleSignIn === true, 'ios.usesAppleSignIn must be true when Google login is available on iOS.');
   assert(
     plugins.some((plugin) => (Array.isArray(plugin) ? plugin[0] : plugin) === 'expo-apple-authentication'),
@@ -54,6 +66,28 @@ function validateStaticReleaseConfig() {
     );
     assert(!/localhost|127\.0\.0\.1/i.test(JSON.stringify(env)), `${profileName} env must not contain localhost redirects.`);
   }
+
+  for (const profileName of ['development', 'preview', 'production']) {
+    assert(
+      easJson.build?.[profileName]?.environment === profileName,
+      `${profileName} build profile must use the matching EAS environment for update-safe env vars.`,
+    );
+    assert(
+      easJson.build?.[profileName]?.channel === profileName,
+      `${profileName} build profile must use the matching EAS Update channel.`,
+    );
+  }
+
+  assert(
+    packageJson.scripts?.['update:preview']?.includes('--channel preview') &&
+      packageJson.scripts?.['update:preview']?.includes('--environment preview'),
+    'update:preview must publish to the preview channel with the preview EAS environment.',
+  );
+  assert(
+    packageJson.scripts?.['update:production']?.includes('--channel production') &&
+      packageJson.scripts?.['update:production']?.includes('--environment production'),
+    'update:production must publish to the production channel with the production EAS environment.',
+  );
 
   const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
   const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
