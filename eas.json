@@ -56,7 +56,8 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "tadiwanashe3@hotmail.com"
+        "appleId": "tadiwanashe3@hotmail.com",
+        "ascAppId": "6762464403"
       },
       "android": {
         "serviceAccountKeyPath": "./google-services.json",
