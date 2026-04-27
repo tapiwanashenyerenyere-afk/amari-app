@@ -7,6 +7,9 @@ preview/
 *.apk
 *.b64
 *.csv
+google-services.json
+google-play-service-account*.json
+play-service-account*.json
 # NOTE: *.jks intentionally NOT excluded — needed for local credential builds
 __tests__/
 .claude/

@@ -61,6 +61,9 @@ SESSION-RESUME.md
 
 # Secrets
 *.b64
+google-services.json
+google-play-service-account*.json
+play-service-account*.json
 keystore.b64
 SECURE-CODES-DO-NOT-COMMIT.csv
 
