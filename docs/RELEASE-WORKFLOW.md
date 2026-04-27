@@ -74,6 +74,82 @@ From `C:\amari-mobile-release`:
 npm run release:android
 ```
 
+Do not submit this local EAS production Android build to Google Play unless EAS
+remote Android credentials have first been verified against Play Console's upload
+certificate. On 2026-04-27, a local EAS production build used the wrong remote
+upload key and Play rejected it with:
+
+- found SHA1: `37:21:FB:C3:25:7D:C8:C0:8E:BE:8E:CA:79:2F:4E:8D:2B:1A:BA:6A`
+- expected SHA1: `C4:CD:C3:BA:73:2E:42:07:2D:D0:5E:2B:0F:2D:C2:9A:74:6F:31:4B`
+
+Until EAS remote Android credentials are replaced with the same upload key used
+by Play, Play-bound production Android builds must use the GitHub Actions
+workflow below.
+
+## Play-Bound Android Build
+
+The GitHub Actions workflow `.github/workflows/eas-build.yml` injects the
+correct Play upload keystore for production builds:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `KEYSTORE_PASSWORD`
+- keystore alias: `amari-key`
+- generated local keystore path during CI: `amari-upload.jks`
+
+Trigger the workflow from the release branch:
+
+```bash
+gh workflow run eas-build.yml --ref release/v2-redesign-signed -f profile=production
+```
+
+Watch it:
+
+```bash
+gh run list --workflow eas-build.yml --limit 5
+gh run watch <run-id> --exit-status
+```
+
+Find the resulting EAS Android build ID:
+
+```bash
+npx eas build:list --platform android --limit 5 --json
+```
+
+Submit that exact build ID to Google Play internal testing from
+`C:\amari-mobile-release`:
+
+```bash
+npx eas submit --platform android --profile production --id <android-build-id> --non-interactive --wait
+```
+
+The service-account JSON must exist locally at
+`C:\amari-mobile-release\google-services.json`, matching the
+`submit.production.android.serviceAccountKeyPath` entry in `eas.json`. Do not
+commit this file. It is ignored by `.gitignore` and excluded from EAS upload by
+`.easignore`.
+
+## 2026-04-27 Android Submit Notes
+
+Automated Play upload was fixed by separating two problems:
+
+1. The Google Play service account was valid. The JSON key was saved outside the
+   repo, copied locally to `C:\amari-mobile-release\google-services.json`, and
+   EAS Submit reached Google Play successfully.
+2. The failing AAB was signed with the wrong upload key. Play rejected Android
+   build `f52e39f3-86fb-4f3a-b4e5-aa1d211b2f6f`, versionCode `38`.
+3. The repo workflow revealed the intended signing path: production Android CI
+   builds use `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, alias `amari-key`,
+   and local EAS credentials.
+4. Running the GitHub Actions production workflow produced Android build
+   `75ec1c15-b67b-4577-ae50-7e15838e2683`, version `1.1.0`, versionCode `39`.
+5. EAS Submit accepted that build to the Play internal track:
+   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/a2390daa-a7d5-4093-8534-a90c496ef6a6`
+
+If a future build is rejected for upload-key mismatch, check Play Console >
+Release > Setup > App integrity and compare the upload certificate SHA1 with the
+keystore used by the build. Either rebuild with the expected upload key or reset
+the Play upload key to the EAS key.
+
 ## Required Environment Variables
 
 Local `.env` and the EAS production environment must include:
@@ -123,4 +199,5 @@ The Supabase hosted Auth settings must also have:
 - Events, Pulse, and membership-card gating match server behavior
 - email/share/open-external actions work on device
 - release build is run from `C:\amari-mobile-release`
-- generated AAB is smoke-tested before manual upload
+- Play-bound Android production build is created through the GitHub Actions workflow or otherwise verified against Play's upload certificate
+- generated AAB is smoke-tested before upload
