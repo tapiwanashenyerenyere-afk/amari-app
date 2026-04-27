@@ -10,6 +10,10 @@ repo.
 - Use Conventional Commit style for branch commits and PR titles.
 - Before native release, EAS Update, TestFlight, or Play Store work, read
   `docs/RELEASE-WORKFLOW.md` and `docs/eas-update.md`.
+- Before security/privacy hardening work, read
+  `docs/SECURITY-HARDENING-ROADMAP.md`.
+- Before post-auth onboarding/discovery work, read
+  `docs/ONBOARDING-DISCOVERY-PLAN.md`.
 - Run `npm run verify:release` before release PRs or native submissions.
 
 ## Android Play Upload
