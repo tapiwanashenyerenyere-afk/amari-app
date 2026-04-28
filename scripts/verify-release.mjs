@@ -93,19 +93,27 @@ function validateStaticReleaseConfig() {
   assert(
     packageJson.scripts?.['update:production:ios']?.includes('--channel production') &&
       packageJson.scripts?.['update:production:ios']?.includes('--environment production') &&
-      packageJson.scripts?.['update:production:ios']?.includes('--platform ios'),
+      packageJson.scripts?.['update:production:ios']?.includes('--platform ios') &&
+      packageJson.scripts?.['update:production:ios']?.includes('node ./scripts/guard-production-update.mjs'),
     'update:production:ios must publish iOS only to the production channel with the production EAS environment.',
   );
   assert(
     packageJson.scripts?.['update:production:android']?.includes('--channel production') &&
       packageJson.scripts?.['update:production:android']?.includes('--environment production') &&
-      packageJson.scripts?.['update:production:android']?.includes('--platform android'),
+      packageJson.scripts?.['update:production:android']?.includes('--platform android') &&
+      packageJson.scripts?.['update:production:android']?.includes('node ./scripts/guard-production-update.mjs'),
     'update:production:android must publish Android only to the production channel with the production EAS environment.',
+  );
+  assert(
+    packageJson.scripts?.['verify:security'] === 'node ./scripts/verify-security.mjs',
+    'verify:security must stay wired to the security regression checks.',
   );
 
   const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
   const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
   const layoutSource = readFileSync('app/_layout.tsx', 'utf8');
+  const postAuthOnboardingSource = readFileSync('app/(onboarding)/index.tsx', 'utf8');
+  const onboardingQuerySource = readFileSync('queries/onboarding.ts', 'utf8');
   const projectMapSource = readFileSync('components/aligned/ProjectMap.tsx', 'utf8');
 
   assert(registerSource.includes('getAuthRedirectUrl()'), 'registration must use getAuthRedirectUrl() for magic links.');
@@ -113,12 +121,32 @@ function validateStaticReleaseConfig() {
   assert(registerSource.includes('handleOtpVerification'), 'email auth must keep OTP fallback verification.');
   assert(inviteSource.includes('signInWithPassword'), 'reviewer access must keep password sign-in fallback.');
   assert(layoutSource.includes('completeAuthFromUrl'), 'root layout must handle auth callback deep links centrally.');
+  assert(layoutSource.includes("currentGroup === '(onboarding)'"), 'root layout must explicitly handle the post-auth onboarding route group.');
+  assert(layoutSource.includes("name=\"(onboarding)\""), 'root stack must register the post-auth onboarding route group.');
+  assert(layoutSource.includes('useMyOnboardingStatus'), 'root auth guard must use members.onboarded_at for post-auth onboarding gating.');
+  assert(
+    postAuthOnboardingSource.includes('Drag the A across the sharp map') &&
+      postAuthOnboardingSource.includes('Domain Specialist') &&
+      postAuthOnboardingSource.includes('Artist') &&
+      postAuthOnboardingSource.includes('submitOnboarding.mutateAsync'),
+    'post-auth onboarding must keep the sharp AMARI graph and submit through the onboarding RPC.',
+  );
+  assert(
+    onboardingQuerySource.includes("supabase.rpc('submit_member_onboarding'") &&
+      !onboardingQuerySource.includes('p_member_id') &&
+      !onboardingQuerySource.includes('p_user_id'),
+    'onboarding submit must use the server-derived actor RPC without client-supplied member IDs.',
+  );
   assert(!/localhost:3000/i.test(registerSource + inviteSource + layoutSource), 'auth source must not reference localhost:3000.');
   assert(!projectMapSource.includes('attributionEnabled={false}'), 'Mapbox attribution must not be disabled.');
   assert(!projectMapSource.includes('logoEnabled={false}'), 'Mapbox logo must not be disabled.');
 }
 
 const steps = [
+  {
+    command: 'npm run verify:security',
+    label: 'Security regression',
+  },
   {
     command: 'npm run lint',
     label: 'ESLint',

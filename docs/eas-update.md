@@ -31,6 +31,16 @@ npm run update:production:ios -- --message "Describe the production update"
 npm run update:production:android -- --message "Describe the production update"
 ```
 
+Production update scripts intentionally fail closed until EAS Update code
+signing is configured in `app.json` with:
+
+- `expo.updates.codeSigningCertificate`
+- `expo.updates.codeSigningMetadata.keyid`
+- `expo.updates.codeSigningMetadata.alg`
+
+This is enforced by `scripts/guard-production-update.mjs` and by
+`npm run verify:release`.
+
 Publish mobile updates by explicit platform. This app is mobile-first and uses RNMapbox; `eas update --platform all` also tries to export web and can fail on Mapbox web dependencies that are not part of the native app runtime.
 
 The build profiles are mapped to matching EAS Update channels:

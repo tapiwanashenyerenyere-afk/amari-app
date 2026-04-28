@@ -27,7 +27,37 @@ Returning members with `onboarded_at` already set should never be blocked.
 Review/demo accounts should have a seeded completed response so reviewers can
 reach the app quickly.
 
-## Screen 1: AMARI Signal Map
+## 2026-04-28 Implementation Update
+
+The first shipped implementation uses a four-step post-auth route group:
+
+1. `Where do you concentrate your time?`
+   - One-word answers: `Building`, `Investing`, `Operating`, `Creating`,
+     `Performing`, `Specialising`.
+2. `What stage is your current work?`
+   - One-word answers: `Idea`, `Building`, `Launched`, `Traction`, `Scaling`,
+     `Established`.
+3. `What are you looking for from AMARI?`
+   - One-word answers: `Capital`, `Talent`, `Customers`, `Collaborators`,
+     `Distribution`, `Counsel`, `Community`.
+4. `Signal map`
+   - Six sharp axes: `Investor`, `Founder`, `Operator`, `Creator`,
+     `Domain Specialist`, `Artist`.
+   - Users drag the AMARI A across an angular SVG graph or manually adjust
+     axis numbers underneath.
+   - Presets seed the graph but do not submit until the user taps
+     `Enter AMARI`.
+
+Current implementation files:
+
+- `app/(onboarding)/index.tsx`
+- `app/(onboarding)/_layout.tsx`
+- `queries/onboarding.ts`
+- `supabase/migrations/20260428000001_onboarding_security_foundation.sql`
+- `scripts/verify-onboarding-security.mjs`
+- `scripts/verify-security.mjs`
+
+## Original Signal Map Concept
 
 Interaction: the user drags the AMARI A mark across a living 2D field. The field
 is rendered as a dynamic graph with four poles. The A mark should feel magnetic:
@@ -191,7 +221,12 @@ CTA:
 
 ## Data Model
 
-Create a dedicated table:
+The implemented table is now `public.member_onboarding_responses` with six
+axis scores and constrained one-word enum answers. The evidence ledger and
+snapshot tables are created in
+`20260428000001_onboarding_security_foundation.sql`.
+
+Original draft table:
 
 ```sql
 create type onboarding_archetype as enum (
@@ -286,3 +321,7 @@ Analytics views:
 - Let members update answers later from Profile.
 - Include these data categories in privacy policy, App Store privacy labels,
   Google Play Data Safety, and any Apple privacy manifest work.
+- Do not capture raw graph gesture trails, session replay, screen replay, or
+  sensitive onboarding values in analytics.
+- Completion must go through `submit_member_onboarding`; the client must never
+  update `members.onboarded_at` directly.
