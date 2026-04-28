@@ -31,6 +31,11 @@ Git commit: `9550d2ced2e9037cc94a27e153aee42f620d87c0`
 
 Apple needs a working account because AMARI is invite-only. Use a dedicated reviewer account, not a personal admin account.
 
+Reviewer username: `appreview@amarigroupau.com`
+
+Do not commit the password. Store the current App Review password only in App
+Store Connect's Beta App Review Information / App Review Information fields.
+
 The app supports this reviewer path:
 
 1. Open the app.
