@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMARI 3D Archetype Experience Prototype</title>
+  <style>
+    :root {
+      --cream: #f8f6f3;
+      --paper: #fffdf8;
+      --charcoal: #1a1a1a;
+      --ink: #292622;
+      --muted: #746b61;
+      --line: rgba(26, 26, 26, 0.16);
+      --burgundy: #722f37;
+      --burgundy-dark: #441b20;
+      --gold: #c9a962;
+      --gold-soft: rgba(201, 169, 98, 0.22);
+      --smoke: #e8e1d6;
+      --sage: #6f7b68;
+      --display: "Syne", "Aptos Display", "Trebuchet MS", sans-serif;
+      --serif: "EB Garamond", Georgia, serif;
+      --body: "DM Sans", "Aptos", "Segoe UI", sans-serif;
+      --shadow: 0 32px 90px rgba(26, 26, 26, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 12% 12%, rgba(201, 169, 98, 0.26), transparent 28rem),
+        radial-gradient(circle at 88% 12%, rgba(114, 47, 55, 0.2), transparent 34rem),
+        linear-gradient(135deg, #fffaf0, var(--cream) 44%, #ece5d8);
+      color: var(--charcoal);
+      font-family: var(--body);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.18;
+      background-image:
+        linear-gradient(rgba(26, 26, 26, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 26, 26, 0.06) 1px, transparent 1px);
+      background-size: 34px 34px;
+      z-index: 0;
+    }
+
+    .shell {
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+      min-height: 100vh;
+      padding: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      background: rgba(255, 253, 248, 0.86);
+      border: 1px solid var(--line);
+      box-shadow: 16px 16px 0 rgba(114, 47, 55, 0.1);
+      padding: 26px;
+    }
+
+    .control-panel {
+      align-self: start;
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 24px;
+    }
+
+    .kicker {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(45px, 7vw, 92px);
+      font-weight: 500;
+      letter-spacing: -0.055em;
+      line-height: 0.88;
+      margin-top: 14px;
+    }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(32px, 4vw, 58px);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+    }
+
+    h3 {
+      font-family: var(--display);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    p {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.58;
+    }
+
+    .lead {
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 25px;
+      line-height: 1.12;
+      margin-top: 20px;
+    }
+
+    .micro {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .mode-tabs {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 22px;
+    }
+
+    button {
+      appearance: none;
+      background: transparent;
+      border: 1px solid var(--charcoal);
+      color: var(--charcoal);
+      cursor: pointer;
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      min-height: 42px;
+      padding: 10px 9px;
+      text-transform: uppercase;
+      transition: background 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    button:hover {
+      box-shadow: 5px 5px 0 rgba(201, 169, 98, 0.26);
+      transform: translate(-1px, -1px);
+    }
+
+    button.active,
+    button.primary {
+      background: var(--charcoal);
+      color: var(--cream);
+    }
+
+    .persona-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, 1fr);
+      margin-top: 16px;
+    }
+
+    .readout {
+      border: 1px solid rgba(26, 26, 26, 0.15);
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+      padding: 16px;
+    }
+
+    .readout-row {
+      align-items: center;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 96px 1fr 38px;
+    }
+
+    .readout-row strong,
+    .slider-label {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .bar {
+      background: rgba(26, 26, 26, 0.1);
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      background: linear-gradient(90deg, var(--burgundy), var(--gold));
+      height: 100%;
+      transition: width 180ms ease;
+    }
+
+    .slider-block {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .slider-row {
+      display: grid;
+      gap: 9px;
+    }
+
+    input[type="range"] {
+      accent-color: var(--burgundy);
+      width: 100%;
+    }
+
+    .stage {
+      display: grid;
+      gap: 28px;
+      grid-template-columns: minmax(310px, 440px) minmax(0, 1fr);
+      min-height: calc(100vh - 56px);
+    }
+
+    .phone-wrap {
+      align-items: center;
+      display: grid;
+      justify-items: center;
+    }
+
+    .phone {
+      background: var(--charcoal);
+      border: 1px solid rgba(26, 26, 26, 0.5);
+      border-radius: 42px;
+      box-shadow: var(--shadow);
+      height: min(820px, calc(100vh - 74px));
+      max-height: 820px;
+      min-height: 680px;
+      overflow: hidden;
+      padding: 13px;
+      position: sticky;
+      top: 28px;
+      width: min(410px, 92vw);
+    }
+
+    .phone-screen {
+      background:
+        radial-gradient(circle at 30% 18%, rgba(201, 169, 98, 0.28), transparent 13rem),
+        linear-gradient(180deg, #fffdf8, #f2ece1);
+      border-radius: 31px;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .phone-screen::before {
+      background: var(--charcoal);
+      border-radius: 0 0 18px 18px;
+      content: "";
+      height: 26px;
+      left: 50%;
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      width: 132px;
+      z-index: 8;
+    }
+
+    .phone-content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100%;
+      padding: 46px 24px 22px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .phone-top {
+      align-items: start;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .step-pill {
+      border: 1px solid rgba(26, 26, 26, 0.16);
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      padding: 8px 10px;
+      text-transform: uppercase;
+    }
+
+    .phone-title {
+      font-family: var(--serif);
+      font-size: 33px;
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 0.95;
+      margin-top: 18px;
+    }
+
+    .phone-copy {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+
+    .phone-footer {
+      display: grid;
+      gap: 10px;
+    }
+
+    .continue-button {
+      align-items: center;
+      background: var(--charcoal);
+      color: var(--cream);
+      display: flex;
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 900;
+      justify-content: space-between;
+      letter-spacing: 0.1em;
+      padding: 15px 16px;
+      text-transform: uppercase;
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      background: rgba(26, 26, 26, 0.18);
+      height: 5px;
+      width: 26px;
+    }
+
+    .dot.active {
+      background: var(--burgundy);
+    }
+
+    .experience {
+      display: grid;
+      gap: 22px;
+    }
+
+    .hero-card {
+      background: rgba(255, 253, 248, 0.88);
+      border: 1px solid rgba(26, 26, 26, 0.17);
+      box-shadow: 14px 14px 0 rgba(26, 26, 26, 0.06);
+      min-height: 336px;
+      padding: 26px;
+    }
+
+    .visual-row {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .mini-card {
+      background: rgba(255, 253, 248, 0.78);
+      border: 1px solid rgba(26, 26, 26, 0.13);
+      padding: 18px;
+    }
+
+    .mini-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .field-shell {
+      align-items: center;
+      display: grid;
+      height: 410px;
+      justify-items: center;
+      perspective: 920px;
+      position: relative;
+    }
+
+    .field-plane {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(201, 169, 98, 0.32), transparent 30%),
+        linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(232, 225, 214, 0.84));
+      border: 1px solid rgba(26, 26, 26, 0.26);
+      height: 278px;
+      position: relative;
+      transform: rotateX(58deg) rotateZ(-13deg);
+      transform-style: preserve-3d;
+      width: 278px;
+    }
+
+    .field-plane::before,
+    .field-plane::after {
+      background: rgba(26, 26, 26, 0.26);
+      content: "";
+      position: absolute;
+    }
+
+    .field-plane::before {
+      height: 1px;
+      left: 0;
+      right: 0;
+      top: 50%;
+    }
+
+    .field-plane::after {
+      bottom: 0;
+      left: 50%;
+      top: 0;
+      width: 1px;
+    }
+
+    .depth-grid {
+      background-image:
+        linear-gradient(rgba(26, 26, 26, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 26, 26, 0.07) 1px, transparent 1px);
+      background-size: 34px 34px;
+      inset: 0;
+      position: absolute;
+    }
+
+    .field-marker {
+      align-items: center;
+      background: var(--burgundy);
+      color: var(--cream);
+      cursor: grab;
+      display: grid;
+      font-family: var(--serif);
+      font-size: 46px;
+      height: 72px;
+      justify-items: center;
+      left: 50%;
+      position: absolute;
+      top: 50%;
+      transform: translate3d(-50%, -50%, 74px) rotateZ(13deg) rotateX(-58deg);
+      user-select: none;
+      width: 72px;
+      z-index: 5;
+    }
+
+    .field-marker::after {
+      background: var(--gold);
+      bottom: -8px;
+      content: "";
+      height: 16px;
+      position: absolute;
+      right: -8px;
+      width: 16px;
+    }
+
+    .axis-name {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      position: absolute;
+      text-transform: uppercase;
+      transform: translateZ(4px);
+    }
+
+    .axis-builder { left: 10px; top: 50%; transform: translateY(-50%) rotateZ(90deg); }
+    .axis-disruptor { right: 10px; top: 50%; transform: translateY(-50%) rotateZ(90deg); }
+    .axis-connector { left: 50%; top: 10px; transform: translateX(-50%); }
+    .axis-operator { bottom: 10px; left: 50%; transform: translateX(-50%); }
+
+    .field-shadow {
+      background: rgba(26, 26, 26, 0.16);
+      filter: blur(24px);
+      height: 110px;
+      position: absolute;
+      top: 270px;
+      transform: rotateZ(-13deg);
+      width: 320px;
+    }
+
+    .field-chip {
+      background: var(--charcoal);
+      color: var(--cream);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 10px 12px;
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      text-transform: uppercase;
+      z-index: 6;
+    }
+
+    .octahedron-card {
+      align-items: center;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(114, 47, 55, 0.12), transparent 25rem),
+        rgba(255, 253, 248, 0.82);
+      border: 1px solid rgba(26, 26, 26, 0.17);
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(320px, 1fr) 300px;
+      min-height: 620px;
+      padding: 24px;
+    }
+
+    canvas {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(201, 169, 98, 0.14), transparent 22rem),
+        linear-gradient(135deg, rgba(255, 253, 248, 0.72), rgba(232, 225, 214, 0.36));
+      border: 1px solid rgba(26, 26, 26, 0.14);
+      cursor: grab;
+      height: min(64vh, 580px);
+      min-height: 420px;
+      width: 100%;
+    }
+
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    .capture-box {
+      background: var(--charcoal);
+      color: var(--cream);
+      padding: 18px;
+    }
+
+    .capture-box h3 {
+      color: var(--cream);
+    }
+
+    .capture-box p,
+    .capture-box code {
+      color: rgba(248, 246, 243, 0.78);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    code {
+      display: block;
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      margin-top: 12px;
+      white-space: pre-wrap;
+    }
+
+    .question-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .question-card {
+      background: rgba(255, 253, 248, 0.92);
+      border: 1px solid rgba(26, 26, 26, 0.14);
+      padding: 16px;
+      transform-origin: center;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .question-card:hover {
+      box-shadow: 8px 8px 0 rgba(201, 169, 98, 0.22);
+      transform: translate(-2px, -2px);
+    }
+
+    .option-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .option-pill {
+      border: 1px solid rgba(26, 26, 26, 0.18);
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 7px 8px;
+      text-transform: uppercase;
+    }
+
+    .screen-view {
+      display: none;
+    }
+
+    .screen-view.active {
+      display: block;
+    }
+
+    .decision-note {
+      background: rgba(114, 47, 55, 0.08);
+      border-left: 6px solid var(--burgundy);
+      margin-top: 18px;
+      padding: 18px;
+    }
+
+    .privacy-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .privacy-row {
+      align-items: start;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 20px 1fr;
+    }
+
+    .check {
+      background: var(--sage);
+      height: 12px;
+      margin-top: 5px;
+      transform: rotate(45deg);
+      width: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .shell,
+      .stage,
+      .octahedron-card {
+        grid-template-columns: 1fr;
+      }
+
+      .control-panel,
+      .phone {
+        position: relative;
+        top: auto;
+      }
+
+      .phone {
+        height: 720px;
+      }
+
+      .visual-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding: 14px;
+      }
+
+      .mode-tabs,
+      .persona-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel control-panel">
+      <div class="kicker">AMARI Archetype Lab</div>
+      <h1>Explore the member moment.</h1>
+      <p class="lead">This prototype lets you feel the difference between the fast 2-axis launch graph and the richer 6-axis 3D octahedron.</p>
+
+      <div class="mode-tabs" role="tablist" aria-label="Prototype mode">
+        <button class="mode-button active" type="button" data-mode="field">2-axis field</button>
+        <button class="mode-button" type="button" data-mode="octa">6-axis 3D</button>
+        <button class="mode-button" type="button" data-mode="journey">Journey</button>
+      </div>
+
+      <div class="readout" aria-live="polite">
+        <h3 id="readoutTitle">Disruptor / Connector</h3>
+        <p class="micro" id="readoutCopy">A member who creates change through network access, momentum, and strategic introduction.</p>
+        <div class="readout-row">
+          <strong>Builder</strong>
+          <div class="bar"><div class="bar-fill" id="builderBar"></div></div>
+          <span class="micro" id="builderScore">31</span>
+        </div>
+        <div class="readout-row">
+          <strong>Disruptor</strong>
+          <div class="bar"><div class="bar-fill" id="disruptorBar"></div></div>
+          <span class="micro" id="disruptorScore">69</span>
+        </div>
+        <div class="readout-row">
+          <strong>Operator</strong>
+          <div class="bar"><div class="bar-fill" id="operatorBar"></div></div>
+          <span class="micro" id="operatorScore">24</span>
+        </div>
+        <div class="readout-row">
+          <strong>Connector</strong>
+          <div class="bar"><div class="bar-fill" id="connectorBar"></div></div>
+          <span class="micro" id="connectorScore">76</span>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 24px;">Try member presets</h3>
+      <div class="persona-grid">
+        <button type="button" data-preset="founder">Founder</button>
+        <button type="button" data-preset="operator">Operator</button>
+        <button type="button" data-preset="connector">Connector</button>
+        <button type="button" data-preset="creative">Creative</button>
+      </div>
+
+      <section class="slider-block" id="sixAxisControls">
+        <h3>Six-axis blend</h3>
+        <div class="slider-row">
+          <label class="slider-label" for="capital">Capital</label>
+          <input id="capital" type="range" min="0" max="100" value="18">
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="founders">Founders</label>
+          <input id="founders" type="range" min="0" max="100" value="30">
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="operators">Operators</label>
+          <input id="operators" type="range" min="0" max="100" value="20">
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="creators">Creators</label>
+          <input id="creators" type="range" min="0" max="100" value="10">
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="advisors">Advisors</label>
+          <input id="advisors" type="range" min="0" max="100" value="12">
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="voices">Voices</label>
+          <input id="voices" type="range" min="0" max="100" value="10">
+        </div>
+      </section>
+
+      <div class="decision-note">
+        <h3>What to look for</h3>
+        <p style="margin-top: 10px;">The launch field is emotionally simple and fast. The octahedron is more differentiated and better captures blends, but it has higher usability and accessibility cost.</p>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <section class="phone-wrap">
+        <div class="phone" aria-label="AMARI mobile onboarding preview">
+          <div class="phone-screen">
+            <div class="phone-content">
+              <div>
+                <div class="phone-top">
+                  <div class="step-pill">Step 3 of 6</div>
+                  <div class="step-pill" id="phoneModePill">Archetype</div>
+                </div>
+                <h2 class="phone-title" id="phoneTitle">Move the A to where your energy sits right now.</h2>
+                <p class="phone-copy" id="phoneCopy">There is no fixed type. AMARI uses this to shape your first recommendations and understand the community in aggregate.</p>
+              </div>
+
+              <div class="field-shell" id="phoneFieldShell">
+                <div class="field-shadow"></div>
+                <div class="field-chip" id="fieldChip">Disruptor / Connector</div>
+                <div class="field-plane" id="fieldPlane">
+                  <div class="depth-grid"></div>
+                  <div class="axis-name axis-builder">Builder</div>
+                  <div class="axis-name axis-disruptor">Disruptor</div>
+                  <div class="axis-name axis-connector">Connector</div>
+                  <div class="axis-name axis-operator">Operator</div>
+                  <div class="field-marker" id="fieldMarker">A</div>
+                </div>
+              </div>
+
+              <div class="phone-footer">
+                <div class="dots">
+                  <div class="dot active"></div>
+                  <div class="dot active"></div>
+                  <div class="dot active"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+                <div class="continue-button"><span>You can change this later</span><span>Continue</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="experience">
+        <div class="hero-card screen-view active" id="fieldView">
+          <div class="kicker">Launch graph</div>
+          <h2>Two-axis graph rendered as a premium 3D object.</h2>
+          <p class="lead">This is likely the best v1 experience: understandable in one glance, tactile enough to feel AMARI-specific, and still useful for matching.</p>
+          <div class="visual-row" style="margin-top: 28px;">
+            <article class="mini-card">
+              <h3>Member feeling</h3>
+              <p>It feels like a choice, not a survey. The user drags the A and sees a living archetype label form in real time.</p>
+            </article>
+            <article class="mini-card">
+              <h3>Data captured</h3>
+              <p>Final X/Y, derived quadrant, time-to-settle, number of changes. No raw touch trail, no screen replay, no free text.</p>
+            </article>
+            <article class="mini-card">
+              <h3>Build cost</h3>
+              <p>Reanimated implementation is feasible quickly. Accessibility fallback can be quadrant chips and sliders.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero-card screen-view" id="octaView">
+          <div class="kicker">Future graph</div>
+          <h2>Six-axis octahedron for people who are blends, not boxes.</h2>
+          <p class="lead">This is the more distinctive long-term direction. It maps Capital, Founders, Operators, Creators, Advisors, and Voices into a single spatial object.</p>
+          <div class="octahedron-card" style="margin-top: 28px;">
+            <canvas id="octaCanvas" width="980" height="760" aria-label="Interactive six-axis AMARI octahedron"></canvas>
+            <aside>
+              <h3>How to explore</h3>
+              <p class="micro" style="margin-top: 10px;">Drag the canvas to orbit. Use the six sliders on the left to move the AMARI point through the archetype space.</p>
+              <div class="capture-box" style="margin-top: 18px;">
+                <h3>Captured vector</h3>
+                <p>This is the richer schema shape if AMARI chooses the 6-axis model.</p>
+                <code id="vectorCode"></code>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div class="hero-card screen-view" id="journeyView">
+          <div class="kicker">Member journey</div>
+          <h2>The graph is only one moment in a five-step data experience.</h2>
+          <p class="lead">The product should feel like self-discovery. The system behind it should remain disciplined: enum answers, consent, aggregates, and no unnecessary raw data.</p>
+          <div class="question-stack">
+            <article class="question-card">
+              <h3>1. What are you advancing in this season?</h3>
+              <div class="option-pill-row">
+                <span class="option-pill">Venture</span>
+                <span class="option-pill">Creative project</span>
+                <span class="option-pill">Career move</span>
+                <span class="option-pill">Investment thesis</span>
+                <span class="option-pill">Community initiative</span>
+              </div>
+            </article>
+            <article class="question-card">
+              <h3>2. What has been hardest to find this year?</h3>
+              <div class="option-pill-row">
+                <span class="option-pill">Capital</span>
+                <span class="option-pill">Counsel</span>
+                <span class="option-pill">Talent</span>
+                <span class="option-pill">Peers</span>
+                <span class="option-pill">Quiet</span>
+              </div>
+            </article>
+            <article class="question-card">
+              <h3>3. Where could you generously extend value?</h3>
+              <div class="option-pill-row">
+                <span class="option-pill">Mentoring</span>
+                <span class="option-pill">Introductions</span>
+                <span class="option-pill">Hiring</span>
+                <span class="option-pill">Investing</span>
+                <span class="option-pill">Speaking</span>
+              </div>
+            </article>
+          </div>
+          <div class="privacy-list">
+            <div class="privacy-row"><span class="check"></span><p>Use answers to personalize recommendations and understand the community in aggregate.</p></div>
+            <div class="privacy-row"><span class="check"></span><p>Let members edit later. Make the consent recap explicit before completion.</p></div>
+            <div class="privacy-row"><span class="check"></span><p>Never sell individual member data or expose member-level rows in sponsor reports.</p></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      mode: "field",
+      field: { x: 0.38, y: 0.52 },
+      rotation: { x: -0.48, y: 0.72 },
+      weights: {
+        capital: 18,
+        founders: 30,
+        operators: 20,
+        creators: 10,
+        advisors: 12,
+        voices: 10
+      }
+    };
+
+    const personaPresets = {
+      founder: {
+        field: { x: 0.55, y: -0.18 },
+        weights: { capital: 16, founders: 42, operators: 22, creators: 4, advisors: 10, voices: 6 }
+      },
+      operator: {
+        field: { x: -0.42, y: -0.62 },
+        weights: { capital: 8, founders: 18, operators: 46, creators: 4, advisors: 18, voices: 6 }
+      },
+      connector: {
+        field: { x: 0.32, y: 0.72 },
+        weights: { capital: 24, founders: 16, operators: 10, creators: 8, advisors: 14, voices: 28 }
+      },
+      creative: {
+        field: { x: 0.2, y: 0.18 },
+        weights: { capital: 6, founders: 14, operators: 10, creators: 46, advisors: 6, voices: 18 }
+      }
+    };
+
+    const fieldPlane = document.getElementById("fieldPlane");
+    const fieldMarker = document.getElementById("fieldMarker");
+    const fieldChip = document.getElementById("fieldChip");
+    const readoutTitle = document.getElementById("readoutTitle");
+    const readoutCopy = document.getElementById("readoutCopy");
+    const phoneTitle = document.getElementById("phoneTitle");
+    const phoneCopy = document.getElementById("phoneCopy");
+    const phoneModePill = document.getElementById("phoneModePill");
+    const canvas = document.getElementById("octaCanvas");
+    const ctx = canvas.getContext("2d");
+    const vectorCode = document.getElementById("vectorCode");
+
+    const copyByLabel = {
+      "Builder / Connector": "A member who builds durable systems through relationships, access, and trust.",
+      "Builder / Operator": "A member who creates value through discipline, execution, and institution-building.",
+      "Disruptor / Connector": "A member who creates change through network access, momentum, and strategic introduction.",
+      "Disruptor / Operator": "A member who challenges categories through execution, product pressure, and repeated action."
+    };
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function fieldLabel() {
+      const horizontal = state.field.x < 0 ? "Builder" : "Disruptor";
+      const vertical = state.field.y < 0 ? "Operator" : "Connector";
+      return `${horizontal} / ${vertical}`;
+    }
+
+    function updateField() {
+      const xPercent = ((state.field.x + 1) / 2) * 100;
+      const yPercent = ((1 - state.field.y) / 2) * 100;
+      fieldMarker.style.left = `${xPercent}%`;
+      fieldMarker.style.top = `${yPercent}%`;
+
+      const label = fieldLabel();
+      fieldChip.textContent = label;
+      readoutTitle.textContent = label;
+      readoutCopy.textContent = copyByLabel[label];
+
+      const builder = Math.round((1 - ((state.field.x + 1) / 2)) * 100);
+      const disruptor = 100 - builder;
+      const connector = Math.round(((state.field.y + 1) / 2) * 100);
+      const operator = 100 - connector;
+
+      setBar("builder", builder);
+      setBar("disruptor", disruptor);
+      setBar("operator", operator);
+      setBar("connector", connector);
+    }
+
+    function setBar(name, value) {
+      document.getElementById(`${name}Bar`).style.width = `${value}%`;
+      document.getElementById(`${name}Score`).textContent = value;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll(".mode-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.mode === mode);
+      });
+      document.querySelectorAll(".screen-view").forEach((view) => view.classList.remove("active"));
+      document.getElementById(`${mode}View`).classList.add("active");
+
+      if (mode === "field") {
+        phoneModePill.textContent = "Archetype";
+        phoneTitle.textContent = "Move the A to where your energy sits right now.";
+        phoneCopy.textContent = "There is no fixed type. AMARI uses this to shape your first recommendations and understand the community in aggregate.";
+      }
+      if (mode === "octa") {
+        phoneModePill.textContent = "Future V2";
+        phoneTitle.textContent = "A richer map for members who are blends.";
+        phoneCopy.textContent = "The six-axis model can preserve nuance, but it needs more explanation and accessibility work.";
+        drawOctahedron();
+      }
+      if (mode === "journey") {
+        phoneModePill.textContent = "Journey";
+        phoneTitle.textContent = "After the A, three cards create the first resource signal.";
+        phoneCopy.textContent = "The member sees reflection. AMARI stores structured enums, consent state, and aggregate-safe signals.";
+      }
+    }
+
+    let draggingField = false;
+    fieldMarker.addEventListener("pointerdown", (event) => {
+      draggingField = true;
+      fieldMarker.setPointerCapture(event.pointerId);
+      fieldMarker.style.cursor = "grabbing";
+      updateFromPointer(event);
+    });
+
+    fieldMarker.addEventListener("pointermove", (event) => {
+      if (!draggingField) return;
+      updateFromPointer(event);
+    });
+
+    fieldMarker.addEventListener("pointerup", () => {
+      draggingField = false;
+      fieldMarker.style.cursor = "grab";
+    });
+
+    fieldPlane.addEventListener("pointerdown", updateFromPointer);
+
+    function updateFromPointer(event) {
+      const rect = fieldPlane.getBoundingClientRect();
+      const x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+      const y = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+      state.field.x = x * 2 - 1;
+      state.field.y = 1 - y * 2;
+      updateField();
+      drawOctahedron();
+    }
+
+    document.querySelectorAll(".mode-button").forEach((button) => {
+      button.addEventListener("click", () => setMode(button.dataset.mode));
+    });
+
+    document.querySelectorAll("[data-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const preset = personaPresets[button.dataset.preset];
+        state.field = { ...preset.field };
+        state.weights = { ...preset.weights };
+        Object.entries(state.weights).forEach(([key, value]) => {
+          document.getElementById(key).value = value;
+        });
+        updateField();
+        drawOctahedron();
+      });
+    });
+
+    Object.keys(state.weights).forEach((key) => {
+      document.getElementById(key).addEventListener("input", (event) => {
+        state.weights[key] = Number(event.target.value);
+        drawOctahedron();
+      });
+    });
+
+    const vertices = [
+      { key: "capital", label: "Capital", p: [0, 1.08, 0], opposite: "creators" },
+      { key: "creators", label: "Creators", p: [0, -1.08, 0], opposite: "capital" },
+      { key: "founders", label: "Founders", p: [1.08, 0, 0], opposite: "advisors" },
+      { key: "advisors", label: "Advisors", p: [-1.08, 0, 0], opposite: "founders" },
+      { key: "operators", label: "Operators", p: [0, 0, 1.08], opposite: "voices" },
+      { key: "voices", label: "Voices", p: [0, 0, -1.08], opposite: "operators" }
+    ];
+
+    const faces = [
+      ["capital", "founders", "operators"],
+      ["capital", "operators", "advisors"],
+      ["capital", "advisors", "voices"],
+      ["capital", "voices", "founders"],
+      ["creators", "operators", "founders"],
+      ["creators", "advisors", "operators"],
+      ["creators", "voices", "advisors"],
+      ["creators", "founders", "voices"]
+    ];
+
+    function rotatePoint(point) {
+      let [x, y, z] = point;
+      const cosY = Math.cos(state.rotation.y);
+      const sinY = Math.sin(state.rotation.y);
+      const x1 = x * cosY + z * sinY;
+      const z1 = -x * sinY + z * cosY;
+      const cosX = Math.cos(state.rotation.x);
+      const sinX = Math.sin(state.rotation.x);
+      const y1 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+      return [x1, y1, z2];
+    }
+
+    function project(point) {
+      const [x, y, z] = rotatePoint(point);
+      const w = canvas.width;
+      const h = canvas.height;
+      const perspective = 3.2 / (3.2 - z);
+      const scale = Math.min(w, h) * 0.28;
+      return {
+        x: w / 2 + x * scale * perspective,
+        y: h / 2 - y * scale * perspective,
+        z,
+        perspective
+      };
+    }
+
+    function vertexByKey(key) {
+      return vertices.find((vertex) => vertex.key === key);
+    }
+
+    function weightedPosition() {
+      const total = Object.values(state.weights).reduce((sum, value) => sum + value, 0) || 1;
+      return vertices.reduce((acc, vertex) => {
+        const weight = state.weights[vertex.key] / total;
+        acc[0] += vertex.p[0] * weight;
+        acc[1] += vertex.p[1] * weight;
+        acc[2] += vertex.p[2] * weight;
+        return acc;
+      }, [0, 0, 0]);
+    }
+
+    function drawOctahedron() {
+      const cssWidth = Math.floor(canvas.clientWidth || 980);
+      const cssHeight = Math.floor(canvas.clientHeight || 760);
+      if (canvas.width !== cssWidth) canvas.width = cssWidth;
+      if (canvas.height !== cssHeight) canvas.height = cssHeight;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const projected = {};
+      vertices.forEach((vertex) => {
+        projected[vertex.key] = project(vertex.p);
+      });
+
+      const sortedFaces = faces
+        .map((face) => ({
+          face,
+          z: face.reduce((sum, key) => sum + projected[key].z, 0) / face.length
+        }))
+        .sort((a, b) => a.z - b.z);
+
+      sortedFaces.forEach(({ face, z }) => {
+        const points = face.map((key) => projected[key]);
+        const shade = Math.round(160 + (z + 1.2) * 22);
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${shade}, ${Math.max(112, shade - 42)}, ${Math.max(92, shade - 78)}, 0.2)`;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(114, 47, 55, 0.34)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      });
+
+      vertices.forEach((vertex) => {
+        const point = projected[vertex.key];
+        const weight = state.weights[vertex.key];
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 6 + weight * 0.09, 0, Math.PI * 2);
+        ctx.fillStyle = vertex.key === "capital" ? "#c9a962" : "#722f37";
+        ctx.fill();
+        ctx.strokeStyle = "#fffdf8";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = "700 13px Trebuchet MS";
+        ctx.fillStyle = "#1a1a1a";
+        ctx.textAlign = "center";
+        ctx.fillText(vertex.label, point.x, point.y - 18);
+      });
+
+      const pos = weightedPosition();
+      const marker = project(pos);
+      ctx.save();
+      ctx.shadowColor = "rgba(114, 47, 55, 0.28)";
+      ctx.shadowBlur = 26;
+      ctx.fillStyle = "#722f37";
+      ctx.fillRect(marker.x - 27, marker.y - 27, 54, 54);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fffdf8";
+      ctx.font = "500 35px Georgia";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("A", marker.x, marker.y + 1);
+      ctx.fillStyle = "#c9a962";
+      ctx.fillRect(marker.x + 20, marker.y + 20, 13, 13);
+      ctx.restore();
+
+      const total = Object.values(state.weights).reduce((sum, value) => sum + value, 0) || 1;
+      const normalized = {};
+      Object.entries(state.weights).forEach(([key, value]) => {
+        normalized[key] = Number((value / total).toFixed(3));
+      });
+      vectorCode.textContent = JSON.stringify({
+        archetype_vector: normalized,
+        version: "six_axis_octahedron_v1",
+        stored: "final vector only; no raw gesture trail"
+      }, null, 2);
+    }
+
+    let orbiting = false;
+    let lastPoint = null;
+    canvas.addEventListener("pointerdown", (event) => {
+      orbiting = true;
+      lastPoint = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!orbiting || !lastPoint) return;
+      const dx = event.clientX - lastPoint.x;
+      const dy = event.clientY - lastPoint.y;
+      state.rotation.y += dx * 0.01;
+      state.rotation.x += dy * 0.01;
+      lastPoint = { x: event.clientX, y: event.clientY };
+      drawOctahedron();
+    });
+
+    canvas.addEventListener("pointerup", () => {
+      orbiting = false;
+      lastPoint = null;
+    });
+
+    window.addEventListener("resize", drawOctahedron);
+
+    updateField();
+    drawOctahedron();
+  </script>
+</body>
+</html>
