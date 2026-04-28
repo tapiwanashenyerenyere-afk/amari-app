@@ -1,0 +1,1702 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMARI Security, Onboarding, and Resource Graph Decision Deck</title>
+  <style>
+    :root {
+      --cream: #f8f6f3;
+      --paper: #fffdf8;
+      --charcoal: #1a1a1a;
+      --ink: #2b2926;
+      --muted: #746c62;
+      --line: rgba(26, 26, 26, 0.16);
+      --burgundy: #722f37;
+      --burgundy-dark: #4c1d24;
+      --gold: #c9a962;
+      --gold-soft: rgba(201, 169, 98, 0.22);
+      --sage: #6f7b68;
+      --smoke: #ece7dd;
+      --danger: #9d3b32;
+      --good: #51735b;
+      --shadow: 0 26px 70px rgba(26, 26, 26, 0.16);
+      --display: "Syne", "Aptos Display", "Trebuchet MS", sans-serif;
+      --serif: "EB Garamond", "Cormorant Garamond", Georgia, serif;
+      --body: "DM Sans", "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background:
+        radial-gradient(circle at 12% 8%, rgba(201, 169, 98, 0.24), transparent 28rem),
+        radial-gradient(circle at 92% 18%, rgba(114, 47, 55, 0.18), transparent 34rem),
+        linear-gradient(135deg, #fbf8f1, var(--cream));
+      color: var(--charcoal);
+      font-family: var(--body);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.22;
+      background-image:
+        linear-gradient(rgba(26, 26, 26, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 26, 26, 0.04) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: linear-gradient(to bottom, black, transparent 86%);
+      z-index: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 308px minmax(0, 1fr);
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid var(--line);
+      background: rgba(248, 246, 243, 0.92);
+      backdrop-filter: blur(18px);
+      padding: 28px 22px;
+      overflow-y: auto;
+    }
+
+    .brand-block {
+      border: 1px solid var(--charcoal);
+      padding: 18px;
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.92), rgba(236, 231, 221, 0.72)),
+        var(--paper);
+      box-shadow: 10px 10px 0 rgba(114, 47, 55, 0.14);
+    }
+
+    .brand-kicker {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .brand-title {
+      margin: 10px 0 0;
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 500;
+      line-height: 0.95;
+    }
+
+    .brand-meta {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .progress {
+      height: 6px;
+      background: var(--smoke);
+      border: 1px solid rgba(26, 26, 26, 0.12);
+      margin: 22px 0 18px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--burgundy), var(--gold));
+      transition: width 180ms ease;
+    }
+
+    .nav-group-label {
+      color: var(--muted);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      margin: 24px 0 8px;
+      text-transform: uppercase;
+    }
+
+    nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-link {
+      align-items: center;
+      border: 1px solid transparent;
+      color: var(--ink);
+      display: grid;
+      font-size: 13px;
+      grid-template-columns: 28px 1fr;
+      line-height: 1.25;
+      padding: 10px 8px;
+      text-decoration: none;
+      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: rgba(255, 253, 248, 0.86);
+      border-color: rgba(114, 47, 55, 0.24);
+      transform: translateX(3px);
+    }
+
+    .nav-index {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    button,
+    .button-link {
+      appearance: none;
+      background: var(--charcoal);
+      border: 1px solid var(--charcoal);
+      color: var(--cream);
+      cursor: pointer;
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.11em;
+      padding: 11px 12px;
+      text-align: center;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    button.secondary,
+    .button-link.secondary {
+      background: transparent;
+      color: var(--charcoal);
+    }
+
+    button:hover,
+    .button-link:hover {
+      box-shadow: 6px 6px 0 rgba(201, 169, 98, 0.28);
+      transform: translate(-2px, -2px);
+    }
+
+    main {
+      padding: 0;
+      position: relative;
+    }
+
+    .slide {
+      min-height: 100vh;
+      padding: 86px clamp(28px, 6vw, 84px);
+      position: relative;
+      scroll-margin-top: 0;
+    }
+
+    .slide-inner {
+      margin: 0 auto;
+      max-width: 1220px;
+      position: relative;
+    }
+
+    .slide-number {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(58px, 9vw, 132px);
+      font-weight: 500;
+      letter-spacing: -0.055em;
+      line-height: 0.88;
+      max-width: 1040px;
+    }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: clamp(38px, 6vw, 86px);
+      font-weight: 500;
+      letter-spacing: -0.045em;
+      line-height: 0.92;
+      max-width: 980px;
+    }
+
+    h3 {
+      font-family: var(--display);
+      font-size: clamp(18px, 2vw, 28px);
+      font-weight: 850;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    p {
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.65;
+      margin: 0;
+      max-width: 760px;
+    }
+
+    .lead {
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: clamp(25px, 3.5vw, 44px);
+      line-height: 1.08;
+      margin-top: 28px;
+      max-width: 980px;
+    }
+
+    .micro {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .deck-grid {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: repeat(12, 1fr);
+      margin-top: 42px;
+    }
+
+    .card {
+      background:
+        linear-gradient(145deg, rgba(255, 253, 248, 0.94), rgba(248, 246, 243, 0.74)),
+        var(--paper);
+      border: 1px solid rgba(26, 26, 26, 0.18);
+      box-shadow: 12px 12px 0 rgba(26, 26, 26, 0.06);
+      padding: 24px;
+      position: relative;
+    }
+
+    .card.gold {
+      background:
+        linear-gradient(145deg, rgba(201, 169, 98, 0.2), rgba(255, 253, 248, 0.92)),
+        var(--paper);
+      border-color: rgba(201, 169, 98, 0.54);
+    }
+
+    .card.burgundy {
+      background:
+        linear-gradient(145deg, rgba(114, 47, 55, 0.95), rgba(76, 29, 36, 0.96)),
+        var(--burgundy);
+      color: var(--cream);
+      box-shadow: 12px 12px 0 rgba(201, 169, 98, 0.18);
+    }
+
+    .card.burgundy p,
+    .card.burgundy .micro,
+    .card.burgundy li,
+    .card.burgundy .tag {
+      color: rgba(248, 246, 243, 0.86);
+    }
+
+    .card.burgundy .tag {
+      border-color: rgba(248, 246, 243, 0.34);
+    }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      border: 1px solid rgba(26, 26, 26, 0.22);
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: 0.1em;
+      padding: 7px 9px;
+      text-transform: uppercase;
+    }
+
+    ul,
+    ol {
+      margin: 18px 0 0;
+      padding-left: 18px;
+    }
+
+    li {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      margin: 8px 0;
+    }
+
+    .decision-table {
+      border-collapse: collapse;
+      margin-top: 28px;
+      width: 100%;
+    }
+
+    .decision-table th,
+    .decision-table td {
+      border: 1px solid rgba(26, 26, 26, 0.14);
+      padding: 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .decision-table th {
+      background: rgba(201, 169, 98, 0.18);
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .decision-table td {
+      background: rgba(255, 253, 248, 0.66);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .matrix {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 30px;
+    }
+
+    .option-card {
+      background: rgba(255, 253, 248, 0.76);
+      border: 1px solid rgba(26, 26, 26, 0.18);
+      min-height: 100%;
+      padding: 22px;
+      position: relative;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .option-card:hover {
+      box-shadow: 12px 12px 0 rgba(114, 47, 55, 0.12);
+      transform: translate(-3px, -3px);
+    }
+
+    .option-label {
+      color: var(--gold);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .option-card h3 {
+      min-height: 58px;
+    }
+
+    .option-card details {
+      border-top: 1px solid rgba(26, 26, 26, 0.12);
+      margin-top: 18px;
+      padding-top: 12px;
+    }
+
+    summary {
+      color: var(--burgundy);
+      cursor: pointer;
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .recommendation {
+      border-left: 5px solid var(--burgundy);
+      margin-top: 28px;
+      padding: 18px 24px;
+      background: rgba(114, 47, 55, 0.08);
+    }
+
+    .recommendation strong {
+      color: var(--burgundy);
+      font-family: var(--display);
+      letter-spacing: -0.02em;
+    }
+
+    .architecture {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(6, 1fr);
+      margin-top: 32px;
+    }
+
+    .plane {
+      border: 1px solid rgba(26, 26, 26, 0.2);
+      background: linear-gradient(180deg, rgba(255, 253, 248, 0.84), rgba(236, 231, 221, 0.5));
+      min-height: 172px;
+      padding: 18px;
+      position: relative;
+    }
+
+    .plane::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: var(--gold);
+    }
+
+    .plane h3 {
+      color: var(--burgundy);
+      font-size: 16px;
+      min-height: 44px;
+    }
+
+    .plane p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+
+    .timeline {
+      border-left: 2px solid var(--burgundy);
+      display: grid;
+      gap: 22px;
+      margin-top: 34px;
+      padding-left: 28px;
+    }
+
+    .phase {
+      background: rgba(255, 253, 248, 0.72);
+      border: 1px solid rgba(26, 26, 26, 0.15);
+      padding: 22px;
+      position: relative;
+    }
+
+    .phase::before {
+      content: "";
+      position: absolute;
+      left: -39px;
+      top: 28px;
+      width: 18px;
+      height: 18px;
+      background: var(--burgundy);
+      border: 4px solid var(--cream);
+      box-shadow: 0 0 0 1px rgba(114, 47, 55, 0.34);
+      transform: rotate(45deg);
+    }
+
+    .axis-demo {
+      align-items: center;
+      background:
+        radial-gradient(circle at center, rgba(201, 169, 98, 0.24), transparent 32%),
+        linear-gradient(135deg, rgba(255, 253, 248, 0.95), rgba(236, 231, 221, 0.72));
+      border: 1px solid rgba(26, 26, 26, 0.2);
+      display: grid;
+      height: 440px;
+      justify-items: center;
+      margin-top: 30px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .axis-demo::before,
+    .axis-demo::after {
+      background: rgba(26, 26, 26, 0.28);
+      content: "";
+      position: absolute;
+    }
+
+    .axis-demo::before {
+      height: 1px;
+      left: 9%;
+      right: 9%;
+      top: 50%;
+    }
+
+    .axis-demo::after {
+      bottom: 9%;
+      left: 50%;
+      top: 9%;
+      width: 1px;
+    }
+
+    .axis-label {
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      position: absolute;
+      text-transform: uppercase;
+    }
+
+    .axis-left { left: 22px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+    .axis-right { right: 18px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+    .axis-top { top: 20px; }
+    .axis-bottom { bottom: 20px; }
+
+    .amari-marker {
+      align-items: center;
+      background: var(--burgundy);
+      color: var(--cream);
+      cursor: grab;
+      display: grid;
+      font-family: var(--serif);
+      font-size: 56px;
+      height: 106px;
+      justify-items: center;
+      position: relative;
+      transform: translate(44px, -58px);
+      user-select: none;
+      width: 106px;
+      z-index: 4;
+    }
+
+    .amari-marker::after {
+      background: var(--gold);
+      bottom: -10px;
+      content: "";
+      height: 20px;
+      position: absolute;
+      right: -10px;
+      width: 20px;
+    }
+
+    .quadrant-chip {
+      background: var(--charcoal);
+      color: var(--cream);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.1em;
+      padding: 10px 12px;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      text-transform: uppercase;
+      z-index: 5;
+    }
+
+    .hex-demo {
+      aspect-ratio: 1 / 1;
+      display: grid;
+      margin: 34px auto 0;
+      max-width: 520px;
+      place-items: center;
+      position: relative;
+    }
+
+    .hex-ring {
+      border: 1px solid rgba(26, 26, 26, 0.22);
+      clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+      inset: 9%;
+      position: absolute;
+    }
+
+    .hex-axis {
+      background: rgba(114, 47, 55, 0.28);
+      height: 1px;
+      left: 13%;
+      position: absolute;
+      right: 13%;
+      top: 50%;
+      transform-origin: center;
+    }
+
+    .hex-axis:nth-child(2) { transform: rotate(60deg); }
+    .hex-axis:nth-child(3) { transform: rotate(120deg); }
+
+    .hex-point {
+      background: var(--paper);
+      border: 1px solid rgba(114, 47, 55, 0.36);
+      color: var(--burgundy);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 8px;
+      position: absolute;
+      text-transform: uppercase;
+    }
+
+    .hp1 { top: 0; left: 50%; transform: translateX(-50%); }
+    .hp2 { top: 24%; right: 0; }
+    .hp3 { bottom: 24%; right: 0; }
+    .hp4 { bottom: 0; left: 50%; transform: translateX(-50%); }
+    .hp5 { bottom: 24%; left: 0; }
+    .hp6 { top: 24%; left: 0; }
+
+    .risk-strip {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(5, 1fr);
+      margin-top: 18px;
+    }
+
+    .risk-cell {
+      border: 1px solid rgba(26, 26, 26, 0.14);
+      font-family: var(--display);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 10px 8px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .risk-cell.on { background: rgba(114, 47, 55, 0.14); color: var(--burgundy); }
+    .risk-cell.good { background: rgba(81, 115, 91, 0.12); color: var(--good); }
+
+    .source-map {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(5, 1fr);
+      margin-top: 30px;
+    }
+
+    .source {
+      background: rgba(255, 253, 248, 0.74);
+      border: 1px solid rgba(26, 26, 26, 0.16);
+      min-height: 210px;
+      padding: 18px;
+    }
+
+    .source strong {
+      color: var(--burgundy);
+      display: block;
+      font-family: var(--display);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .source p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .filter-button {
+      background: transparent;
+      color: var(--charcoal);
+    }
+
+    .filter-button.active {
+      background: var(--burgundy);
+      border-color: var(--burgundy);
+      color: var(--cream);
+    }
+
+    .decision-block[hidden] {
+      display: none;
+    }
+
+    .quote-block {
+      border-left: 8px solid var(--gold);
+      font-family: var(--serif);
+      font-size: clamp(26px, 4vw, 52px);
+      line-height: 1.06;
+      margin-top: 36px;
+      max-width: 1040px;
+      padding-left: 28px;
+    }
+
+    .scorecard {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .score-row {
+      align-items: center;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 170px 1fr 44px;
+    }
+
+    .score-row span {
+      color: var(--muted);
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .score-line {
+      background: rgba(26, 26, 26, 0.1);
+      height: 7px;
+      overflow: hidden;
+    }
+
+    .score-fill {
+      background: linear-gradient(90deg, var(--burgundy), var(--gold));
+      height: 100%;
+    }
+
+    .footer-note {
+      bottom: 24px;
+      color: rgba(26, 26, 26, 0.45);
+      font-size: 12px;
+      left: clamp(28px, 6vw, 84px);
+      position: absolute;
+    }
+
+    .print-only {
+      display: none;
+    }
+
+    @media (max-width: 1100px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        height: auto;
+        position: relative;
+      }
+
+      nav {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .slide {
+        min-height: auto;
+        padding: 56px 22px;
+      }
+
+      .span-3,
+      .span-4,
+      .span-5,
+      .span-6,
+      .span-7,
+      .span-8,
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      .matrix,
+      .architecture,
+      .source-map {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      aside,
+      .controls,
+      .filter-bar {
+        display: none;
+      }
+
+      html,
+      body {
+        background: white;
+      }
+
+      .app-shell {
+        display: block;
+      }
+
+      .slide {
+        break-after: page;
+        min-height: auto;
+        padding: 32px;
+      }
+
+      .card,
+      .option-card,
+      .phase,
+      .plane {
+        box-shadow: none;
+      }
+
+      .print-only {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside>
+      <section class="brand-block">
+        <div class="brand-kicker">AMARI Decision Deck</div>
+        <h2 class="brand-title">Security, Onboarding, Resource Graph</h2>
+        <div class="brand-meta">Interactive synthesis for founder decisions. Built from the master research brief and AMARI mobile implementation context.</div>
+      </section>
+
+      <div class="progress" aria-label="presentation progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="nav-group-label">Slides</div>
+      <nav id="slideNav" aria-label="Presentation navigation">
+        <a class="nav-link" href="#slide-1"><span class="nav-index">01</span><span>Executive Frame</span></a>
+        <a class="nav-link" href="#slide-2"><span class="nav-index">02</span><span>Research Inputs</span></a>
+        <a class="nav-link" href="#slide-3"><span class="nav-index">03</span><span>Settled Commitments</span></a>
+        <a class="nav-link" href="#slide-4"><span class="nav-index">04</span><span>Threat Model</span></a>
+        <a class="nav-link" href="#slide-5"><span class="nav-index">05</span><span>Architecture</span></a>
+        <a class="nav-link" href="#slide-6"><span class="nav-index">06</span><span>Decision Map</span></a>
+        <a class="nav-link" href="#slide-7"><span class="nav-index">07</span><span>Auth Chain</span></a>
+        <a class="nav-link" href="#slide-8"><span class="nav-index">08</span><span>Archetype Graph</span></a>
+        <a class="nav-link" href="#slide-9"><span class="nav-index">09</span><span>Question Sets</span></a>
+        <a class="nav-link" href="#slide-10"><span class="nav-index">10</span><span>Encryption</span></a>
+        <a class="nav-link" href="#slide-11"><span class="nav-index">11</span><span>Attestation</span></a>
+        <a class="nav-link" href="#slide-12"><span class="nav-index">12</span><span>Resource Graph</span></a>
+        <a class="nav-link" href="#slide-13"><span class="nav-index">13</span><span>Reporting</span></a>
+        <a class="nav-link" href="#slide-14"><span class="nav-index">14</span><span>Roadmap</span></a>
+        <a class="nav-link" href="#slide-15"><span class="nav-index">15</span><span>Your Decisions</span></a>
+      </nav>
+
+      <div class="controls">
+        <button type="button" id="prevSlide">Previous</button>
+        <button type="button" id="nextSlide">Next</button>
+        <button type="button" class="secondary" onclick="window.print()">Print / Save PDF</button>
+      </div>
+
+      <p class="micro" style="margin-top: 18px;">Keyboard: use arrow keys or space. Click option cards to expand details.</p>
+    </aside>
+
+    <main>
+      <section class="slide" id="slide-1" data-title="Executive Frame">
+        <div class="slide-inner">
+          <div class="slide-number">01 / Executive Frame</div>
+          <h1>Richly held. Austerely revealed.</h1>
+          <p class="lead">The research says AMARI is not just building an app. It is building a trusted, premium diaspora resource graph where the data is valuable because it is handled with restraint.</p>
+          <div class="deck-grid">
+            <article class="card burgundy span-5">
+              <h3>The one-sentence strategy</h3>
+              <p style="margin-top: 16px;">Make the client reveal as little as possible. Make the server decide everything important. Make data hard to correlate. Make privileged access rare. Make onboarding useful in aggregate but low-risk in raw form.</p>
+            </article>
+            <article class="card span-4">
+              <h3>What this deck helps you decide</h3>
+              <ul>
+                <li>How hard the first authentication chain should be.</li>
+                <li>Which AMARI archetype graph best balances richness and shipping speed.</li>
+                <li>Which three onboarding questions should seed product-market fit and investor proof.</li>
+                <li>How much hardening to ship before wider invite distribution.</li>
+              </ul>
+            </article>
+            <article class="card gold span-3">
+              <h3>Founder lens</h3>
+              <p style="margin-top: 16px;">Every decision is a tradeoff between trust, friction, speed, and data quality. The correct answer is not always the most complex answer.</p>
+            </article>
+          </div>
+          <div class="quote-block">Security makes the data hard to take. Onboarding makes the data worth holding. They are the same project.</div>
+        </div>
+        <div class="footer-note">AMARI master synthesis interpreted for product, security, and implementation decisions.</div>
+      </section>
+
+      <section class="slide" id="slide-2" data-title="Research Inputs">
+        <div class="slide-inner">
+          <div class="slide-number">02 / Research Inputs</div>
+          <h2>The five source streams are saying different things, but they converge on one system.</h2>
+          <p class="lead">The master synthesis blends security standards, privacy law, mobile hardening, onboarding design, and investor narrative into one implementation brief.</p>
+          <div class="source-map">
+            <article class="source">
+              <strong>D1</strong>
+              <p>OWASP MASVS L2 + RESILIENCE, six-axis archetype model, Frequencies -> Absences -> Standards question flow, investor/sponsor language, 14-day sprint.</p>
+            </article>
+            <article class="source">
+              <strong>D2</strong>
+              <p>NIST framing, passkeys, two-axis archetype model, privacy planes, attestation response model, role/stage/90-day essential questions.</p>
+            </article>
+            <article class="source">
+              <strong>D3</strong>
+              <p>Privacy-conscious diaspora resource graph, tone variants, data model, confidence scoring, benchmark review across premium and network communities.</p>
+            </article>
+            <article class="source">
+              <strong>D4</strong>
+              <p>Four-plane architecture, evidence-ledger resource graph, Expo/Supabase code references, event taxonomy, resource activation as north-star metric.</p>
+            </article>
+            <article class="source">
+              <strong>D5</strong>
+              <p>Vibe-coded app risks: RLS gaps, SecureStore size gotchas, OTA code-signing, MobSF/Frida/Objection/Burp pentesting, React Native bundle patching.</p>
+            </article>
+          </div>
+          <div class="deck-grid">
+            <article class="card span-6">
+              <h3>What they agree on</h3>
+              <p style="margin-top: 14px;">The app must assume the client can be hostile, the server must enforce authorization, onboarding must collect structured signals without feeling extractive, and external reporting must remain aggregate-only.</p>
+            </article>
+            <article class="card span-6">
+              <h3>What they disagree on</h3>
+              <p style="margin-top: 14px;">The sources disagree mostly on degree: passkeys now or later, two-axis or six-axis archetype, simple card questions or richer standards sliders, native attestation only or RASP too, and simple storage versus an evidence ledger.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-3" data-title="Settled Commitments">
+        <div class="slide-inner">
+          <div class="slide-number">03 / Settled Commitments</div>
+          <h2>These are not open decisions. They are the security and privacy floor.</h2>
+          <div class="deck-grid">
+            <article class="card span-4">
+              <h3>Server decides</h3>
+              <ul>
+                <li>Every public API table needs RLS enabled at creation.</li>
+                <li>No service-role key can ever touch the mobile binary.</li>
+                <li>Security-definer functions must lock `search_path`, validate `auth.uid()`, and revoke public execute.</li>
+              </ul>
+            </article>
+            <article class="card span-4">
+              <h3>Secrets stay secret</h3>
+              <ul>
+                <li>Invite codes are high-entropy secrets, hashed at rest and single-use.</li>
+                <li>Mapbox `sk.` token is server-only; client gets restricted `pk.` only.</li>
+                <li>EAS Update must be code-signed before relying on OTA updates.</li>
+              </ul>
+            </article>
+            <article class="card span-4">
+              <h3>Privacy by design</h3>
+              <ul>
+                <li>No raw invite codes, magic links, tokens, emails, graph coordinates, or free-text onboarding answers in logs.</li>
+                <li>Australian Privacy Principles apply, especially APP 3, 5, 6, 11, 12, and 13.</li>
+                <li>Investor and sponsor reporting is aggregate-only with k-anonymity thresholds.</li>
+              </ul>
+            </article>
+          </div>
+          <table class="decision-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>Settled Position</th>
+                <th>Why It Matters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>OAuth</td>
+                <td>PKCE on mobile flows</td>
+                <td>Prevents implicit/browser redirect weaknesses; auth code is one-time and short-lived.</td>
+              </tr>
+              <tr>
+                <td>Storage</td>
+                <td>SecureStore for refresh token/device secrets</td>
+                <td>AsyncStorage and plain persisted caches are too easy to extract from compromised devices.</td>
+              </tr>
+              <tr>
+                <td>Onboarding</td>
+                <td>Invite -> email -> graph -> 3 cards -> consent recap</td>
+                <td>All product-side sources converge on this flow. The open question is how rich each step should be.</td>
+              </tr>
+              <tr>
+                <td>Reporting</td>
+                <td>No member-level rows to partners</td>
+                <td>AMARI's premium trust position depends on never turning members into a drill-through dataset.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-4" data-title="Threat Model">
+        <div class="slide-inner">
+          <div class="slide-number">04 / Threat Model</div>
+          <h2>The asset is not just data. It is membership, association, location, and reputation.</h2>
+          <p class="lead">AMARI has a wider threat model than a normal community app because confirming who is connected to whom can create reputational, commercial, and safety risk.</p>
+          <div class="deck-grid">
+            <article class="card span-3">
+              <h3>Scrapers</h3>
+              <p style="margin-top: 14px;">Harvest member directories for resale, recruitment, or social mapping.</p>
+              <div class="risk-strip"><div class="risk-cell on">RLS</div><div class="risk-cell on">Rate</div><div class="risk-cell on">Attest</div><div class="risk-cell">Pin</div><div class="risk-cell">MFA</div></div>
+            </article>
+            <article class="card span-3">
+              <h3>Doxxers</h3>
+              <p style="margin-top: 14px;">Try to map high-profile people, locations, and association graphs.</p>
+              <div class="risk-strip"><div class="risk-cell on">K-anon</div><div class="risk-cell on">Discreet</div><div class="risk-cell on">Signed URL</div><div class="risk-cell">Audit</div><div class="risk-cell">Alert</div></div>
+            </article>
+            <article class="card span-3">
+              <h3>Insiders</h3>
+              <p style="margin-top: 14px;">Admin, contractor, or future hire abuses production access.</p>
+              <div class="risk-strip"><div class="risk-cell on">2-person</div><div class="risk-cell on">Audit</div><div class="risk-cell on">SSO</div><div class="risk-cell">Review</div><div class="risk-cell">Export</div></div>
+            </article>
+            <article class="card span-3">
+              <h3>Reverse engineers</h3>
+              <p style="margin-top: 14px;">Unpack IPA/APK to inspect JS, keys, and client-side logic.</p>
+              <div class="risk-strip"><div class="risk-cell on">No secret</div><div class="risk-cell on">Hermes</div><div class="risk-cell on">OTA sign</div><div class="risk-cell">RASP</div><div class="risk-cell">Pin</div></div>
+            </article>
+            <article class="card burgundy span-12">
+              <h3>Practical posture statement</h3>
+              <p style="margin-top: 14px;">Aim for OWASP MASVS Level 2 plus MASVS-RESILIENCE on the client, defence-in-depth at Supabase, NIST SSDF/CSF for operations, and Australian Privacy Principles for data handling. This is strong enough to drive engineering gates and investor-facing trust claims, but only if implemented and tested.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-5" data-title="Architecture">
+        <div class="slide-inner">
+          <div class="slide-number">05 / Architecture</div>
+          <h2>The recommended data architecture is separated by blast radius.</h2>
+          <p class="lead">The synthesis recommends D4's four-plane model plus reporting and audit because it gives Codex concrete tables and it prevents one feature surface from becoming a full identity leak.</p>
+          <div class="architecture">
+            <article class="plane">
+              <h3>Identity</h3>
+              <p>Email hash, invite metadata, account status, consent version. Server-only access.</p>
+            </article>
+            <article class="plane">
+              <h3>Profile</h3>
+              <p>Display profile, archetype, stage, offer/ask. Member self-read/write under RLS.</p>
+            </article>
+            <article class="plane">
+              <h3>Graph</h3>
+              <p>Resource signals and member edges. Evidence ledger, service-written, selectively visible.</p>
+            </article>
+            <article class="plane">
+              <h3>Analytics</h3>
+              <p>Pseudonymous event facts and daily snapshots. No email, no raw identity.</p>
+            </article>
+            <article class="plane">
+              <h3>Reporting</h3>
+              <p>Partner aggregates only. Minimum cohort thresholds. No drill-through.</p>
+            </article>
+            <article class="plane">
+              <h3>Audit</h3>
+              <p>Export requests, privileged reads, admin actions. Hash-chained and restricted.</p>
+            </article>
+          </div>
+          <div class="recommendation">
+            <strong>Implementation implication:</strong> do not build onboarding as "just profile fields." Build it as the first event that seeds a privacy-safe resource graph.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-6" data-title="Decision Map">
+        <div class="slide-inner">
+          <div class="slide-number">06 / Decision Map</div>
+          <h2>Eight founder-level decisions control the shape of the next build.</h2>
+          <p class="lead">Use the filters below to focus the deck by product, security, or operations. The synthesis has recommendations, but these are the places where your call matters.</p>
+          <div class="filter-bar">
+            <button class="filter-button active" data-filter="all" type="button">All</button>
+            <button class="filter-button" data-filter="security" type="button">Security</button>
+            <button class="filter-button" data-filter="product" type="button">Product</button>
+            <button class="filter-button" data-filter="ops" type="button">Ops</button>
+          </div>
+          <div class="deck-grid" id="decisionBlocks">
+            <article class="card decision-block span-3" data-category="security">
+              <h3>Auth chain</h3>
+              <p style="margin-top: 12px;">Email OTP, biometric step-up, MFA, passkeys, and when each should appear.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="product">
+              <h3>Archetype graph</h3>
+              <p style="margin-top: 12px;">Six-axis richness versus two-axis speed and clarity.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="product">
+              <h3>3 question cards</h3>
+              <p style="margin-top: 12px;">Sponsor signal, investor signal, PMF signal, and member comfort.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="security">
+              <h3>Encryption</h3>
+              <p style="margin-top: 12px;">Vault/app encryption now, pgcrypto later, KMS only if needed.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="security">
+              <h3>Anti-tamper</h3>
+              <p style="margin-top: 12px;">App Attest/Play Integrity first; freeRASP as defence-in-depth.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="product">
+              <h3>Graph storage</h3>
+              <p style="margin-top: 12px;">Single profile row versus auditable evidence ledger plus snapshot.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="ops">
+              <h3>Pen test path</h3>
+              <p style="margin-top: 12px;">DIY MobSF/Frida/Burp first, then external MASVS-aware vendor.</p>
+            </article>
+            <article class="card decision-block span-3" data-category="security">
+              <h3>Data planes</h3>
+              <p style="margin-top: 12px;">Three-plane conceptual model versus four-plane implementation model.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-7" data-title="Auth Chain">
+        <div class="slide-inner">
+          <div class="slide-number">07 / Decision 1: Auth Chain</div>
+          <h2>How much authentication friction should AMARI impose at launch?</h2>
+          <div class="matrix">
+            <article class="option-card">
+              <div class="option-label">Option A</div>
+              <h3>Email OTP + biometric step-up + MFA by tier</h3>
+              <p style="margin-top: 14px;">Traditional security posture. Email stays primary, biometrics protect sensitive actions, TOTP becomes mandatory for Laureate and Platinum members.</p>
+              <details>
+                <summary>Upsides and downsides</summary>
+                <ul>
+                  <li>Upside: strongest near-term control without waiting for passkey maturity.</li>
+                  <li>Upside: aligns well with high-value member tiers and sensitive actions.</li>
+                  <li>Downside: adds UX friction and recovery complexity early.</li>
+                  <li>Downside: email remains phishable and can be compromised.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option B</div>
+              <h3>Email bootstrap -> passkeys as trust anchor</h3>
+              <p style="margin-top: 14px;">Email verifies the user once, then the member creates a passkey. Long-term auth becomes phishing-resistant.</p>
+              <details>
+                <summary>Upsides and downsides</summary>
+                <ul>
+                  <li>Upside: strongest long-term account security and best NIST-aligned direction.</li>
+                  <li>Upside: reduces reliance on email magic links over time.</li>
+                  <li>Downside: Supabase passkey support needs current verification before commitment.</li>
+                  <li>Downside: passkey education and recovery can confuse early users.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option C</div>
+              <h3>PKCE email OTP only for MVP</h3>
+              <p style="margin-top: 14px;">Lowest-friction launch path. Email verification via Supabase PKCE, then onboarding immediately.</p>
+              <details open>
+                <summary>Upsides and downsides</summary>
+                <ul>
+                  <li>Upside: fastest to ship and best for TestFlight/Play Store onboarding validation.</li>
+                  <li>Upside: aligns with the intended flow: invite -> email -> graph.</li>
+                  <li>Downside: weaker against email compromise and SIM/email account takeover.</li>
+                  <li>Downside: sensitive actions still need later step-up controls.</li>
+                </ul>
+              </details>
+            </article>
+          </div>
+          <div class="recommendation">
+            <strong>Recommended decision:</strong> Phase 1 uses Option C so onboarding ships. Phase 2 adds biometric step-up and TOTP for high tiers. Phase 3 moves toward passkeys once Supabase support is stable enough for production.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-8" data-title="Archetype Graph">
+        <div class="slide-inner">
+          <div class="slide-number">08 / Decision 2: Archetype Graph</div>
+          <h2>What should members reveal about how they build, disrupt, and create value?</h2>
+          <div class="deck-grid">
+            <article class="card span-6">
+              <h3>Two-axis launch model</h3>
+              <div class="axis-demo" id="axisDemo">
+                <div class="quadrant-chip" id="quadrantChip">Disruptor / Connector</div>
+                <div class="axis-label axis-left">Builder</div>
+                <div class="axis-label axis-right">Disruptor</div>
+                <div class="axis-label axis-top">Connector</div>
+                <div class="axis-label axis-bottom">Operator</div>
+                <div class="amari-marker" id="amariMarker">A</div>
+              </div>
+            </article>
+            <article class="card span-6">
+              <h3>Six-axis richer model</h3>
+              <div class="hex-demo">
+                <div class="hex-ring"></div>
+                <div class="hex-axis"></div>
+                <div class="hex-axis"></div>
+                <div class="hex-axis"></div>
+                <div class="hex-point hp1">Capital</div>
+                <div class="hex-point hp2">Founders</div>
+                <div class="hex-point hp3">Operators</div>
+                <div class="hex-point hp4">Creators</div>
+                <div class="hex-point hp5">Advisors</div>
+                <div class="hex-point hp6">Voices</div>
+              </div>
+            </article>
+          </div>
+          <table class="decision-table">
+            <thead>
+              <tr>
+                <th>Option</th>
+                <th>Upside</th>
+                <th>Downside</th>
+                <th>Best If</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>6-axis radial</td>
+                <td>Highest signal richness, best for sponsor categories, best match to "people are blends."</td>
+                <td>More cognitive load, more engineering, more accessibility work.</td>
+                <td>You want the graph itself to become a signature AMARI artifact from day one.</td>
+              </tr>
+              <tr>
+                <td>Builder x Operator/Visionary</td>
+                <td>Simple, fast, easy to explain.</td>
+                <td>Less useful for network activation than Connector framing.</td>
+                <td>You want clean founder/investor narrative language over community matching language.</td>
+              </tr>
+              <tr>
+                <td>Builder x Operator/Connector</td>
+                <td>Fast to ship, preserves Builder/Disruptor, adds direct network activation signal.</td>
+                <td>Less rich than six-axis and can feel like four archetypes if copy is not careful.</td>
+                <td>You need a strong v1 that can ship quickly and still fuel matching.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="recommendation">
+            <strong>Recommended decision:</strong> ship Builder <-> Disruptor x Operator <-> Connector now, store continuous X/Y coordinates, and design the schema so a future six-axis vector can be added without migration pain.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-9" data-title="Question Sets">
+        <div class="slide-inner">
+          <div class="slide-number">09 / Decision 3: The Three Questions</div>
+          <h2>The three cards decide whether onboarding becomes product-market-fit infrastructure.</h2>
+          <p class="lead">The research is clear: never ask plainly for wealth, status, or usefulness. Ask about season, standards, absences, offers, and access.</p>
+          <div class="matrix">
+            <article class="option-card">
+              <div class="option-label">Set A</div>
+              <h3>Frequencies -> Absences -> Standards</h3>
+              <ul>
+                <li>Where did your time concentrate?</li>
+                <li>What was hardest to find this year?</li>
+                <li>What would meet your standard?</li>
+              </ul>
+              <details>
+                <summary>Decision analysis</summary>
+                <ul>
+                  <li>Best sponsor signal because standards map to premium categories without asking spend.</li>
+                  <li>Strong investor signal because absences reveal unmet demand.</li>
+                  <li>Most editorial and least extractive, but takes more design and interaction work.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Set B</div>
+              <h3>Role -> Stage -> 90-day Essential</h3>
+              <ul>
+                <li>Which best describes your role?</li>
+                <li>What stage is your current build?</li>
+                <li>What would make AMARI essential in 90 days?</li>
+              </ul>
+              <details>
+                <summary>Decision analysis</summary>
+                <ul>
+                  <li>Best for clean segmentation and investor storytelling.</li>
+                  <li>Fastest to implement as card selections.</li>
+                  <li>Less premium and less subtle than Set A.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Set C</div>
+              <h3>Stage -> Offer -> Ask</h3>
+              <ul>
+                <li>What are you advancing this season?</li>
+                <li>Where could you create value?</li>
+                <li>What would make AMARI useful now?</li>
+              </ul>
+              <details>
+                <summary>Decision analysis</summary>
+                <ul>
+                  <li>Best for resource graph seeding because it captures both supply and demand.</li>
+                  <li>Strong for matching and first recommendations.</li>
+                  <li>Riskier if "create value" feels like AMARI is extracting from the member.</li>
+                </ul>
+              </details>
+            </article>
+          </div>
+          <div class="recommendation">
+            <strong>Recommended decision:</strong> use a hybrid: Premium D3 voice, D4's Stage/Offer/Ask structure, and D1's "Absences"/"Standards" language where sponsor signal matters. This gives useful data without making members feel surveyed for monetization.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-10" data-title="Encryption">
+        <div class="slide-inner">
+          <div class="slide-number">10 / Decision 4: Field-Level Encryption</div>
+          <h2>How much encryption complexity should AMARI take on immediately?</h2>
+          <div class="matrix">
+            <article class="option-card">
+              <div class="option-label">Option A</div>
+              <h3>pgcrypto + Vault-stored key</h3>
+              <p style="margin-top: 14px;">Encrypt structured high-sensitivity fields inside Postgres using keys pulled from Supabase Vault.</p>
+              <details>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: backup leaks expose ciphertext for the most sensitive fields.</li>
+                  <li>Upside: strong pattern for phone, address, financial bands, and self-declared sensitive info.</li>
+                  <li>Downside: harder RLS/view design and more operational complexity.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option B</div>
+              <h3>Application-layer envelope encryption with KMS</h3>
+              <p style="margin-top: 14px;">Use AWS/GCP/HashiCorp KMS style key hierarchy and encrypt before database writes.</p>
+              <details>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: strongest institutional-grade key separation.</li>
+                  <li>Upside: good for future sponsor due diligence.</li>
+                  <li>Downside: over-complex for current Supabase-only app and slows shipping.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option C</div>
+              <h3>Supabase Vault + app-layer encryption for sensitive free text</h3>
+              <p style="margin-top: 14px;">Keep secrets in Vault, avoid pgsodium, encrypt only narrow sensitive data paths in v1.</p>
+              <details open>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: easiest to ship safely now.</li>
+                  <li>Upside: aligns with Supabase direction and avoids deprecated pgsodium work.</li>
+                  <li>Downside: does not give full column encryption coverage immediately.</li>
+                </ul>
+              </details>
+            </article>
+          </div>
+          <div class="recommendation">
+            <strong>Recommended decision:</strong> Option C for v1. Add pgcrypto for structured high-sensitivity fields in Phase 2. Defer full KMS envelope encryption until institutional due diligence demands it.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-11" data-title="Attestation">
+        <div class="slide-inner">
+          <div class="slide-number">11 / Decision 5: Attestation and Anti-Tamper</div>
+          <h2>Device trust should influence risk, not become a brittle single gate.</h2>
+          <div class="deck-grid">
+            <article class="card span-4">
+              <h3>freeRASP</h3>
+              <p style="margin-top: 14px;">Root/jailbreak, debugger, Frida, emulator, sideload, and binary-tamper detection.</p>
+              <ul>
+                <li>Good as defence-in-depth.</li>
+                <li>Can produce false positives and UX friction.</li>
+                <li>Client-side checks can be bypassed by skilled attackers.</li>
+              </ul>
+            </article>
+            <article class="card span-4 gold">
+              <h3>App Attest + Play Integrity</h3>
+              <p style="margin-top: 14px;">Hardware/platform-backed attestation validated server-side before sensitive actions.</p>
+              <ul>
+                <li>Most trustworthy device signal.</li>
+                <li>Should gate exports, intros, invite redemption, and directory access.</li>
+                <li>Some devices may not support every verdict.</li>
+              </ul>
+            </article>
+            <article class="card span-4">
+              <h3>@expo/app-integrity</h3>
+              <p style="margin-top: 14px;">Expo-friendly wrapper, alpha status, best as pilot path for high-value calls.</p>
+              <ul>
+                <li>Fastest Expo SDK 54 integration.</li>
+                <li>Needs graceful fallback.</li>
+                <li>Do not hard-block unsupported devices at first.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="deck-grid">
+            <article class="card burgundy span-12">
+              <h3>Tiered response model</h3>
+              <p style="margin-top: 14px;">Low risk: allow normal reads. Medium risk: require biometric step-up or restrict sensitive features. High risk: block exports/sensitive mutations, revoke session, and alert admin. This avoids punishing legitimate members while still reducing blast radius.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-12" data-title="Resource Graph">
+        <div class="slide-inner">
+          <div class="slide-number">12 / Decision 6: Resource Graph Storage</div>
+          <h2>The graph should be an evidence ledger, not a hidden human-value score.</h2>
+          <div class="matrix">
+            <article class="option-card">
+              <div class="option-label">Option A</div>
+              <h3>Single denormalized resource profile</h3>
+              <p style="margin-top: 14px;">One row per member with score columns and confidence fields.</p>
+              <details>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: simple reads and simple matching queries.</li>
+                  <li>Downside: hard to audit why a score changed.</li>
+                  <li>Downside: easier to drift into hidden ranking behavior.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option B</div>
+              <h3>Evidence ledger rows</h3>
+              <p style="margin-top: 14px;">Every signal is a row with dimension, source, confidence, expiry, visibility, and consent scope.</p>
+              <details>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: auditable, reversible, time-decayed, and privacy-defensible.</li>
+                  <li>Downside: more tables and snapshot jobs.</li>
+                </ul>
+              </details>
+            </article>
+            <article class="option-card">
+              <div class="option-label">Option C</div>
+              <h3>Hybrid ledger + materialized snapshot</h3>
+              <p style="margin-top: 14px;">Ledger is source of truth. Snapshot or materialized view supports matching and dashboards.</p>
+              <details open>
+                <summary>Tradeoff</summary>
+                <ul>
+                  <li>Upside: best balance of auditability and performance.</li>
+                  <li>Upside: lets AMARI explain every inference later.</li>
+                  <li>Downside: requires more disciplined schema and jobs from the start.</li>
+                </ul>
+              </details>
+            </article>
+          </div>
+          <div class="recommendation">
+            <strong>Recommended decision:</strong> Option C. Self-declared onboarding signals set the prior; verified behavior strengthens confidence over time. Never expose individual scores to partners.
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-13" data-title="Reporting">
+        <div class="slide-inner">
+          <div class="slide-number">13 / Investor and Sponsor Reporting</div>
+          <h2>AMARI can tell the commercial story without exposing members.</h2>
+          <p class="lead">The sponsor/investor promise is aggregate intelligence: who the community is, what it is building, what it can contribute, and what it needs. Never individual drill-through.</p>
+          <div class="deck-grid">
+            <article class="card span-4">
+              <h3>Allowed</h3>
+              <ul>
+                <li>Counts and percentages by cohort.</li>
+                <li>Archetype and stage mix.</li>
+                <li>Offer/ask demand patterns.</li>
+                <li>Resource activation rate.</li>
+                <li>Event conversion and retention trends.</li>
+              </ul>
+            </article>
+            <article class="card span-4 burgundy">
+              <h3>Not allowed</h3>
+              <ul>
+                <li>Named exports.</li>
+                <li>Member-level rows.</li>
+                <li>Hidden "VIP" or "high net worth" labels.</li>
+                <li>Precise location histories.</li>
+                <li>Sponsor drill-through into profiles.</li>
+              </ul>
+            </article>
+            <article class="card span-4 gold">
+              <h3>North star</h3>
+              <p style="margin-top: 14px;">Resource activation rate: the share of onboarded members who complete at least one meaningful ecosystem action in a time window.</p>
+            </article>
+          </div>
+          <table class="decision-table">
+            <thead>
+              <tr>
+                <th>Threshold</th>
+                <th>Use Case</th>
+                <th>Reasoning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>k >= 3</td>
+                <td>Internal map/geographic degradation</td>
+                <td>Enough to reduce individual doxxing risk for coarse public-like product surfaces.</td>
+              </tr>
+              <tr>
+                <td>k >= 20</td>
+                <td>Partner/investor reporting</td>
+                <td>Commercial pressure to identify individuals is higher; reporting must remain cohort-safe.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-14" data-title="Roadmap">
+        <div class="slide-inner">
+          <div class="slide-number">14 / Roadmap</div>
+          <h2>Do the critical security work before wider invite distribution.</h2>
+          <div class="timeline">
+            <article class="phase">
+              <h3>Phase 0: Pre-flight audit</h3>
+              <p style="margin-top: 12px;">Run the section14 audit against the repo: RLS, service-role keys, Mapbox tokens, EAS Update signing, Supabase region, monitoring SDKs, and SDK budget.</p>
+            </article>
+            <article class="phase">
+              <h3>Phase 1: Critical two-week sprint</h3>
+              <p style="margin-top: 12px;">RLS coverage, locked security-definer functions, invite-code hardening, service-role audit, Mapbox token audit, OTP hardening, screen/log privacy, EAS Update code signing, privacy policy surfaces, incident runbook.</p>
+            </article>
+            <article class="phase">
+              <h3>Phase 2: 60-day hardening</h3>
+              <p style="margin-top: 12px;">Certificate pinning, app integrity, MFA, refresh-token rotation, field-level encryption, k-anonymity map, audit logs, active sessions, data export/delete, SBOM, first pen-test scoping, resource graph v1.</p>
+            </article>
+            <article class="phase">
+              <h3>Phase 3: 90-180 days</h3>
+              <p style="margin-top: 12px;">SOC 2 readiness, external pen test, private bug bounty, quarterly access reviews, WAF/rate limiting, vendor security reviews, anomaly detection, privacy-safe export workflow.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" id="slide-15" data-title="Your Decisions">
+        <div class="slide-inner">
+          <div class="slide-number">15 / Founder Decisions</div>
+          <h2>The decisions to make before Codex starts building the next PR stack.</h2>
+          <div class="deck-grid">
+            <article class="card span-6">
+              <h3>Recommended choices</h3>
+              <ul>
+                <li>Auth: PKCE email OTP for MVP, biometric/MFA Phase 2, passkeys Phase 3.</li>
+                <li>Graph: Builder <-> Disruptor x Operator <-> Connector for v1, extensible to six-axis later.</li>
+                <li>Questions: premium hybrid using season, offer, ask, absences, and standards.</li>
+                <li>Encryption: Vault/app-layer v1, pgcrypto Phase 2, KMS only for institutional due diligence.</li>
+                <li>Attestation: `@expo/app-integrity` pilot for sensitive calls, freeRASP later.</li>
+                <li>Resource graph: evidence ledger + materialized snapshot.</li>
+              </ul>
+            </article>
+            <article class="card span-6 burgundy">
+              <h3>Non-negotiable gates</h3>
+              <ul>
+                <li>No wider invite distribution until RLS audit passes.</li>
+                <li>No EAS Updates in production without code signing.</li>
+                <li>No sensitive logs, screen replay, or raw gesture trails in onboarding.</li>
+                <li>No partner reporting below cohort thresholds.</li>
+                <li>No service-role key in anything bundled to iOS or Android.</li>
+                <li>No hidden "member value" score.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="quote-block">If AMARI is trusted with the map of a premium diaspora network, the product must behave like a fiduciary of that network.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    const navLinks = [...document.querySelectorAll(".nav-link")];
+    const progressBar = document.getElementById("progressBar");
+
+    function currentSlideIndex() {
+      const midpoint = window.scrollY + window.innerHeight / 2;
+      let index = 0;
+      slides.forEach((slide, i) => {
+        if (slide.offsetTop <= midpoint) index = i;
+      });
+      return index;
+    }
+
+    function updateProgress() {
+      const index = currentSlideIndex();
+      navLinks.forEach((link, i) => link.classList.toggle("active", i === index));
+      progressBar.style.width = `${((index + 1) / slides.length) * 100}%`;
+    }
+
+    function goToSlide(delta) {
+      const next = Math.max(0, Math.min(slides.length - 1, currentSlideIndex() + delta));
+      slides[next].scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    document.getElementById("nextSlide").addEventListener("click", () => goToSlide(1));
+    document.getElementById("prevSlide").addEventListener("click", () => goToSlide(-1));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        goToSlide(1);
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToSlide(-1);
+      }
+    });
+
+    document.querySelectorAll(".filter-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const filter = button.dataset.filter;
+        document.querySelectorAll(".filter-button").forEach((item) => item.classList.toggle("active", item === button));
+        document.querySelectorAll(".decision-block").forEach((block) => {
+          block.hidden = filter !== "all" && block.dataset.category !== filter;
+        });
+      });
+    });
+
+    const marker = document.getElementById("amariMarker");
+    const axisDemo = document.getElementById("axisDemo");
+    const quadrantChip = document.getElementById("quadrantChip");
+    let dragging = false;
+
+    function setMarkerPosition(clientX, clientY) {
+      const rect = axisDemo.getBoundingClientRect();
+      const x = Math.max(80, Math.min(rect.width - 80, clientX - rect.left));
+      const y = Math.max(80, Math.min(rect.height - 80, clientY - rect.top));
+      marker.style.position = "absolute";
+      marker.style.left = `${x - 53}px`;
+      marker.style.top = `${y - 53}px`;
+      marker.style.transform = "none";
+      const horizontal = x < rect.width / 2 ? "Builder" : "Disruptor";
+      const vertical = y < rect.height / 2 ? "Connector" : "Operator";
+      quadrantChip.textContent = `${horizontal} / ${vertical}`;
+    }
+
+    marker.addEventListener("pointerdown", (event) => {
+      dragging = true;
+      marker.setPointerCapture(event.pointerId);
+      marker.style.cursor = "grabbing";
+      setMarkerPosition(event.clientX, event.clientY);
+    });
+
+    marker.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      setMarkerPosition(event.clientX, event.clientY);
+    });
+
+    marker.addEventListener("pointerup", () => {
+      dragging = false;
+      marker.style.cursor = "grab";
+    });
+
+    updateProgress();
+  </script>
+</body>
+</html>
