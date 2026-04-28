@@ -1,0 +1,53 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.1.0",
+    "copyright": "2026 AMARI Group",
+    "categories": ["SOCIAL_NETWORKING", "BUSINESS"],
+    "advisory": {
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "gambling": false,
+      "unrestrictedWebAccess": false,
+      "kidsAgeBand": null,
+      "ageRatingOverride": "NONE",
+      "koreaAgeRatingOverride": "NONE"
+    },
+    "info": {
+      "en-AU": {
+        "title": "AMARI",
+        "subtitle": "Private diaspora network",
+        "description": "AMARI is an invite-only membership network for Australia's Black diaspora - professionals, entrepreneurs, creatives, investors, operators, founders, and community builders shaping culture and commerce across the continent.\n\nAMARI gives members a private, curated space to connect with intention, access community intelligence, discover opportunities, and build relationships that compound over time.\n\nThe Pulse provides concise intelligence for members who want signal without noise.\n\nAligned supports curated introductions across the community.\n\nThe Corridor helps members discover private business, talent, partnership, investment, and collaboration opportunities.\n\nEvents bring members together through curated gatherings built for genuine connection.\n\nAMARI is invite-only. Members enter through verified invitations and approved account access so the community can grow with trust, quality, and shared intent.\n\nBy invitation only.",
+        "keywords": [
+          "diaspora",
+          "networking",
+          "events",
+          "business",
+          "community",
+          "founders",
+          "creatives",
+          "Australia"
+        ],
+        "releaseNotes": "Adds secure onboarding, improved sign-in reliability, visible map borders, and production release hardening.",
+        "promoText": "A private, invite-only network for Australia's Black diaspora.",
+        "marketingUrl": "https://www.amarigroupau.com/",
+        "supportUrl": "https://www.amarigroupau.com/",
+        "privacyPolicyUrl": "https://www.amarigroupau.com/privacy-policy"
+      }
+    },
+    "release": {
+      "automaticRelease": false,
+      "phasedRelease": false
+    }
+  }
+}

@@ -184,6 +184,20 @@ The Supabase hosted Auth settings must also have:
 - Google provider enabled for Android/Web, with iOS native client optional because the app falls back to OAuth if `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` is absent.
 - Apple provider enabled before iOS release review if Google login remains visible on iOS.
 
+## App Store Submission
+
+Use `docs/APP-STORE-SUBMISSION.md` for the real App Store submission runbook.
+The repo also tracks Apple metadata in `store.config.json`, which can be
+validated with:
+
+```bash
+npx eas metadata:lint
+```
+
+EAS Metadata is beta and supports Apple metadata only. Final build selection,
+review credentials, screenshots, App Privacy answers, and the "Submit for
+Review" action still need App Store Connect access.
+
 ## Final Checklist
 
 - `npm run verify:release` passes
