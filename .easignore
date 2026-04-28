@@ -1,6 +1,7 @@
 # EAS Build ignore — reduce upload size and avoid conflicts
 .expo/
 .github/
+.husky/_/
 dist/
 preview/
 *.aab

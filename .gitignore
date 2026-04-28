@@ -52,6 +52,9 @@ supabase/.temp/
 # Claude
 .claude/
 
+# Husky generated files
+.husky/_/
+
 # Large media
 assets/videos/
 
