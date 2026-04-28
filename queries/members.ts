@@ -22,6 +22,25 @@ export function useMyProfile() {
   });
 }
 
+export function useMyOnboardingStatus(isPostAuthSetupComplete: boolean) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.member.onboardingStatus,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('members')
+        .select('id,status,onboarded_at')
+        .eq('id', user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && isPostAuthSetupComplete,
+    staleTime: staleTimes.member,
+  });
+}
+
 export function useUpdateProfile() {
   const { user } = useAuth();
   const qc = useQueryClient();

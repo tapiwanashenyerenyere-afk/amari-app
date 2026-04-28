@@ -52,25 +52,47 @@ import { configureGoogleSignIn } from '../lib/googleAuth';
 import { initMapbox } from '../lib/mapbox';
 import { completeAuthFromUrl } from '../lib/authCallback';
 import { AmariEmblem } from '../components/v2/AmariEmblem';
+import { useMyOnboardingStatus } from '../queries/members';
 
 SplashScreen.preventAutoHideAsync();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, isPostAuthSetupComplete } = useAuth();
+  const { data: onboardingStatus, isLoading: isOnboardingLoading } = useMyOnboardingStatus(isPostAuthSetupComplete);
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const currentGroup = segments[0] as string | undefined;
+    const inAuthGroup = currentGroup === '(auth)';
+    const inOnboardingGroup = currentGroup === '(onboarding)';
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)');
-    } else if (session && inAuthGroup) {
+      return;
+    }
+
+    if (!session) return;
+    if (!isPostAuthSetupComplete || isOnboardingLoading) return;
+
+    const needsOnboarding = !onboardingStatus?.onboarded_at;
+
+    if (needsOnboarding && !inOnboardingGroup) {
+      router.replace('/(onboarding)' as never);
+    } else if (!needsOnboarding && (inAuthGroup || inOnboardingGroup)) {
       router.replace('/(tabs)');
     }
-  }, [session, isLoading, segments, router]);
+  }, [
+    session,
+    isLoading,
+    isPostAuthSetupComplete,
+    isOnboardingLoading,
+    onboardingStatus?.onboarded_at,
+    segments,
+    router,
+  ]);
 
   return <>{children}</>;
 }
@@ -428,6 +450,7 @@ export default function RootLayout() {
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
         </AuthGuard>

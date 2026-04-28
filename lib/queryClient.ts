@@ -45,6 +45,7 @@ export const queryKeys = {
   member: {
     me: ['member', 'me'] as const,
     barcode: ['member', 'barcode'] as const,
+    onboardingStatus: ['member', 'onboarding-status'] as const,
   },
 };
 

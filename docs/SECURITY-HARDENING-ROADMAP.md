@@ -180,6 +180,7 @@ These controls raise cost but do not replace server-side authorization.
 1. `npm run verify:security`
    - Runs static checks for forbidden secrets, localhost redirects, production
      logs, and unsafe SecureStore/localStorage usage.
+   - Added 2026-04-28. Also runs onboarding security assertions.
 
 2. `npm run test:rls`
    - Starts Supabase locally, seeds users, and verifies RLS/RPC boundaries.
@@ -187,11 +188,34 @@ These controls raise cost but do not replace server-side authorization.
 3. `npm run test:onboarding-security`
    - Verifies onboarding answers can be inserted/read by the owner only.
    - Verifies admin aggregate views do not leak free text or emails.
+   - Added 2026-04-28 as a static SQL boundary gate. Full local Supabase
+     execution still needs Docker Desktop available.
 
 4. Release verifier additions.
    - Ensure Apple auth, Google auth, auth callback bridge, EAS runtime version,
      Mapbox attribution, and update scripts remain configured.
    - Add checks for App Attest/Play Integrity feature flags once implemented.
+   - Added 2026-04-28: `npm run verify:release` now runs
+     `npm run verify:security`, checks the post-auth onboarding route, and
+     blocks production EAS Update scripts unless code signing is configured.
+
+## 2026-04-28 Implemented Controls
+
+- Added `member_onboarding_responses`,
+  `member_onboarding_evidence_ledger`, and `member_onboarding_snapshots`.
+- Onboarding writes go through `submit_member_onboarding`, which derives the
+  actor from `auth.uid()` and never accepts a client-supplied member ID.
+- Direct client writes to onboarding tables are revoked; members can only read
+  their own response/snapshot.
+- The evidence ledger has no direct authenticated client policies or grants.
+- `members.onboarded_at` is protected by the privileged-field trigger and may
+  only be set by the onboarding RPC context.
+- Admin aggregates enforce a minimum cohort of 20 and do not return member IDs,
+  emails, names, or free text.
+- Production EAS Update scripts fail closed until Expo code signing metadata and
+  certificate path are configured.
+- `npm audit fix --package-lock-only --audit-level=high` removed all high
+  severity npm audit findings without changing top-level package versions.
 
 ## Implementation Order
 

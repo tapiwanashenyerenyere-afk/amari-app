@@ -8,6 +8,35 @@ export type RsvpStatus = 'confirmed' | 'waitlisted' | 'cancelled';
 export type OpportunityType = 'co_invest' | 'board' | 'speaking' | 'procurement' | 'advisory';
 export type AlignedStage = 'new' | 'accepted' | 'revealed' | 'expired' | 'declined';
 export type NotificationType = 'pulse' | 'aligned' | 'event' | 'tier_change' | 'system';
+export type OnboardingTimeFocus =
+  | 'building'
+  | 'investing'
+  | 'operating'
+  | 'creating'
+  | 'performing'
+  | 'specialising';
+export type OnboardingWorkStage =
+  | 'idea'
+  | 'building'
+  | 'launched'
+  | 'traction'
+  | 'scaling'
+  | 'established';
+export type OnboardingCommunityNeed =
+  | 'capital'
+  | 'talent'
+  | 'customers'
+  | 'collaborators'
+  | 'distribution'
+  | 'counsel'
+  | 'community';
+export type OnboardingAxis =
+  | 'investor'
+  | 'founder'
+  | 'operator'
+  | 'creator'
+  | 'domain_specialist'
+  | 'artist';
 
 export interface Member {
   id: string;
@@ -123,6 +152,31 @@ export interface Notification {
   data: any;
   read_at: string | null;
   created_at: string;
+}
+
+export interface MemberOnboardingResponse {
+  member_id: string;
+  investor_score: number;
+  founder_score: number;
+  operator_score: number;
+  creator_score: number;
+  domain_specialist_score: number;
+  artist_score: number;
+  time_focus: OnboardingTimeFocus;
+  current_stage: OnboardingWorkStage;
+  community_need: OnboardingCommunityNeed;
+  consent_version: string;
+  completed_at: string;
+  updated_at: string;
+}
+
+export interface MemberOnboardingSnapshot {
+  member_id: string;
+  primary_axis: OnboardingAxis;
+  secondary_axis: OnboardingAxis | null;
+  confidence: number;
+  scores: Record<OnboardingAxis, number>;
+  updated_at: string;
 }
 
 export interface CorridorInterest {

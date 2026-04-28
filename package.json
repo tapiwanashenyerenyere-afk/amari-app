@@ -12,6 +12,9 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
+    "verify:security": "node ./scripts/verify-security.mjs",
+    "test:onboarding-security": "node ./scripts/verify-onboarding-security.mjs",
+    "test:rls": "node ./scripts/verify-onboarding-security.mjs",
     "verify:release": "node ./scripts/verify-release.mjs",
     "release:prepare-copy": "powershell -ExecutionPolicy Bypass -File ./scripts/prepare-release-copy.ps1",
     "release:android": "npx eas build --platform android --profile production --non-interactive",
@@ -20,8 +23,8 @@
     "submit:ios": "npx eas submit --platform ios --profile production --latest",
     "update:preview:android": "npx eas update --channel preview --environment preview --platform android",
     "update:preview:ios": "npx eas update --channel preview --environment preview --platform ios",
-    "update:production:android": "npx eas update --channel production --environment production --platform android",
-    "update:production:ios": "npx eas update --channel production --environment production --platform ios",
+    "update:production:android": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform android",
+    "update:production:ios": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform ios",
     "prepare": "husky"
   },
   "lint-staged": {

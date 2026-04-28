@@ -12,10 +12,16 @@ interface AuthState {
   tier: MembershipTier;
   isAdmin: boolean;
   isLoading: boolean;
+  isPostAuthSetupComplete: boolean;
 }
 
 const AuthContext = createContext<AuthState>({
-  session: null, user: null, tier: 'member', isAdmin: false, isLoading: true,
+  session: null,
+  user: null,
+  tier: 'member',
+  isAdmin: false,
+  isLoading: true,
+  isPostAuthSetupComplete: false,
 });
 
 export function useAuth() {
@@ -24,7 +30,12 @@ export function useAuth() {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<AuthState>({
-    session: null, user: null, tier: 'member', isAdmin: false, isLoading: true,
+    session: null,
+    user: null,
+    tier: 'member',
+    isAdmin: false,
+    isLoading: true,
+    isPostAuthSetupComplete: false,
   });
 
   function extractTierFromSession(session: Session | null): { tier: MembershipTier; isAdmin: boolean } {
@@ -38,12 +49,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const { tier, isAdmin } = extractTierFromSession(session);
-      setState({ session, user: session?.user ?? null, tier, isAdmin, isLoading: false });
+      setState({
+        session,
+        user: session?.user ?? null,
+        tier,
+        isAdmin,
+        isLoading: false,
+        isPostAuthSetupComplete: !session?.user,
+      });
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const { tier, isAdmin } = extractTierFromSession(session);
-      setState(prev => ({ ...prev, session, user: session?.user ?? null, tier, isAdmin, isLoading: false }));
+      setState(prev => {
+        const sameUser = prev.user?.id === session?.user?.id;
+        return {
+          ...prev,
+          session,
+          user: session?.user ?? null,
+          tier,
+          isAdmin,
+          isLoading: false,
+          isPostAuthSetupComplete: session?.user ? sameUser && prev.isPostAuthSetupComplete : true,
+        };
+      });
 
       if (event === 'SIGNED_IN') {
         queryClient.invalidateQueries();
@@ -124,22 +153,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
   // Redeem pending invitation code after sign-in
   const redeemingRef = useRef(false);
   useEffect(() => {
-    if (!state.user || state.isLoading || redeemingRef.current) return;
+    if (!state.user || state.isLoading || state.isPostAuthSetupComplete || redeemingRef.current) return;
 
     const redeemPendingCode = async () => {
+      const userId = state.user!.id;
       redeemingRef.current = true;
       try {
         const pending = await SecureStore.getItemAsync('pending_invitation_code');
         if (!pending) {
           // No pending code — still sync user_metadata to profile in case fields are empty
           await syncProfileData(state.user!.id);
-          redeemingRef.current = false;
           return;
         }
         const { code, fullName, city, industry } = JSON.parse(pending);
         if (!code) {
           await syncProfileData(state.user!.id, { fullName, city, industry });
-          redeemingRef.current = false;
           return;
         }
 
@@ -177,11 +205,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         console.error('Code redemption error:', err);
       } finally {
         redeemingRef.current = false;
+        setState(prev => (
+          prev.user?.id === userId
+            ? { ...prev, isPostAuthSetupComplete: true }
+            : prev
+        ));
       }
     };
 
     redeemPendingCode();
-  }, [state.user?.id, state.isLoading]);
+  }, [state.user?.id, state.isLoading, state.isPostAuthSetupComplete]);
 
   // Listen for tier change notifications via Supabase Realtime
   useEffect(() => {
