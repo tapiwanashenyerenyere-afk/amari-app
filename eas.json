@@ -9,6 +9,7 @@
       "distribution": "internal",
       "environment": "development",
       "env": {
+        "HUSKY": "0",
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdm51eGNjZHhxeXp2bnNwbWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzU0NzEsImV4cCI6MjA4NzY1MTQ3MX0.TkpLMFV7LMbBbs8Ah7klXc-Pgxqzwm_f7HCyPTH3Ms8",
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
@@ -26,6 +27,7 @@
         "withoutCredentials": true
       },
       "env": {
+        "HUSKY": "0",
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdm51eGNjZHhxeXp2bnNwbWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzU0NzEsImV4cCI6MjA4NzY1MTQ3MX0.TkpLMFV7LMbBbs8Ah7klXc-Pgxqzwm_f7HCyPTH3Ms8",
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
@@ -44,6 +46,7 @@
         "credentialsSource": "remote"
       },
       "env": {
+        "HUSKY": "0",
         "EXPO_PUBLIC_SUPABASE_URL": "https://eavnuxccdxqyzvnspmaq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdm51eGNjZHhxeXp2bnNwbWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzU0NzEsImV4cCI6MjA4NzY1MTQ3MX0.TkpLMFV7LMbBbs8Ah7klXc-Pgxqzwm_f7HCyPTH3Ms8",
         "EXPO_PUBLIC_AUTH_REDIRECT_URL": "https://www.amarigroupau.com/auth-callback",
