@@ -28,7 +28,7 @@
       --axis-founder: #722F37;
       --axis-operator: #5C6D4F;
       --axis-creator: #8B7355;
-      --axis-advisor: #9898A0;
+      --axis-domain-specialist: #9898A0;
       --axis-artist: #D4B87A;
       --display: "Syne", "Aptos Display", "Trebuchet MS", sans-serif;
       --serif: "EB Garamond", Georgia, serif;
@@ -250,7 +250,7 @@
     .slider-row:nth-of-type(2) .slider-label { color: var(--axis-founder); }
     .slider-row:nth-of-type(3) .slider-label { color: var(--axis-operator); }
     .slider-row:nth-of-type(4) .slider-label { color: var(--axis-creator); }
-    .slider-row:nth-of-type(5) .slider-label { color: var(--axis-advisor); }
+    .slider-row:nth-of-type(5) .slider-label { color: var(--axis-domain-specialist); }
     .slider-row:nth-of-type(6) .slider-label { color: var(--axis-artist); }
 
     input[type="range"] {
@@ -262,7 +262,7 @@
     .slider-row:nth-of-type(2) input[type="range"] { accent-color: var(--axis-founder); }
     .slider-row:nth-of-type(3) input[type="range"] { accent-color: var(--axis-operator); }
     .slider-row:nth-of-type(4) input[type="range"] { accent-color: var(--axis-creator); }
-    .slider-row:nth-of-type(5) input[type="range"] { accent-color: var(--axis-advisor); }
+    .slider-row:nth-of-type(5) input[type="range"] { accent-color: var(--axis-domain-specialist); }
     .slider-row:nth-of-type(6) input[type="range"] { accent-color: var(--axis-artist); }
 
     .stage {
@@ -744,7 +744,7 @@
     .number-field:nth-child(2) input { border-color: color-mix(in srgb, var(--axis-founder) 50%, white); }
     .number-field:nth-child(3) input { border-color: color-mix(in srgb, var(--axis-operator) 60%, white); }
     .number-field:nth-child(4) input { border-color: color-mix(in srgb, var(--axis-creator) 56%, white); }
-    .number-field:nth-child(5) input { border-color: color-mix(in srgb, var(--axis-advisor) 70%, white); }
+    .number-field:nth-child(5) input { border-color: color-mix(in srgb, var(--axis-domain-specialist) 70%, white); }
     .number-field:nth-child(6) input { border-color: color-mix(in srgb, var(--axis-artist) 72%, white); }
 
     .drag-hint {
@@ -898,8 +898,8 @@
           <input id="creator" type="range" min="0" max="100" value="10">
         </div>
         <div class="slider-row">
-          <label class="slider-label" for="advisor">Advisor</label>
-          <input id="advisor" type="range" min="0" max="100" value="12">
+          <label class="slider-label" for="domain_specialist">Domain Specialist</label>
+          <input id="domain_specialist" type="range" min="0" max="100" value="12">
         </div>
         <div class="slider-row">
           <label class="slider-label" for="artist">Artist</label>
@@ -997,15 +997,15 @@
         <div class="hero-card screen-view" id="octaView">
           <div class="kicker">Future graph</div>
           <h2>Six-axis octahedron for people who are blends, not boxes.</h2>
-          <p class="lead">This maps Investor, Founder, Operator, Creator, Advisor, and Artist into a single spatial object. Drag the AMARI A directly, use presets, or type exact numbers underneath.</p>
+          <p class="lead">This maps Investor, Founder, Operator, Creator, Domain Specialist, and Artist into a single spatial object. Drag the AMARI A directly, use presets, or type exact numbers underneath.</p>
           <div class="octahedron-card" style="margin-top: 28px;">
             <canvas id="octaCanvas" width="980" height="760" aria-label="Interactive six-axis AMARI octahedron"></canvas>
             <aside>
               <h3>How to explore</h3>
               <p class="micro" style="margin-top: 10px;">Drag the AMARI A to move the member through the map. Drag empty space to orbit the camera. Use presets or numbers below for precise tuning.</p>
               <div class="mini-card" style="margin-top: 16px;">
-                <h3>What "Advisor" means</h3>
-                <p>Advisor means trusted specialist counsel: lawyer, accountant, doctor, architect, consultant, board-level advisor, strategist, or the expert someone calls before a high-stakes decision.</p>
+                <h3>What "Domain Specialist" means</h3>
+                <p>Domain Specialist means deep field expertise. The exact domain can be collected later through projects, profile fields, credentials, and verified contribution signals.</p>
               </div>
               <div class="capture-box" style="margin-top: 18px;">
                 <h3>Captured vector</h3>
@@ -1032,7 +1032,7 @@
                   <div class="number-field"><label for="num-founder">Founder</label><input id="num-founder" class="axis-number" data-axis="founder" type="number" min="0" max="100" value="30"></div>
                   <div class="number-field"><label for="num-operator">Operator</label><input id="num-operator" class="axis-number" data-axis="operator" type="number" min="0" max="100" value="20"></div>
                   <div class="number-field"><label for="num-creator">Creator</label><input id="num-creator" class="axis-number" data-axis="creator" type="number" min="0" max="100" value="10"></div>
-                  <div class="number-field"><label for="num-advisor">Advisor</label><input id="num-advisor" class="axis-number" data-axis="advisor" type="number" min="0" max="100" value="12"></div>
+                  <div class="number-field"><label for="num-domain-specialist">Domain Specialist</label><input id="num-domain-specialist" class="axis-number" data-axis="domain_specialist" type="number" min="0" max="100" value="12"></div>
                   <div class="number-field"><label for="num-artist">Artist</label><input id="num-artist" class="axis-number" data-axis="artist" type="number" min="0" max="100" value="10"></div>
                 </div>
               </div>
@@ -1096,7 +1096,7 @@
         founder: 30,
         operator: 20,
         creator: 10,
-        advisor: 12,
+        domain_specialist: 12,
         artist: 10
       }
     };
@@ -1104,19 +1104,19 @@
     const personaPresets = {
       founder: {
         field: { x: 0.55, y: -0.18 },
-        weights: { investor: 16, founder: 42, operator: 22, creator: 4, advisor: 10, artist: 6 }
+        weights: { investor: 16, founder: 42, operator: 22, creator: 4, domain_specialist: 10, artist: 6 }
       },
       operator: {
         field: { x: -0.42, y: -0.62 },
-        weights: { investor: 8, founder: 18, operator: 46, creator: 4, advisor: 18, artist: 6 }
+        weights: { investor: 8, founder: 18, operator: 46, creator: 4, domain_specialist: 18, artist: 6 }
       },
       connector: {
         field: { x: 0.32, y: 0.72 },
-        weights: { investor: 24, founder: 16, operator: 10, creator: 8, advisor: 14, artist: 28 }
+        weights: { investor: 24, founder: 16, operator: 10, creator: 8, domain_specialist: 14, artist: 28 }
       },
       creative: {
         field: { x: 0.2, y: 0.18 },
-        weights: { investor: 6, founder: 14, operator: 10, creator: 38, advisor: 6, artist: 26 }
+        weights: { investor: 6, founder: 14, operator: 10, creator: 38, domain_specialist: 6, artist: 26 }
       }
     };
 
@@ -1293,20 +1293,20 @@
     const vertices = [
       { key: "investor", label: "Investor", p: [0, 1.08, 0], color: "#C4A265", opposite: "creator" },
       { key: "creator", label: "Creator", p: [0, -1.08, 0], color: "#8B7355", opposite: "investor" },
-      { key: "founder", label: "Founder", p: [1.08, 0, 0], color: "#722F37", opposite: "advisor" },
-      { key: "advisor", label: "Advisor", p: [-1.08, 0, 0], color: "#9898A0", opposite: "founder" },
+      { key: "founder", label: "Founder", p: [1.08, 0, 0], color: "#722F37", opposite: "domain_specialist" },
+      { key: "domain_specialist", label: "Domain Specialist", p: [-1.08, 0, 0], color: "#9898A0", opposite: "founder" },
       { key: "operator", label: "Operator", p: [0, 0, 1.08], color: "#5C6D4F", opposite: "artist" },
       { key: "artist", label: "Artist", p: [0, 0, -1.08], color: "#D4B87A", opposite: "operator" }
     ];
 
     const faces = [
       ["investor", "founder", "operator"],
-      ["investor", "operator", "advisor"],
-      ["investor", "advisor", "artist"],
+      ["investor", "operator", "domain_specialist"],
+      ["investor", "domain_specialist", "artist"],
       ["investor", "artist", "founder"],
       ["creator", "operator", "founder"],
-      ["creator", "advisor", "operator"],
-      ["creator", "artist", "advisor"],
+      ["creator", "domain_specialist", "operator"],
+      ["creator", "artist", "domain_specialist"],
       ["creator", "founder", "artist"]
     ];
 
