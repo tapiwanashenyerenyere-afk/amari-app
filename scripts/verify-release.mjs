@@ -125,7 +125,7 @@ function validateStaticReleaseConfig() {
   assert(layoutSource.includes("name=\"(onboarding)\""), 'root stack must register the post-auth onboarding route group.');
   assert(layoutSource.includes('useMyOnboardingStatus'), 'root auth guard must use members.onboarded_at for post-auth onboarding gating.');
   assert(
-    postAuthOnboardingSource.includes('Drag the A across the sharp map') &&
+    postAuthOnboardingSource.includes('Drag the white A for a blend') &&
       postAuthOnboardingSource.includes('Domain Specialist') &&
       postAuthOnboardingSource.includes('Artist') &&
       postAuthOnboardingSource.includes('submitOnboarding.mutateAsync'),

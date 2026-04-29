@@ -68,7 +68,8 @@ export function PulseArticleModal({
               <Image
                 source={{ uri: article.hero_image_path }}
                 style={StyleSheet.absoluteFillObject}
-                contentFit="cover"
+                contentFit="contain"
+                contentPosition="center"
               />
             ) : (
               <Text style={styles.coverPlaceholder}>Cover image</Text>
@@ -104,11 +105,14 @@ export function PulseArticleModal({
                           style={styles.nomineeCard}
                           accessibilityLabel={`${nominee.name}, ${group.category} AMARI Gala nominee`}
                         >
-                          <Image
-                            source={{ uri: nominee.imageUrl }}
-                            style={styles.nomineeImage}
-                            contentFit="cover"
-                          />
+                          <View style={styles.nomineeImageFrame}>
+                            <Image
+                              source={{ uri: nominee.imageUrl }}
+                              style={styles.nomineeImage}
+                              contentFit="contain"
+                              contentPosition="center"
+                            />
+                          </View>
                           <View style={styles.nomineeCopy}>
                             <Text style={styles.nomineeName} numberOfLines={2}>
                               {nominee.name}
@@ -116,6 +120,11 @@ export function PulseArticleModal({
                             <Text style={styles.nomineeDetail} numberOfLines={2}>
                               {nominee.detail || `${group.category} nominee`}
                             </Text>
+                            {nominee.blurb ? (
+                              <Text style={styles.nomineeBlurb} numberOfLines={4}>
+                                {nominee.blurb}
+                              </Text>
+                            ) : null}
                           </View>
                         </View>
                       ))}
@@ -156,11 +165,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cover: {
-    height: 200,
+    height: 174,
     marginHorizontal: spacing.xl,
     marginBottom: 20,
     borderRadius: radius.lg,
-    backgroundColor: colors.cardBase,
+    backgroundColor: '#17110B',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -219,28 +228,36 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   nomineeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 10,
   },
   nomineeCard: {
-    width: '48%',
-    minHeight: 190,
+    width: '100%',
+    minHeight: 148,
     borderRadius: radius.md,
     overflow: 'hidden',
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.06)',
+    flexDirection: 'row',
+  },
+  nomineeImageFrame: {
+    width: 112,
+    minHeight: 148,
+    backgroundColor: '#F4EFE6',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(0,0,0,0.05)',
+    padding: 5,
   },
   nomineeImage: {
     width: '100%',
-    height: 122,
-    backgroundColor: colors.cardBase,
+    height: '100%',
   },
   nomineeCopy: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 12,
     paddingBottom: 12,
+    justifyContent: 'center',
   },
   nomineeName: {
     fontFamily: typography.body.bold,
@@ -254,6 +271,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     color: 'rgba(0,0,0,0.48)',
+  },
+  nomineeBlurb: {
+    marginTop: 8,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(0,0,0,0.64)',
   },
   divider: {
     height: 1,

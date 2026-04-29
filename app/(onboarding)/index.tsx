@@ -102,9 +102,14 @@ const DEFAULT_SCORES: OnboardingScores = {
 };
 
 type Point = { x: number; y: number };
+type SignalDragTarget = OnboardingAxis | 'marker';
 
 function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
+}
+
+function isAxisTarget(target: SignalDragTarget | null): target is OnboardingAxis {
+  return Boolean(target && target !== 'marker');
 }
 
 function axisUnit(index: number): Point {
@@ -147,6 +152,15 @@ function pointToSvg(point: Point, center: number, radiusPx: number) {
   return {
     x: center + point.x * radiusPx,
     y: center + point.y * radiusPx,
+  };
+}
+
+function axisScorePoint(scores: OnboardingScores, axis: OnboardingAxis, index: number, center: number, radiusPx: number) {
+  const unit = axisUnit(index);
+  const scoreRadius = (scores[axis] / 100) * radiusPx;
+  return {
+    x: center + unit.x * scoreRadius,
+    y: center + unit.y * scoreRadius,
   };
 }
 
@@ -251,6 +265,10 @@ function SignalMap({
   scores: OnboardingScores;
   onScoresChange: (scores: OnboardingScores) => void;
 }) {
+  const activeDragTarget = useRef<SignalDragTarget | null>(null);
+  const scoresRef = useRef(scores);
+  scoresRef.current = scores;
+
   const { width } = useWindowDimensions();
   const chartSize = Math.min(Math.max(width - spacing.xl * 2, 280), 350);
   const center = chartSize / 2;
@@ -258,18 +276,81 @@ function SignalMap({
   const marker = markerFromScores(scores);
   const markerPoint = pointToSvg(marker, center, radiusPx);
   const dominant = dominantAxis(scores);
+  const metricsRef = useRef({ center, radiusPx, markerPoint });
+  metricsRef.current = { center, radiusPx, markerPoint };
 
-  const updateFromTouch = (x: number, y: number) => {
-    const dx = x - center;
-    const dy = y - center;
+  const scoreFromAxisTouch = (axisIndex: number, x: number, y: number) => {
+    const { center: currentCenter, radiusPx: currentRadius } = metricsRef.current;
+    const unit = axisUnit(axisIndex);
+    const dx = x - currentCenter;
+    const dy = y - currentCenter;
+    const projected = dx * unit.x + dy * unit.y;
+    return Math.round(clamp((projected / currentRadius) * 100));
+  };
+
+  const resolveDragTarget = (x: number, y: number): SignalDragTarget => {
+    const {
+      center: currentCenter,
+      radiusPx: currentRadius,
+      markerPoint: currentMarkerPoint,
+    } = metricsRef.current;
+    const markerDistance = Math.hypot(x - currentMarkerPoint.x, y - currentMarkerPoint.y);
+    if (markerDistance <= 34) {
+      return 'marker';
+    }
+
+    let nearestAxis: OnboardingAxis | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    AXES.forEach((axis, index) => {
+      const unit = axisUnit(index);
+      const dx = x - currentCenter;
+      const dy = y - currentCenter;
+      const projected = clamp(dx * unit.x + dy * unit.y, 0, currentRadius);
+      const closest = {
+        x: currentCenter + unit.x * projected,
+        y: currentCenter + unit.y * projected,
+      };
+      const distance = Math.hypot(x - closest.x, y - closest.y);
+      if (distance < nearestDistance) {
+        nearestAxis = axis.key;
+        nearestDistance = distance;
+      }
+    });
+
+    return nearestAxis ?? 'marker';
+  };
+
+  const updateMarkerFromTouch = (x: number, y: number) => {
+    const { center: currentCenter, radiusPx: currentRadius } = metricsRef.current;
+    const dx = x - currentCenter;
+    const dy = y - currentCenter;
     const distance = Math.hypot(dx, dy);
-    const boundedDistance = Math.min(distance, radiusPx * 0.95);
+    const boundedDistance = Math.min(distance, currentRadius * 0.95);
     const ratio = distance === 0 ? 0 : boundedDistance / distance;
     const nextMarker = {
-      x: (dx * ratio) / radiusPx,
-      y: (dy * ratio) / radiusPx,
+      x: (dx * ratio) / currentRadius,
+      y: (dy * ratio) / currentRadius,
     };
     onScoresChange(scoresFromMarker(nextMarker));
+  };
+
+  const updateAxisFromTouch = (axisKey: OnboardingAxis, x: number, y: number) => {
+    const axisIndex = AXES.findIndex((axis) => axis.key === axisKey);
+    if (axisIndex < 0) return;
+
+    onScoresChange({
+      ...scoresRef.current,
+      [axisKey]: scoreFromAxisTouch(axisIndex, x, y),
+    });
+  };
+
+  const updateFromTouch = (x: number, y: number) => {
+    if (isAxisTarget(activeDragTarget.current)) {
+      updateAxisFromTouch(activeDragTarget.current, x, y);
+      return;
+    }
+
+    updateMarkerFromTouch(x, y);
   };
 
   const panResponder = useRef(
@@ -278,12 +359,19 @@ function SignalMap({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (event) => {
         Haptics.selectionAsync();
+        activeDragTarget.current = resolveDragTarget(event.nativeEvent.locationX, event.nativeEvent.locationY);
         updateFromTouch(event.nativeEvent.locationX, event.nativeEvent.locationY);
       },
       onPanResponderMove: (event) => {
         updateFromTouch(event.nativeEvent.locationX, event.nativeEvent.locationY);
       },
-      onPanResponderRelease: () => Haptics.selectionAsync(),
+      onPanResponderRelease: () => {
+        activeDragTarget.current = null;
+        Haptics.selectionAsync();
+      },
+      onPanResponderTerminate: () => {
+        activeDragTarget.current = null;
+      },
     }),
   ).current;
 
@@ -357,6 +445,22 @@ function SignalMap({
             stroke="rgba(255,255,255,0.28)"
             strokeWidth={0.8}
           />
+          {AXES.map((axis, index) => {
+            const point = axisScorePoint(scores, axis.key, index, center, radiusPx);
+            return (
+              <G key={`${axis.key}-handle`}>
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={13}
+                  fill="rgba(255,255,255,0.04)"
+                  stroke="rgba(255,255,255,0.16)"
+                  strokeWidth={1}
+                />
+                <Circle cx={point.x} cy={point.y} r={5.5} fill={axis.accent} />
+              </G>
+            );
+          })}
         </Svg>
         <View
           pointerEvents="none"
@@ -369,11 +473,11 @@ function SignalMap({
           ]}
         >
           <View style={styles.emblemHalo} />
-          <AmariEmblem size={48} variant="onDark" fill={colors.cream} foreground={colors.black} borderRadius={9} />
+          <AmariEmblem size={48} variant="onDark" fill="transparent" foreground={colors.white} borderRadius={0} />
         </View>
       </View>
       <Text style={styles.mapCaption}>
-        Drag the A across the sharp map, or tune the numbers below.
+        Drag the white A for a blend, or drag any coloured corner to fully commit an axis.
       </Text>
     </View>
   );
@@ -687,7 +791,9 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(196,162,101,0.22)',
+    backgroundColor: 'rgba(196,162,101,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   mapCaption: {
     marginTop: spacing.md,
