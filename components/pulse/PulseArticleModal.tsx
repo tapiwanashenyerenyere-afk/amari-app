@@ -14,13 +14,28 @@ import {
   formatPulseDate,
   getPulseArticleBody,
   getPulseCategoryLabel,
+  getPulseNominees,
 } from '@/lib/pulse';
+import type { GalaNominee } from '@/constants/galaNominees';
 import type { PulseEdition } from '@/types/database';
 
 interface PulseArticleModalProps {
   article: PulseEdition | null;
   matchFooter: string;
   onClose: () => void;
+}
+
+function groupNominees(nominees: GalaNominee[]) {
+  return nominees.reduce<Array<{ category: string; nominees: GalaNominee[] }>>((groups, nominee) => {
+    const existingGroup = groups.find((group) => group.category === nominee.category);
+    if (existingGroup) {
+      existingGroup.nominees.push(nominee);
+    } else {
+      groups.push({ category: nominee.category, nominees: [nominee] });
+    }
+
+    return groups;
+  }, []);
 }
 
 export function PulseArticleModal({
@@ -33,6 +48,7 @@ export function PulseArticleModal({
   }
 
   const paragraphs = getPulseArticleBody(article);
+  const nomineeGroups = groupNominees(getPulseNominees(article) as GalaNominee[]);
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible>
@@ -75,6 +91,39 @@ export function PulseArticleModal({
                 This edition is live in the archive, but the editorial body has not been added yet.
               </Text>
             )}
+
+            {nomineeGroups.length ? (
+              <View style={styles.nomineeWrap}>
+                {nomineeGroups.map((group) => (
+                  <View key={group.category} style={styles.nomineeSection}>
+                    <Text style={styles.nomineeSectionTitle}>{group.category}</Text>
+                    <View style={styles.nomineeGrid}>
+                      {group.nominees.map((nominee) => (
+                        <View
+                          key={`${group.category}-${nominee.name}`}
+                          style={styles.nomineeCard}
+                          accessibilityLabel={`${nominee.name}, ${group.category} AMARI Gala nominee`}
+                        >
+                          <Image
+                            source={{ uri: nominee.imageUrl }}
+                            style={styles.nomineeImage}
+                            contentFit="cover"
+                          />
+                          <View style={styles.nomineeCopy}>
+                            <Text style={styles.nomineeName} numberOfLines={2}>
+                              {nominee.name}
+                            </Text>
+                            <Text style={styles.nomineeDetail} numberOfLines={2}>
+                              {nominee.detail || `${group.category} nominee`}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             <View style={styles.divider} />
             <Text style={styles.matchFooter}>{matchFooter}</Text>
@@ -154,6 +203,57 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     color: 'rgba(0,0,0,0.72)',
     marginBottom: 16,
+  },
+  nomineeWrap: {
+    marginTop: 6,
+  },
+  nomineeSection: {
+    marginTop: 20,
+  },
+  nomineeSectionTitle: {
+    fontFamily: typography.mono.medium,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: colors.goldDark,
+    marginBottom: 10,
+  },
+  nomineeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  nomineeCard: {
+    width: '48%',
+    minHeight: 190,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  nomineeImage: {
+    width: '100%',
+    height: 122,
+    backgroundColor: colors.cardBase,
+  },
+  nomineeCopy: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  nomineeName: {
+    fontFamily: typography.body.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.black,
+  },
+  nomineeDetail: {
+    marginTop: 4,
+    fontFamily: typography.body.regular,
+    fontSize: 10,
+    lineHeight: 14,
+    color: 'rgba(0,0,0,0.48)',
   },
   divider: {
     height: 1,

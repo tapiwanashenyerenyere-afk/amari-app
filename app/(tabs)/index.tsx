@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -17,6 +17,7 @@ import {
   PulseBridgeTiles,
   PulseHeroCarousel,
 } from '@/components/pulse';
+import { AMARI_GALA_NOMINEE_STORY } from '@/constants/galaNominees';
 import { useEvents } from '@/queries/events';
 import { useMyProfile } from '@/queries/members';
 import { usePulseFeed, usePulseMapSummary } from '@/queries/pulse';
@@ -27,6 +28,7 @@ import {
   getPulseCategoryLabel,
   getPulseExcerpt,
   getPulseMatchFooter,
+  normalizePulseText,
 } from '@/lib/pulse';
 import type { PulseEdition } from '@/types/database';
 
@@ -82,7 +84,7 @@ export default function PulseScreen() {
   const router = useRouter();
   const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
-  const { data: pulseStories = [] } = usePulseFeed(8);
+  const { data: livePulseStories = [] } = usePulseFeed(8);
   const { data: upcomingEvents = [] } = useEvents({ scope: 'upcoming' });
   const { data: mapSummary = { total: 0, newThisWeek: 0 } } = usePulseMapSummary();
 
@@ -96,6 +98,16 @@ export default function PulseScreen() {
   const displayId = profile?.display_id || `AMARI-${new Date().getFullYear()}-0000`;
   const tierLabel = TIER_DISPLAY_NAMES[tier] || tier.toUpperCase();
   const matchFooter = getPulseMatchFooter(profile);
+  const pulseStories = useMemo(() => {
+    const normalizedLiveStories = livePulseStories
+      .map((story) => ({
+        ...story,
+        headline: normalizePulseText(story.headline),
+      }))
+      .filter((story) => story.headline !== AMARI_GALA_NOMINEE_STORY.headline);
+
+    return [AMARI_GALA_NOMINEE_STORY, ...normalizedLiveStories];
+  }, [livePulseStories]);
 
   const heroStories = pulseStories.slice(0, 2);
   const feedStories = pulseStories.slice(2);
