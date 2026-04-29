@@ -115,15 +115,15 @@ Find the resulting EAS Android build ID:
 npx eas build:list --platform android --limit 5 --json
 ```
 
-Submit that exact build ID to Google Play internal testing from
-`C:\amari-mobile-release`:
+Submit that exact build ID to Google Play closed testing/Alpha from
+`C:\amari-mobile-eas-release`:
 
 ```bash
 npx eas submit --platform android --profile production --id <android-build-id> --non-interactive --wait
 ```
 
 The service-account JSON must exist locally at
-`C:\amari-mobile-release\google-services.json`, matching the
+`C:\amari-mobile-eas-release\google-services.json`, matching the
 `submit.production.android.serviceAccountKeyPath` entry in `eas.json`. Do not
 commit this file. It is ignored by `.gitignore` and excluded from EAS upload by
 `.easignore`.
@@ -149,6 +149,34 @@ If a future build is rejected for upload-key mismatch, check Play Console >
 Release > Setup > App integrity and compare the upload certificate SHA1 with the
 keystore used by the build. Either rebuild with the expected upload key or reset
 the Play upload key to the EAS key.
+
+## 2026-04-29 Android v46 Closed Testing Notes
+
+The app changes for the onboarding AMARI A emblem, six-axis onboarding graph,
+and AMARI Gala nominee story were merged into `release/v2-redesign-signed`
+through PR #19. The EAS Update signing certificate/runtime rotation was merged
+through PR #20. Android submit target correction was merged through PR #21.
+
+Release outcome:
+
+1. Android build `a8847c48-aacf-4a1a-bb35-466ae47c8d1d`, versionCode `45`,
+   was created with EAS remote Android credentials and rejected by Google Play
+   for the same upload-key mismatch:
+   - found SHA1: `37:21:FB:C3:25:7D:C8:C0:8E:BE:8E:CA:79:2F:4E:8D:2B:1A:BA:6A`
+   - expected SHA1: `C4:CD:C3:BA:73:2E:42:07:2D:D0:5E:2B:0F:2D:C2:9A:74:6F:31:4B`
+2. PR #21 changed `submit.production.android.track` from `internal` to
+   `alpha`, which is the Google Play closed testing track used for employee
+   testing.
+3. GitHub Actions run `25092863839` used the repository keystore secrets and
+   produced EAS Android build `ec5cde55-609d-4547-8356-8e9ed78d9906`,
+   app version `1.1.1`, versionCode `46`, runtime `1.1.1`.
+4. EAS Submit accepted build `ec5cde55-609d-4547-8356-8e9ed78d9906` to Google
+   Play Alpha/closed testing:
+   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/325638b0-aa2c-4205-b8e8-5da7d061de6a`
+5. The accepted AAB is archived locally at
+   `C:\Users\tapiw\amari-build\amari-mobile-1.1.1-v46-play-alpha-2026-04-29.aab`
+   with SHA256
+   `4b26ccc766fa9ba56beccbeeefa76d695499547dcbb08c16dd18055721814e4c`.
 
 ## Required Environment Variables
 
