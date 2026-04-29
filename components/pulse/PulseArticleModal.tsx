@@ -1,7 +1,9 @@
 import React from 'react';
 import {
+  FlatList,
   Modal,
   Pressable,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,8 +27,10 @@ interface PulseArticleModalProps {
   onClose: () => void;
 }
 
-function groupNominees(nominees: GalaNominee[]) {
-  return nominees.reduce<Array<{ category: string; nominees: GalaNominee[] }>>((groups, nominee) => {
+type NomineeGroup = { category: string; nominees: GalaNominee[] };
+
+function groupNominees(nominees: GalaNominee[]): NomineeGroup[] {
+  return nominees.reduce<NomineeGroup[]>((groups, nominee) => {
     const existingGroup = groups.find((group) => group.category === nominee.category);
     if (existingGroup) {
       existingGroup.nominees.push(nominee);
@@ -48,7 +52,19 @@ export function PulseArticleModal({
   }
 
   const paragraphs = getPulseArticleBody(article);
-  const nomineeGroups = groupNominees(getPulseNominees(article) as GalaNominee[]);
+  const nominees = getPulseNominees(article) as GalaNominee[];
+  const nomineeGroups = groupNominees(nominees);
+
+  if (nominees.length) {
+    return (
+      <NomineeDirectoryModal
+        article={article}
+        matchFooter={matchFooter}
+        nominees={nominees}
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} visible>
@@ -138,6 +154,212 @@ export function PulseArticleModal({
             <Text style={styles.matchFooter}>{matchFooter}</Text>
           </View>
         </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+function NomineeDirectoryModal({
+  article,
+  matchFooter,
+  nominees,
+  onClose,
+}: {
+  article: PulseEdition;
+  matchFooter: string;
+  nominees: GalaNominee[];
+  onClose: () => void;
+}) {
+  const [selectedNominee, setSelectedNominee] = React.useState<GalaNominee | null>(null);
+  const nomineeGroups = groupNominees(nominees);
+
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      presentationStyle="fullScreen"
+      visible
+    >
+      <SafeAreaView style={styles.nomineeRoot}>
+        <FlatList
+          data={nomineeGroups}
+          keyExtractor={(group) => group.category}
+          renderItem={({ item }) => (
+            <NomineeCategorySection group={item} onSelectNominee={setSelectedNominee} />
+          )}
+          ListHeaderComponent={
+            <View style={styles.nomineeHeader}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close AMARI Gala nominees story"
+                onPress={onClose}
+                style={styles.backButton}
+              >
+                <ArrowLeft color="rgba(0,0,0,0.62)" size={18} strokeWidth={2.1} />
+              </Pressable>
+
+              <Text style={styles.category}>{getPulseCategoryLabel(article)}</Text>
+              <Text style={styles.nomineeDirectoryTitle}>{article.headline}</Text>
+              <Text style={styles.nomineeDirectoryIntro}>
+                Scroll through each category, swipe across the nominees, then tap a card for
+                the short AMARI note on who they are and what they are building.
+              </Text>
+            </View>
+          }
+          ListFooterComponent={
+            <View style={styles.nomineeFooter}>
+              <View style={styles.divider} />
+              <Text style={styles.matchFooter}>{matchFooter}</Text>
+            </View>
+          }
+          contentContainerStyle={styles.nomineeListContent}
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          removeClippedSubviews
+          showsVerticalScrollIndicator={false}
+          windowSize={5}
+        />
+        <NomineeDetailModal
+          nominee={selectedNominee}
+          onClose={() => setSelectedNominee(null)}
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+function NomineeCategorySection({
+  group,
+  onSelectNominee,
+}: {
+  group: NomineeGroup;
+  onSelectNominee: (nominee: GalaNominee) => void;
+}) {
+  return (
+    <View style={styles.directorySection}>
+      <View style={styles.directorySectionHeader}>
+        <Text style={styles.directorySectionTitle}>{group.category}</Text>
+        <Text style={styles.directorySectionCount}>{group.nominees.length} nominees</Text>
+      </View>
+
+      <FlatList
+        data={group.nominees}
+        horizontal
+        keyExtractor={(nominee) => `${group.category}-${nominee.name}`}
+        renderItem={({ item }) => (
+          <NomineeTile nominee={item} onPress={() => onSelectNominee(item)} />
+        )}
+        contentContainerStyle={styles.directoryCarousel}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        showsHorizontalScrollIndicator={false}
+        windowSize={3}
+      />
+    </View>
+  );
+}
+
+function NomineeTile({
+  nominee,
+  onPress,
+}: {
+  nominee: GalaNominee;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.directoryNomineeTile,
+        pressed ? styles.directoryNomineeTilePressed : null,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${nominee.name}, ${nominee.category} AMARI Gala nominee`}
+    >
+      <View style={styles.directoryNomineeImageFrame}>
+        <Image
+          source={{ uri: nominee.imageUrl }}
+          style={styles.directoryNomineeImage}
+          contentFit="contain"
+          contentPosition="center"
+          transition={120}
+        />
+      </View>
+
+      <View style={styles.directoryNomineeCopy}>
+        <Text style={styles.directoryNomineeName} numberOfLines={2}>
+          {nominee.name}
+        </Text>
+        {nominee.detail ? (
+          <Text style={styles.directoryNomineeDetail} numberOfLines={2}>
+            {nominee.detail}
+          </Text>
+        ) : null}
+        {nominee.blurb ? (
+          <Text style={styles.directoryNomineeBlurb} numberOfLines={3}>
+            {nominee.blurb}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
+function NomineeDetailModal({
+  nominee,
+  onClose,
+}: {
+  nominee: GalaNominee | null;
+  onClose: () => void;
+}) {
+  if (!nominee) {
+    return null;
+  }
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible
+    >
+      <View style={styles.nomineeDetailOverlay}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close nominee details"
+          onPress={onClose}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        <View style={styles.nomineeDetailSheet}>
+          <View style={styles.nomineeDetailImageFrame}>
+            <Image
+              source={{ uri: nominee.imageUrl }}
+              style={styles.nomineeDetailImage}
+              contentFit="contain"
+              contentPosition="center"
+              transition={140}
+            />
+          </View>
+
+          <Text style={styles.nomineeDetailCategory}>{nominee.category}</Text>
+          <Text style={styles.nomineeDetailName}>{nominee.name}</Text>
+          {nominee.detail ? (
+            <Text style={styles.nomineeDetailRole}>{nominee.detail}</Text>
+          ) : null}
+          {nominee.blurb ? (
+            <Text style={styles.nomineeDetailBlurb}>{nominee.blurb}</Text>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close nominee details"
+            onPress={onClose}
+            style={styles.nomineeDetailClose}
+          >
+            <Text style={styles.nomineeDetailCloseText}>Close</Text>
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -289,5 +511,185 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: 'rgba(0,0,0,0.46)',
+  },
+  nomineeRoot: {
+    flex: 1,
+    backgroundColor: colors.bone,
+  },
+  nomineeListContent: {
+    paddingBottom: 42,
+  },
+  nomineeHeader: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 8,
+    paddingBottom: 22,
+  },
+  nomineeDirectoryTitle: {
+    marginTop: 6,
+    fontFamily: typography.body.bold,
+    fontSize: 30,
+    lineHeight: 35,
+    color: colors.black,
+    letterSpacing: -0.5,
+  },
+  nomineeDirectoryIntro: {
+    marginTop: 10,
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(0,0,0,0.56)',
+  },
+  directorySection: {
+    marginBottom: 28,
+  },
+  directorySectionHeader: {
+    paddingHorizontal: spacing.xl,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  directorySectionTitle: {
+    flex: 1,
+    fontFamily: typography.body.bold,
+    fontSize: 22,
+    lineHeight: 27,
+    color: colors.black,
+    letterSpacing: -0.3,
+  },
+  directorySectionCount: {
+    fontFamily: typography.mono.medium,
+    fontSize: 9,
+    lineHeight: 13,
+    color: 'rgba(0,0,0,0.4)',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  directoryCarousel: {
+    paddingLeft: spacing.xl,
+    paddingRight: spacing.xl,
+  },
+  directoryNomineeTile: {
+    width: 176,
+    marginRight: 12,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.07)',
+  },
+  directoryNomineeTilePressed: {
+    opacity: 0.72,
+  },
+  directoryNomineeImageFrame: {
+    height: 184,
+    backgroundColor: colors.warm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+    padding: 8,
+  },
+  directoryNomineeImage: {
+    width: '100%',
+    height: '100%',
+  },
+  directoryNomineeCopy: {
+    minHeight: 138,
+    paddingHorizontal: 12,
+    paddingTop: 11,
+    paddingBottom: 12,
+  },
+  directoryNomineeName: {
+    fontFamily: typography.body.bold,
+    fontSize: 15,
+    lineHeight: 19,
+    color: colors.black,
+  },
+  directoryNomineeDetail: {
+    marginTop: 5,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(0,0,0,0.54)',
+  },
+  directoryNomineeBlurb: {
+    marginTop: 7,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(0,0,0,0.66)',
+  },
+  nomineeDetailOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.54)',
+  },
+  nomineeDetailSheet: {
+    margin: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  nomineeDetailImageFrame: {
+    height: 250,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.warm,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    padding: 8,
+  },
+  nomineeDetailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  nomineeDetailCategory: {
+    marginTop: 16,
+    fontFamily: typography.mono.medium,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: colors.goldDark,
+  },
+  nomineeDetailName: {
+    marginTop: 7,
+    fontFamily: typography.body.bold,
+    fontSize: 25,
+    lineHeight: 30,
+    color: colors.black,
+    letterSpacing: -0.35,
+  },
+  nomineeDetailRole: {
+    marginTop: 5,
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(0,0,0,0.52)',
+  },
+  nomineeDetailBlurb: {
+    marginTop: 12,
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: 'rgba(0,0,0,0.68)',
+  },
+  nomineeDetailClose: {
+    marginTop: 18,
+    minHeight: 46,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.black,
+  },
+  nomineeDetailCloseText: {
+    fontFamily: typography.body.bold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  nomineeFooter: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 18,
   },
 });
