@@ -1,31 +1,32 @@
-# AMARI Mobile Agent Notes
+# AMARI Mobile Agent Context
 
-These notes are for Codex, Claude Code, and other coding agents working in this
-repo.
+Before making changes, read:
+
+1. `docs/AMARI-WORKING-MEMORY.md`
+2. `docs/RELEASE-WORKFLOW.md`
+3. `docs/ONBOARDING-DISCOVERY-PLAN.md`
+4. `docs/SECURITY-HARDENING-ROADMAP.md`
+5. `docs/eas-update.md`
 
 ## Operating Rules
 
-- Use pull requests for all changes. Do not commit directly to
-  `release/v2-redesign-signed` or `main`.
-- Use Conventional Commit style for branch commits and PR titles.
-- Before native release, EAS Update, TestFlight, or Play Store work, read
-  `docs/RELEASE-WORKFLOW.md` and `docs/eas-update.md`.
-- Before security/privacy hardening work, read
-  `docs/SECURITY-HARDENING-ROADMAP.md`.
-- Before post-auth onboarding/discovery work, read
-  `docs/ONBOARDING-DISCOVERY-PLAN.md`.
-- Run `npm run verify:release` before release PRs or native submissions.
+- Use PRs for every change. Do not commit directly to the release branch.
+- Keep commits Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`.
+- Use `tapiwanashenyerenyere@gmail.com` as the commit author email.
+- Preserve user work in dirty worktrees. Do not reset or revert unrelated
+  changes.
+- Run `npm run verify:release` before release-facing PRs when practical.
+- Do not publish unsigned production EAS Updates.
+- Do not commit private keys, service-account JSON, keystores, `.pem` files, or
+  generated build artifacts.
 
-## Android Play Upload
+## Product Ethos
 
-Play-bound production Android builds must use the GitHub Actions workflow in
-`.github/workflows/eas-build.yml` unless EAS remote Android credentials have
-been verified against Play Console's upload certificate.
+AMARI should not feel like a generic app template. The collaboration standard is
+to push the product to the edge of what feels premium, sharp, and culturally
+specific while staying disciplined on security, privacy, accessibility, and App
+Store/Play Store compliance.
 
-The 2026-04-27 Android upload fix is documented in
-`docs/RELEASE-WORKFLOW.md` under `Play-Bound Android Build` and
-`2026-04-27 Android Submit Notes`.
-
-Key outcome: Google Play accepted Android version `1.1.0`, versionCode `39`,
-from EAS build `75ec1c15-b67b-4577-ae50-7e15838e2683` after rebuilding through
-the GitHub workflow that injects the stored upload keystore.
+When choosing between safe/default UI and a stronger AMARI-native interaction,
+prefer the stronger product idea if it can be shipped responsibly. If it cannot
+be shipped safely yet, document the full version and ship the reliable baseline.

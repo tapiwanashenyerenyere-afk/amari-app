@@ -1,6 +1,6 @@
 # AMARI Onboarding Discovery Plan
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 ## Goal
 
@@ -56,6 +56,45 @@ Current implementation files:
 - `supabase/migrations/20260428000001_onboarding_security_foundation.sql`
 - `scripts/verify-onboarding-security.mjs`
 - `scripts/verify-security.mjs`
+
+## Deferred Full Open Launch Upgrade: 3D 6D Signal Object
+
+Decision on 2026-04-29: keep the first public testing/employee build on the
+stable 2D six-axis signal map. Save the 3D version for the wider full open
+launch when there is enough time to design, test, and tune it properly on iOS
+and Android.
+
+The current UI is not the final vision. It captures six-dimensional structured
+data, but renders it as a 2D radar/spider graph to reduce release risk. The
+future launch version should feel like a manipulatable AMARI artifact:
+
+- Render a sharp 3D-feeling wireframe, prism, or crystal object rather than a
+  flat spider chart.
+- Keep the stored data six-dimensional, even though the phone renders a 3D
+  projection of that signal.
+- Let the user drag the white AMARI A through the object as their blended self.
+- Let the user pull individual vertices/corners all the way to an axis when
+  they strongly identify with one or two roles.
+- Keep preset archetypes underneath as quick starts, but never force the user
+  into a preset.
+- Preserve the current privacy rule: store final axis values and selected
+  answers only, not raw gesture trails, screen replay, or every movement.
+- Use AMARI's actual black, white, gold, and restrained accent palette with
+  accessible contrast. Do not ship a grey prototype.
+
+Implementation guardrail: do not add a native 3D renderer casually during the
+closed testing launch. Revisit options when preparing the full open launch:
+
+1. A React Native SVG/Reanimated pseudo-3D projection if the goal is stability
+   and OTA-friendly iteration.
+2. Skia or another graphics layer only if the desired interaction cannot be
+   achieved cleanly with SVG/Reanimated.
+3. A native 3D dependency only after confirming App Store/Play Store build,
+   accessibility, and low-end Android performance risk.
+
+Founder check-in trigger: before AMARI moves from controlled employee/testing
+distribution to a wider open launch, ask Tapiwa whether to upgrade the
+onboarding Signal Map into the 3D six-dimensional AMARI identity object.
 
 ## Original Signal Map Concept
 
