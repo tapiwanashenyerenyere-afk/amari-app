@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingHorizontal: spacing.xl,
+    marginTop: 14,
     marginBottom: 20,
   },
   tile: {
