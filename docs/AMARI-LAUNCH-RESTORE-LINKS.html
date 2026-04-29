@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMARI Launch Restore Links</title>
+  <style>
+    :root {
+      --ink: #11100e;
+      --bone: #f3efe6;
+      --paper: #fffaf0;
+      --gold: #b8944d;
+      --muted: #706a60;
+      --line: rgba(17, 16, 14, 0.12);
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0%, rgba(184, 148, 77, 0.22), transparent 34%), var(--bone);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 56px 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(34px, 6vw, 72px);
+      letter-spacing: -0.06em;
+      line-height: 0.92;
+    }
+    .meta {
+      color: var(--muted);
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 36px;
+    }
+    section {
+      background: rgba(255, 250, 240, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 18px 50px rgba(17, 16, 14, 0.08);
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+    a {
+      display: block;
+      margin: 10px 0;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(184, 148, 77, 0.42);
+      padding-bottom: 8px;
+    }
+    a:hover {
+      color: #7d5d1e;
+    }
+    .note {
+      margin-top: 28px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--gold);
+      background: rgba(255, 250, 240, 0.7);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    code {
+      font-family: "Courier New", monospace;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="meta">AMARI Mobile Launch Restore Board - 2026-04-29</p>
+    <h1>Reopen the launch control screens.</h1>
+    <p class="note">
+      Latest shipped commit: <code>d0449aa</code>. Android version code <code>47</code> is submitted to Google Play Alpha/closed testing.
+      iOS build <code>1.1.1 (14)</code> is uploaded to App Store Connect/TestFlight and may still need Apple external beta approval.
+    </p>
+
+    <div class="grid">
+      <section>
+        <h2>iOS / TestFlight</h2>
+        <a href="https://appstoreconnect.apple.com/apps/6762464403/testflight/ios">App Store Connect - iOS Builds</a>
+        <a href="https://appstoreconnect.apple.com/teams/73818d7a-e56a-4a61-9a06-8561cde93984/apps/6762464403/testflight/groups/a8b0ebf3-5a14-4665-9dd9-eafd5ff13cad">App Store Connect - AMARI Beta Testers Group</a>
+        <a href="https://testflight.apple.com/join/PTXR8jzc">Public TestFlight Link</a>
+      </section>
+
+      <section>
+        <h2>Android / Play Console</h2>
+        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/app-dashboard">Google Play App Dashboard</a>
+        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/tracks/4698336449985963364">Closed Testing - Alpha Track</a>
+        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/bundle-explorer-selector">All App Bundles</a>
+        <a href="https://play.google.com/store/apps/details?id=com.amari.mobile">Android Tester Install Link</a>
+      </section>
+
+      <section>
+        <h2>Builds / Submissions</h2>
+        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/builds">Expo EAS Builds</a>
+        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/34f26ffb-2e80-4aa1-9be7-01670249bb92">Android EAS Submission - code 47</a>
+        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1368df59-3ecf-4e39-a8fc-aeca97bc717e">iOS EAS Submission - build 14</a>
+        <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/actions/runs/25101012410">GitHub Actions Android Build Run</a>
+      </section>
+
+      <section>
+        <h2>Project Systems</h2>
+        <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/pulls">GitHub Pull Requests</a>
+        <a href="https://supabase.com/dashboard/project/eavnuxccdxqyzvnspmaq">Supabase Project</a>
+        <a href="https://www.amarigroupau.com/">AMARI Group Website</a>
+        <a href="https://amarigala.com/amari-gala-2026/">AMARI Gala 2026 Nominees Source</a>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
