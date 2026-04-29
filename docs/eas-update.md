@@ -41,6 +41,13 @@ signing is configured in `app.json` with:
 This is enforced by `scripts/guard-production-update.mjs` and by
 `npm run verify:release`.
 
+Production publishing also requires the matching private key at
+`certs/private-key.pem` on the release machine, or a path supplied through
+`EAS_UPDATE_PRIVATE_KEY_PATH`. This private key must not be committed.
+
+If the signing certificate is rotated, ship a new native build with a new app
+version/runtime version before publishing updates signed by the new key.
+
 Publish mobile updates by explicit platform. This app is mobile-first and uses RNMapbox; `eas update --platform all` also tries to export web and can fail on Mapbox web dependencies that are not part of the native app runtime.
 
 The build profiles are mapped to matching EAS Update channels:

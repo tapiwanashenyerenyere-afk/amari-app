@@ -1,6 +1,6 @@
 {
   "name": "amari-mobile",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -23,8 +23,8 @@
     "submit:ios": "npx eas submit --platform ios --profile production --latest",
     "update:preview:android": "npx eas update --channel preview --environment preview --platform android",
     "update:preview:ios": "npx eas update --channel preview --environment preview --platform ios",
-    "update:production:android": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform android",
-    "update:production:ios": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform ios",
+    "update:production:android": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform android --private-key-path ./certs/private-key.pem",
+    "update:production:ios": "node ./scripts/guard-production-update.mjs && npx eas update --channel production --environment production --platform ios --private-key-path ./certs/private-key.pem",
     "prepare": "husky"
   },
   "lint-staged": {
