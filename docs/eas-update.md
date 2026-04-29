@@ -6,7 +6,7 @@ AMARI Mobile uses EAS Update to ship JavaScript, styling, and asset-only fixes w
 
 The app must be installed from a native build that already includes `expo-updates`. Builds created before this setup cannot receive OTA updates.
 
-After this PR is merged, ship one new production build to TestFlight and Play internal testing:
+After this PR is merged, ship one new production build to TestFlight and Play closed testing/Alpha:
 
 ```powershell
 npm run release:ios
@@ -44,6 +44,18 @@ This is enforced by `scripts/guard-production-update.mjs` and by
 Production publishing also requires the matching private key at
 `certs/private-key.pem` on the release machine, or a path supplied through
 `EAS_UPDATE_PRIVATE_KEY_PATH`. This private key must not be committed.
+
+As of 2026-04-29, Expo also requires an EAS Enterprise subscription to publish
+code-signed updates. The `t.jeremy.n` account was on Starter, so signed
+production OTA publishing failed with:
+
+```text
+EAS Update code signing requires a subscription to the EAS Enterprise plan.
+```
+
+Do not bypass this by publishing unsigned production updates. Until AMARI
+upgrades to Enterprise or changes the update-signing policy, ship production
+changes through App Store/TestFlight and Play AAB builds.
 
 If the signing certificate is rotated, ship a new native build with a new app
 version/runtime version before publishing updates signed by the new key.
