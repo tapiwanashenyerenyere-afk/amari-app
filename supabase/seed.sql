@@ -11,8 +11,8 @@ INSERT INTO invitation_codes (code, tier_grant, grants_admin, expires_at) VALUES
 
 -- Test pulse edition
 INSERT INTO pulse_editions (publish_date, status, headline, summary_content, full_content, stats) VALUES
-  (CURRENT_DATE, 'published', 'The 2026 Laureate Class Revealed',
-   '{"blocks": [{"type": "text", "content": "Seven alchemists. Seven paradigm shifts. This week we reveal the 2026 Laureate Class."}]}'::jsonb,
+  (CURRENT_DATE, 'published', 'Meet the AMARI Gala 2026 nominees',
+   '{"blocks": [{"type": "text", "content": "Meet the builders, artists, operators, athletes, creators, and community leaders shaping the AMARI Gala 2026 field."}]}'::jsonb,
    '{"blocks": [{"type": "text", "content": "Full editorial content here..."}, {"type": "quote", "content": "We build what we wish existed.", "author": "AMARI Member"}]}'::jsonb,
    '{"alchemists": 527, "cities": 12, "connections": 2340, "opportunities": 45}'::jsonb
   );

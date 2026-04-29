@@ -61,7 +61,12 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/651e1611-72e6-4b4c-a804-08b40a6aa92e"
+      "url": "https://u.expo.dev/651e1611-72e6-4b4c-a804-08b40a6aa92e",
+      "codeSigningCertificate": "./certs/certificate.pem",
+      "codeSigningMetadata": {
+        "keyid": "main",
+        "alg": "rsa-v1_5-sha256"
+      }
     }
   }
 }
