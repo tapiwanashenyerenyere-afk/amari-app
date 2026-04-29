@@ -53,6 +53,15 @@ export function ProfileIcon({ color, size = 20 }: TabIconProps) {
   );
 }
 
+export function AdminIcon({ color, size = 20 }: TabIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 3l7 3v5c0 4.55-2.86 8.66-7 10-4.14-1.34-7-5.45-7-10V6l7-3z" />
+      <Path d="M9.5 12.5l1.75 1.75L15 10.5" />
+    </Svg>
+  );
+}
+
 export function ChevronRight({ color = '#DDDDDD', size = 16 }: TabIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">

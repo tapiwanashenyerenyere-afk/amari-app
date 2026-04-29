@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../providers/AuthProvider';
 import { colors, typography, TIER_LEVELS, TAB_VISIBILITY } from '../../lib/theme';
-import { PulseIcon, EventsIcon, AlignedIcon, CorridorIcon, ProfileIcon } from './TabIcons';
+import { PulseIcon, EventsIcon, AlignedIcon, CorridorIcon, ProfileIcon, AdminIcon } from './TabIcons';
 
 const TAB_CONFIG = [
   { name: 'index', label: 'Pulse', Icon: PulseIcon, visibilityKey: 'pulse' },
@@ -12,6 +12,7 @@ const TAB_CONFIG = [
   { name: 'aligned', label: 'Aligned', Icon: AlignedIcon, visibilityKey: 'aligned' },
   { name: 'corridor', label: 'Corridor', Icon: CorridorIcon, visibilityKey: 'corridor' },
   { name: 'profile', label: 'Me', Icon: ProfileIcon, visibilityKey: 'profile' },
+  { name: 'admin', label: 'Admin', Icon: AdminIcon, visibilityKey: 'profile', adminOnly: true },
 ];
 
 const TIER_NAMES: Record<number, string> = {
@@ -29,12 +30,12 @@ interface CustomTabBarProps {
 
 export function CustomTabBar({ state, descriptors: _descriptors, navigation }: CustomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { tier } = useAuth();
+  const { tier, isAdmin } = useAuth();
   const userLevel = TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 1;
 
-  // Filter to only show our 5 main tabs (skip admin, discover, network)
+  // Keep public navigation simple, but expose the command centre for approved admins.
   const visibleRoutes = state.routes.filter((route: any) =>
-    TAB_CONFIG.some((tab) => tab.name === route.name)
+    TAB_CONFIG.some((tab) => tab.name === route.name && (!tab.adminOnly || isAdmin))
   );
 
   return (
