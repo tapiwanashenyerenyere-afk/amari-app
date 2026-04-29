@@ -3,14 +3,15 @@ import {
   FlatList,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { ArrowLeft } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import {
   formatPulseDate,
@@ -28,6 +29,10 @@ interface PulseArticleModalProps {
 }
 
 type NomineeGroup = { category: string; nominees: GalaNominee[] };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function groupNominees(nominees: GalaNominee[]): NomineeGroup[] {
   return nominees.reduce<NomineeGroup[]>((groups, nominee) => {
@@ -180,7 +185,7 @@ function NomineeDirectoryModal({
       presentationStyle="fullScreen"
       visible
     >
-      <SafeAreaView style={styles.nomineeRoot}>
+      <SafeAreaView edges={['top', 'bottom']} style={styles.nomineeRoot}>
         <FlatList
           data={nomineeGroups}
           keyExtractor={(group) => group.category}
@@ -235,6 +240,11 @@ function NomineeCategorySection({
   group: NomineeGroup;
   onSelectNominee: (nominee: GalaNominee) => void;
 }) {
+  const { width } = useWindowDimensions();
+  const availableWidth = Math.max(280, width - spacing.xl * 2);
+  const cardWidth = Math.round(clamp(availableWidth * 0.48, 148, 188));
+  const imageHeight = Math.round(clamp(cardWidth * 1.05, 154, 198));
+
   return (
     <View style={styles.directorySection}>
       <View style={styles.directorySectionHeader}>
@@ -247,7 +257,12 @@ function NomineeCategorySection({
         horizontal
         keyExtractor={(nominee) => `${group.category}-${nominee.name}`}
         renderItem={({ item }) => (
-          <NomineeTile nominee={item} onPress={() => onSelectNominee(item)} />
+          <NomineeTile
+            imageHeight={imageHeight}
+            nominee={item}
+            onPress={() => onSelectNominee(item)}
+            width={cardWidth}
+          />
         )}
         contentContainerStyle={styles.directoryCarousel}
         initialNumToRender={3}
@@ -260,23 +275,28 @@ function NomineeCategorySection({
 }
 
 function NomineeTile({
+  imageHeight,
   nominee,
   onPress,
+  width,
 }: {
+  imageHeight: number;
   nominee: GalaNominee;
   onPress: () => void;
+  width: number;
 }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.directoryNomineeTile,
+        { width },
         pressed ? styles.directoryNomineeTilePressed : null,
       ]}
       accessibilityRole="button"
       accessibilityLabel={`${nominee.name}, ${nominee.category} AMARI Gala nominee`}
     >
-      <View style={styles.directoryNomineeImageFrame}>
+      <View style={[styles.directoryNomineeImageFrame, { height: imageHeight }]}>
         <Image
           source={{ uri: nominee.imageUrl }}
           style={styles.directoryNomineeImage}
@@ -312,6 +332,11 @@ function NomineeDetailModal({
   nominee: GalaNominee | null;
   onClose: () => void;
 }) {
+  const { height, width } = useWindowDimensions();
+  const sheetMargin = width < 360 ? spacing.md : spacing.lg;
+  const sheetMaxHeight = Math.round(height * 0.9);
+  const detailImageHeight = Math.round(clamp(height * 0.28, 156, 270));
+
   if (!nominee) {
     return null;
   }
@@ -323,7 +348,7 @@ function NomineeDetailModal({
       transparent
       visible
     >
-      <View style={styles.nomineeDetailOverlay}>
+      <SafeAreaView edges={['top', 'bottom']} style={styles.nomineeDetailOverlay}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close nominee details"
@@ -331,36 +356,42 @@ function NomineeDetailModal({
           style={StyleSheet.absoluteFillObject}
         />
 
-        <View style={styles.nomineeDetailSheet}>
-          <View style={styles.nomineeDetailImageFrame}>
-            <Image
-              source={{ uri: nominee.imageUrl }}
-              style={styles.nomineeDetailImage}
-              contentFit="contain"
-              contentPosition="center"
-              transition={140}
-            />
-          </View>
-
-          <Text style={styles.nomineeDetailCategory}>{nominee.category}</Text>
-          <Text style={styles.nomineeDetailName}>{nominee.name}</Text>
-          {nominee.detail ? (
-            <Text style={styles.nomineeDetailRole}>{nominee.detail}</Text>
-          ) : null}
-          {nominee.blurb ? (
-            <Text style={styles.nomineeDetailBlurb}>{nominee.blurb}</Text>
-          ) : null}
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close nominee details"
-            onPress={onClose}
-            style={styles.nomineeDetailClose}
+        <View style={[styles.nomineeDetailSheet, { margin: sheetMargin, maxHeight: sheetMaxHeight }]}>
+          <ScrollView
+            bounces={false}
+            contentContainerStyle={styles.nomineeDetailScrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.nomineeDetailCloseText}>Close</Text>
-          </Pressable>
+            <View style={[styles.nomineeDetailImageFrame, { height: detailImageHeight }]}>
+              <Image
+                source={{ uri: nominee.imageUrl }}
+                style={styles.nomineeDetailImage}
+                contentFit="contain"
+                contentPosition="center"
+                transition={140}
+              />
+            </View>
+
+            <Text style={styles.nomineeDetailCategory}>{nominee.category}</Text>
+            <Text style={styles.nomineeDetailName}>{nominee.name}</Text>
+            {nominee.detail ? (
+              <Text style={styles.nomineeDetailRole}>{nominee.detail}</Text>
+            ) : null}
+            {nominee.blurb ? (
+              <Text style={styles.nomineeDetailBlurb}>{nominee.blurb}</Text>
+            ) : null}
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close nominee details"
+              onPress={onClose}
+              style={styles.nomineeDetailClose}
+            >
+              <Text style={styles.nomineeDetailCloseText}>Close</Text>
+            </Pressable>
+          </ScrollView>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
@@ -631,6 +662,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.4)',
+  },
+  nomineeDetailScrollContent: {
+    paddingBottom: 2,
   },
   nomineeDetailImageFrame: {
     height: 250,
