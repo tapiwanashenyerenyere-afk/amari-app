@@ -30,7 +30,7 @@ export function AmariEmblem({
           <Rect x="0" y="0" width="320" height="320" rx={rx} />
         </ClipPath>
       </Defs>
-      <Rect x="0" y="0" width="320" height="320" rx={rx} fill={bg} />
+      {bg === 'transparent' ? null : <Rect x="0" y="0" width="320" height="320" rx={rx} fill={bg} />}
 
       {/* Left leg of A — thick upward sweep from bottom-left */}
       <Path
