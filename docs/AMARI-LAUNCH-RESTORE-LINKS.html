@@ -3,58 +3,69 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AMARI Launch Restore Links</title>
+  <title>AMARI Launch Control Board</title>
   <style>
     :root {
       --ink: #11100e;
+      --void: #0b0b0a;
       --bone: #f3efe6;
       --paper: #fffaf0;
+      --cream: #fdf8ee;
       --gold: #b8944d;
+      --gold-dark: #80601f;
+      --burgundy: #722f37;
+      --steel: #405366;
+      --sage: #52634b;
       --muted: #706a60;
       --line: rgba(17, 16, 14, 0.12);
+      --line-strong: rgba(17, 16, 14, 0.2);
+      --shadow: 0 18px 50px rgba(17, 16, 14, 0.08);
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      background: radial-gradient(circle at 20% 0%, rgba(184, 148, 77, 0.22), transparent 34%), var(--bone);
+      background:
+        radial-gradient(circle at 16% 0%, rgba(184, 148, 77, 0.2), transparent 30%),
+        linear-gradient(135deg, rgba(64, 83, 102, 0.08), transparent 32%),
+        var(--bone);
       color: var(--ink);
       font-family: Georgia, "Times New Roman", serif;
     }
+
     main {
-      max-width: 1080px;
+      max-width: 1180px;
       margin: 0 auto;
-      padding: 56px 24px;
+      padding: 52px 24px 72px;
     }
+
     h1 {
-      margin: 0 0 8px;
-      font-size: clamp(34px, 6vw, 72px);
-      letter-spacing: -0.06em;
+      max-width: 980px;
+      margin: 0 0 12px;
+      font-size: clamp(34px, 6vw, 76px);
+      letter-spacing: -0.055em;
       line-height: 0.92;
     }
-    .meta {
-      color: var(--muted);
-      font-family: "Courier New", monospace;
-      font-size: 12px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      margin-top: 36px;
-    }
-    section {
-      background: rgba(255, 250, 240, 0.86);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 18px 50px rgba(17, 16, 14, 0.08);
-    }
+
     h2 {
       margin: 0 0 14px;
       font-size: 18px;
       letter-spacing: -0.03em;
     }
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+    }
+
     a {
       display: block;
       margin: 10px 0;
@@ -63,64 +74,919 @@
       border-bottom: 1px solid rgba(184, 148, 77, 0.42);
       padding-bottom: 8px;
     }
+
     a:hover {
-      color: #7d5d1e;
+      color: var(--gold-dark);
     }
+
+    code {
+      font-family: "Courier New", monospace;
+      font-size: 0.95em;
+    }
+
+    details {
+      margin-top: 12px;
+      border-top: 1px solid rgba(17, 16, 14, 0.08);
+      padding-top: 10px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--gold-dark);
+      font-family: "Courier New", monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    summary:hover {
+      color: var(--burgundy);
+    }
+
+    .meta {
+      color: var(--muted);
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
     .note {
       margin-top: 28px;
       padding: 16px 18px;
       border-left: 4px solid var(--gold);
-      background: rgba(255, 250, 240, 0.7);
+      background: rgba(255, 250, 240, 0.72);
       color: var(--muted);
       line-height: 1.5;
     }
-    code {
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .action-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 250, 240, 0.76);
+      padding: 8px 12px;
       font-family: "Courier New", monospace;
-      font-size: 0.95em;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .section-band {
+      margin-top: 38px;
+      padding-top: 30px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .section-kicker {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-family: "Courier New", monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: clamp(25px, 3vw, 38px);
+      letter-spacing: -0.045em;
+      line-height: 1;
+    }
+
+    .section-copy {
+      max-width: 520px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .link-card,
+    .principle-card,
+    .task-card,
+    .network-card {
+      background: rgba(255, 250, 240, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .principle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .principle-card {
+      box-shadow: none;
+    }
+
+    .principle-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 15px;
+    }
+
+    .principle-card span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .task-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .task-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .task-top {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .task-top > input,
+    .subtask > input {
+      width: 18px;
+      height: 18px;
+      margin: 2px 0 0;
+      accent-color: var(--gold-dark);
+    }
+
+    .task-top > input:checked + .task-main .task-title,
+    .subtask > input:checked + .subtask-copy strong {
+      color: var(--muted);
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
+
+    .task-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .task-title {
+      font-size: 20px;
+      line-height: 1.16;
+      letter-spacing: -0.035em;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(17, 16, 14, 0.12);
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .status.todo {
+      color: var(--burgundy);
+      background: rgba(114, 47, 55, 0.07);
+    }
+
+    .status.active {
+      color: var(--gold-dark);
+      background: rgba(184, 148, 77, 0.1);
+    }
+
+    .status.done {
+      color: var(--sage);
+      background: rgba(82, 99, 75, 0.1);
+    }
+
+    .task-copy {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.48;
+    }
+
+    .subtask-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .subtask {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 8px;
+      border: 1px solid rgba(17, 16, 14, 0.08);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.32);
+      padding: 10px;
+    }
+
+    .subtask-copy strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .subtask-copy span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .config-item {
+      border: 1px solid rgba(17, 16, 14, 0.08);
+      border-radius: 8px;
+      padding: 10px;
+      background: rgba(243, 239, 230, 0.62);
+    }
+
+    .config-item dt {
+      color: var(--muted);
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .config-item dd {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .network-list {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 2px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .network-list li {
+      border-left: 3px solid var(--gold);
+      background: rgba(255, 255, 255, 0.32);
+      padding: 9px 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .network-list strong {
+      color: var(--ink);
+    }
+
+    .global-network {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .network-card {
+      box-shadow: none;
+      border-color: rgba(17, 16, 14, 0.16);
+    }
+
+    .network-card h3 {
+      margin-bottom: 10px;
+    }
+
+    .node-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .node {
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: rgba(17, 16, 14, 0.06);
+      color: var(--ink);
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .node.gold {
+      background: rgba(184, 148, 77, 0.18);
+    }
+
+    .node.steel {
+      background: rgba(64, 83, 102, 0.14);
+    }
+
+    .node.burgundy {
+      background: rgba(114, 47, 55, 0.12);
+    }
+
+    .sensitive-note {
+      margin-top: 16px;
+      border: 1px solid rgba(114, 47, 55, 0.18);
+      border-radius: 8px;
+      background: rgba(114, 47, 55, 0.06);
+      color: var(--muted);
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: 36px 16px 56px;
+      }
+
+      .section-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .task-top {
+        grid-template-columns: 28px 1fr;
+        padding: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <p class="meta">AMARI Mobile Launch Restore Board - 2026-04-29</p>
-    <h1>Reopen the launch control screens.</h1>
+    <p class="meta">AMARI Mobile Launch Control Board - 2026-04-30</p>
+    <h1>Run the launch from one board.</h1>
     <p class="note">
-      Latest shipped commit: <code>d0449aa</code>. Android version code <code>47</code> is submitted to Google Play Alpha/closed testing.
+      Latest shipped app commit: <code>d0449aa</code>. Android version code <code>47</code> is submitted to Google Play Alpha/closed testing.
       iOS build <code>1.1.1 (14)</code> is uploaded to App Store Connect/TestFlight and may still need Apple external beta approval.
+      This board is now also the working agreement: tasks get crossed off here, subtasks stay visible, and decisions carry their network analysis underneath them.
     </p>
 
-    <div class="grid">
-      <section>
-        <h2>iOS / TestFlight</h2>
-        <a href="https://appstoreconnect.apple.com/apps/6762464403/testflight/ios">App Store Connect - iOS Builds</a>
-        <a href="https://appstoreconnect.apple.com/teams/73818d7a-e56a-4a61-9a06-8561cde93984/apps/6762464403/testflight/groups/a8b0ebf3-5a14-4665-9dd9-eafd5ff13cad">App Store Connect - AMARI Beta Testers Group</a>
-        <a href="https://testflight.apple.com/join/PTXR8jzc">Public TestFlight Link</a>
-      </section>
-
-      <section>
-        <h2>Android / Play Console</h2>
-        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/app-dashboard">Google Play App Dashboard</a>
-        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/tracks/4698336449985963364">Closed Testing - Alpha Track</a>
-        <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/bundle-explorer-selector">All App Bundles</a>
-        <a href="https://play.google.com/store/apps/details?id=com.amari.mobile">Android Tester Install Link</a>
-      </section>
-
-      <section>
-        <h2>Builds / Submissions</h2>
-        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/builds">Expo EAS Builds</a>
-        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/34f26ffb-2e80-4aa1-9be7-01670249bb92">Android EAS Submission - code 47</a>
-        <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1368df59-3ecf-4e39-a8fc-aeca97bc717e">iOS EAS Submission - build 14</a>
-        <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/actions/runs/25101012410">GitHub Actions Android Build Run</a>
-      </section>
-
-      <section>
-        <h2>Project Systems</h2>
-        <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/pulls">GitHub Pull Requests</a>
-        <a href="https://supabase.com/dashboard/project/eavnuxccdxqyzvnspmaq">Supabase Project</a>
-        <a href="https://www.amarigroupau.com/">AMARI Group Website</a>
-        <a href="https://amarigala.com/amari-gala-2026/">AMARI Gala 2026 Nominees Source</a>
-      </section>
+    <div class="hero-actions" aria-label="Primary restore actions">
+      <a class="action-pill" href="https://appstoreconnect.apple.com/apps/6762464403/testflight/ios">Open TestFlight Builds</a>
+      <a class="action-pill" href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/tracks/4698336449985963364">Open Play Alpha</a>
+      <a class="action-pill" href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/builds">Open EAS Builds</a>
+      <a class="action-pill" href="https://github.com/tapiwanashenyerenyere-afk/amari-app/pulls">Open PRs</a>
     </div>
+
+    <section class="section-band" aria-labelledby="links-title">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Restore Links</p>
+          <h2 class="section-title" id="links-title">Launch control screens</h2>
+        </div>
+        <p class="section-copy">The fastest path back into the exact consoles, submissions, and project systems from the saved launch session.</p>
+      </div>
+
+      <div class="grid">
+        <section class="link-card">
+          <h2>iOS / TestFlight</h2>
+          <a href="https://appstoreconnect.apple.com/apps/6762464403/testflight/ios">App Store Connect - iOS Builds</a>
+          <a href="https://appstoreconnect.apple.com/teams/73818d7a-e56a-4a61-9a06-8561cde93984/apps/6762464403/testflight/groups/a8b0ebf3-5a14-4665-9dd9-eafd5ff13cad">App Store Connect - AMARI Beta Testers Group</a>
+          <a href="https://testflight.apple.com/join/PTXR8jzc">Public TestFlight Link</a>
+        </section>
+
+        <section class="link-card">
+          <h2>Android / Play Console</h2>
+          <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/app-dashboard">Google Play App Dashboard</a>
+          <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/tracks/4698336449985963364">Closed Testing - Alpha Track</a>
+          <a href="https://play.google.com/console/u/0/developers/9098912053143270806/app/4976387495678793526/bundle-explorer-selector">All App Bundles</a>
+          <a href="https://play.google.com/store/apps/details?id=com.amari.mobile">Android Tester Install Link</a>
+        </section>
+
+        <section class="link-card">
+          <h2>Builds / Submissions</h2>
+          <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/builds">Expo EAS Builds</a>
+          <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/34f26ffb-2e80-4aa1-9be7-01670249bb92">Android EAS Submission - code 47</a>
+          <a href="https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1368df59-3ecf-4e39-a8fc-aeca97bc717e">iOS EAS Submission - build 14</a>
+          <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/actions/runs/25101012410">GitHub Actions Android Build Run</a>
+        </section>
+
+        <section class="link-card">
+          <h2>Project Systems</h2>
+          <a href="https://github.com/tapiwanashenyerenyere-afk/amari-app/pulls">GitHub Pull Requests</a>
+          <a href="https://supabase.com/dashboard/project/eavnuxccdxqyzvnspmaq">Supabase Project</a>
+          <a href="https://www.amarigroupau.com/">AMARI Group Website</a>
+          <a href="https://amarigala.com/amari-gala-2026/">AMARI Gala 2026 Nominees Source</a>
+        </section>
+      </div>
+    </section>
+
+    <section class="section-band" aria-labelledby="working-title">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">How We Work Together</p>
+          <h2 class="section-title" id="working-title">The operating system</h2>
+        </div>
+        <p class="section-copy">This is the standing agreement for AMARI work: concrete state, visible decisions, no hidden context, and no launch-critical facts trapped in chat.</p>
+      </div>
+
+      <div class="principle-grid">
+        <div class="principle-card">
+          <strong>One board owns launch state</strong>
+          <span>Anything launch-critical gets reflected here or in a linked repo doc. Chat is useful, but this board is what a future session can reopen.</span>
+        </div>
+        <div class="principle-card">
+          <strong>Every major item gets subtasks</strong>
+          <span>Each task carries smaller checkable pieces, key configuration, and a decision network so progress is not vague.</span>
+        </div>
+        <div class="principle-card">
+          <strong>Decisions show their connections</strong>
+          <span>When a choice affects another system, the connection is written under the task. When it does not, that independence is explicit too.</span>
+        </div>
+        <div class="principle-card">
+          <strong>Security and taste move together</strong>
+          <span>AMARI should feel sharp and culturally specific, while release engineering, privacy, RLS, app review, and store compliance stay disciplined.</span>
+        </div>
+        <div class="principle-card">
+          <strong>PRs for code, Supabase for live data</strong>
+          <span>Code changes branch from <code>release/v2-redesign-signed</code>. Live invite-code state stays in Supabase/local checkpoints, not public docs.</span>
+        </div>
+        <div class="principle-card">
+          <strong>Cross off as we go</strong>
+          <span>Checkboxes on this page save in this browser. Use them during the session so the next restore starts with the real state.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-band" aria-labelledby="tasks-title">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Working Checklist</p>
+          <h2 class="section-title" id="tasks-title">Cross off as we go</h2>
+        </div>
+        <p class="section-copy">Each item has subtasks, configuration, and a clickable network analysis. The checkboxes persist locally in this browser.</p>
+      </div>
+
+      <div class="task-stack">
+        <article class="task-card">
+          <div class="task-top">
+            <input type="checkbox" data-key="ios-testflight-ready" aria-label="iOS TestFlight approved and attached">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">iOS TestFlight availability</h3>
+                <span class="status active">Active</span>
+              </div>
+              <p class="task-copy">Confirm build <code>1.1.1 (14)</code> is approved for external testing and attached to the AMARI Beta Testers group.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="ios-check-build-14" aria-label="Check iOS build 14 approval">
+                  <div class="subtask-copy">
+                    <strong>Check build 14 beta review status</strong>
+                    <span>Open App Store Connect and confirm whether Apple has approved external beta testing.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="ios-beta-group-attached" aria-label="Confirm beta tester group is attached">
+                  <div class="subtask-copy">
+                    <strong>Confirm AMARI Beta Testers group attachment</strong>
+                    <span>Make sure the external group can actually receive build <code>1.1.1 (14)</code>.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="ios-public-link-works" aria-label="Confirm public TestFlight link works">
+                  <div class="subtask-copy">
+                    <strong>Confirm public TestFlight link behavior</strong>
+                    <span>Open the public link on iPhone and verify whether it accepts testers or reports beta unavailable.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>ASC App ID</dt>
+                    <dd><code>6762464403</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Build</dt>
+                    <dd><code>1.1.1 (14)</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Public Link</dt>
+                    <dd><code>testflight.apple.com/join/PTXR8jzc</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Reviewer Path</dt>
+                    <dd>Password sign-in remains available under reviewer/existing member access.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to tester onboarding:</strong> if Apple has not approved the external beta, iOS invite instructions must include the wait-state.</li>
+                  <li><strong>Connected to auth:</strong> TestFlight users still need Supabase email/OTP, Google, or Apple auth to complete access.</li>
+                  <li><strong>Not directly connected to Android propagation:</strong> Android can be live even if Apple beta review is pending.</li>
+                  <li><strong>Connected to staff support:</strong> failed install reports need to be tagged as TestFlight approval, invite-code, auth, or onboarding.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <article class="task-card">
+          <div class="task-top">
+            <input type="checkbox" data-key="android-alpha-ready" aria-label="Android Alpha propagated and installable">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">Android Play Alpha propagation</h3>
+                <span class="status active">Active</span>
+              </div>
+              <p class="task-copy">Confirm version code <code>47</code> is available to closed testing users and the tester install path works.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="android-code47-track" aria-label="Check Android code 47 on Alpha track">
+                  <div class="subtask-copy">
+                    <strong>Check version code 47 on Alpha track</strong>
+                    <span>Open Play Console closed testing and verify code <code>47</code> is the active/released artifact.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="android-tester-install" aria-label="Verify Android tester install link">
+                  <div class="subtask-copy">
+                    <strong>Verify tester install link</strong>
+                    <span>Use a tester account/device to confirm the Play Store page offers the right build.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="android-feedback-channel" aria-label="Collect Android tester feedback">
+                  <div class="subtask-copy">
+                    <strong>Collect Android install feedback</strong>
+                    <span>Separate Play eligibility issues from app runtime issues so fixes do not chase the wrong cause.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>Package</dt>
+                    <dd><code>com.amari.mobile</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Version Code</dt>
+                    <dd><code>47</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Track</dt>
+                    <dd>Google Play Alpha / closed testing</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Signing Rule</dt>
+                    <dd>Play-bound Android builds use GitHub Actions signing until EAS remote credentials are fixed.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to release engineering:</strong> any new Android store build must preserve the GitHub Actions keystore path.</li>
+                  <li><strong>Connected to tester onboarding:</strong> Android users need both Play tester access and a valid AMARI invite/auth path.</li>
+                  <li><strong>Not connected to EAS Update:</strong> production OTA remains blocked by code-signing plan constraints.</li>
+                  <li><strong>Connected to support triage:</strong> install failures may be Play tester access, Google account mismatch, device compatibility, or app runtime.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <article class="task-card">
+          <div class="task-top">
+            <input type="checkbox" data-key="invite-code-ops" aria-label="Invite code operations handled">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">Invite-code operations</h3>
+                <span class="status active">Active</span>
+              </div>
+              <p class="task-copy">Issue, verify, and support staff/member invite codes without leaking live codes into public docs.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="invite-assign-recipient" aria-label="Assign recipient in Supabase">
+                  <div class="subtask-copy">
+                    <strong>Assign recipient in Supabase</strong>
+                    <span>Set <code>recipient_name</code>, <code>recipient_email</code>, <code>issued_at</code>, and <code>issued_month</code> on the live row.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="invite-validate-rpc" aria-label="Validate invite through RPC">
+                  <div class="subtask-copy">
+                    <strong>Validate through app RPC</strong>
+                    <span>Use <code>validate_invitation_code</code> so the check matches app behavior.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="invite-ios-instructions" aria-label="Send iOS access instructions">
+                  <div class="subtask-copy">
+                    <strong>Send iOS access instructions</strong>
+                    <span>Include TestFlight install, code entry, email auth/OTP fallback, onboarding, and wait-state if Apple beta review is pending.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>Live Table</dt>
+                    <dd><code>public.invitation_codes</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Public Doc Rule</dt>
+                    <dd>Do not write live invite codes or full invite lists into tracked repo docs.</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Validation RPC</dt>
+                    <dd><code>validate_invitation_code(p_code)</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Redeem RPC</dt>
+                    <dd><code>redeem_invitation_code(...)</code> creates member rows after auth.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to Supabase auth:</strong> a valid code alone is not a member account; redemption happens after sign-in.</li>
+                  <li><strong>Connected to tier access:</strong> code tier affects app metadata, event gating, Aligned access, and membership card display.</li>
+                  <li><strong>Connected to public repo risk:</strong> full invite-code lists stay out of GitHub because this repository is public.</li>
+                  <li><strong>Not connected to native builds:</strong> assigning a code does not require a new iOS or Android build.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <article class="task-card">
+          <div class="task-top">
+            <input type="checkbox" data-key="feedback-loop" aria-label="Tester feedback loop running">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">Tester feedback loop</h3>
+                <span class="status todo">Next</span>
+              </div>
+              <p class="task-copy">Collect employee feedback in categories that map directly to action: install, auth, onboarding, Pulse, Events, Aligned, profile card, and admin access.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="feedback-categories" aria-label="Create feedback categories">
+                  <div class="subtask-copy">
+                    <strong>Use fixed feedback categories</strong>
+                    <span>Every report should land in a bucket so we can separate store issues from app issues.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="feedback-prioritize" aria-label="Prioritize feedback">
+                  <div class="subtask-copy">
+                    <strong>Prioritize launch blockers first</strong>
+                    <span>Crashes, sign-in failure, install failure, broken onboarding, and broken membership card beat polish.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="feedback-pr-if-needed" aria-label="Open PR if fix needed">
+                  <div class="subtask-copy">
+                    <strong>Open PR only when a fix is needed</strong>
+                    <span>Branch from <code>release/v2-redesign-signed</code>, verify, then build if store delivery is required.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>Base Branch</dt>
+                    <dd><code>release/v2-redesign-signed</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Verifier</dt>
+                    <dd><code>npm run verify:release</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Store Path</dt>
+                    <dd>Native App Store/TestFlight and Play AAB builds, not unsigned production OTA.</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Product Bar</dt>
+                    <dd>Premium AMARI-native feel, with security, accessibility, and review compliance intact.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to PR scope:</strong> feedback category determines whether a code fix, Supabase data fix, store-console fix, or support reply is needed.</li>
+                  <li><strong>Connected to release cost:</strong> native config or dependency changes require new builds; JS/layout fixes may still need store builds until signed OTA is resolved.</li>
+                  <li><strong>Connected to wider launch readiness:</strong> repeated onboarding or auth friction is a signal to adjust the full launch plan.</li>
+                  <li><strong>Not connected to invite assignment:</strong> individual code assignment does not imply an app defect unless redemption fails after validation.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <article class="task-card">
+          <div class="task-top">
+            <input type="checkbox" data-key="wider-launch-hardening" aria-label="Wider launch hardening complete">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">Wider launch hardening</h3>
+                <span class="status todo">Later</span>
+              </div>
+              <p class="task-copy">Before open launch, revisit the heavier trust work: RLS audit, MFA/step-up, EAS Update policy, production security, and the 3D six-axis onboarding object.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="hardening-rls" aria-label="RLS audit complete">
+                  <div class="subtask-copy">
+                    <strong>Run deeper RLS/security audit</strong>
+                    <span>Move beyond static checks into role-based Supabase tests when the distribution widens.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="hardening-mfa" aria-label="Admin MFA and step-up plan complete">
+                  <div class="subtask-copy">
+                    <strong>Plan admin MFA and step-up</strong>
+                    <span>Admin/member-sensitive actions should get stronger auth before broader access.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="hardening-3d-signal" aria-label="3D signal object decision made">
+                  <div class="subtask-copy">
+                    <strong>Decide on 3D Signal Map upgrade</strong>
+                    <span>Ask whether the full launch should move from the stable 2D graph to the saved six-dimensional AMARI identity object.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>Security Docs</dt>
+                    <dd><code>docs/SECURITY-HARDENING-ROADMAP.md</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Onboarding Plan</dt>
+                    <dd><code>docs/ONBOARDING-DISCOVERY-PLAN.md</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>EAS Update Rule</dt>
+                    <dd>No unsigned production updates. Enterprise code signing is unresolved.</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Mapbox Rule</dt>
+                    <dd>Do not hide attribution or logo controls.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to public trust:</strong> wider distribution increases the cost of weak RLS, admin controls, and privacy mistakes.</li>
+                  <li><strong>Connected to product magic:</strong> the 3D identity object can raise the product ceiling but also increases QA and performance risk.</li>
+                  <li><strong>Connected to release channel:</strong> code signing/Enterprise determines whether production OTA can become a safe fast-fix lane.</li>
+                  <li><strong>Not a blocker for employee testing:</strong> the current closed-testing build intentionally ships the stable baseline first.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-band" aria-labelledby="network-title">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Network Analysis</p>
+          <h2 class="section-title" id="network-title">How the decisions connect</h2>
+        </div>
+        <p class="section-copy">Use this as the mental map when deciding what to do next. Some systems are tightly coupled; others can move independently.</p>
+      </div>
+
+      <div class="global-network">
+        <div class="network-card">
+          <h3>Store availability cluster</h3>
+          <div class="node-row">
+            <span class="node gold">TestFlight approval</span>
+            <span class="node gold">Play Alpha propagation</span>
+            <span class="node steel">Tester install links</span>
+            <span class="node burgundy">Support triage</span>
+          </div>
+          <ul class="network-list">
+            <li><strong>Coupled through tester experience:</strong> both stores affect whether staff can install, but their approvals and consoles are independent.</li>
+          </ul>
+        </div>
+
+        <div class="network-card">
+          <h3>Identity and access cluster</h3>
+          <div class="node-row">
+            <span class="node gold">Invite code</span>
+            <span class="node steel">Supabase auth</span>
+            <span class="node burgundy">JWT metadata</span>
+            <span class="node">Onboarding gate</span>
+          </div>
+          <ul class="network-list">
+            <li><strong>Strict sequence:</strong> validate code, sign in, redeem code, refresh metadata, finish onboarding, enter tabs.</li>
+          </ul>
+        </div>
+
+        <div class="network-card">
+          <h3>Release safety cluster</h3>
+          <div class="node-row">
+            <span class="node burgundy">PR branch</span>
+            <span class="node gold">verify:release</span>
+            <span class="node steel">GitHub Android signing</span>
+            <span class="node">No unsigned OTA</span>
+          </div>
+          <ul class="network-list">
+            <li><strong>Coupled through shipping:</strong> any launch-facing code fix must preserve verification, signing, and store-review constraints.</li>
+          </ul>
+        </div>
+
+        <div class="network-card">
+          <h3>Future product ceiling cluster</h3>
+          <div class="node-row">
+            <span class="node gold">3D Signal Map</span>
+            <span class="node steel">RLS audit</span>
+            <span class="node burgundy">Admin MFA</span>
+            <span class="node">Code signing policy</span>
+          </div>
+          <ul class="network-list">
+            <li><strong>Connected by launch stage:</strong> these matter most when AMARI moves from controlled testing into a wider audience.</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="sensitive-note">
+        Sensitive operating rule: live invitation codes, private keys, service-account JSON, keystores, and generated build artifacts do not belong in this public repo doc.
+        Record the task and the process here; keep the live secret or code value in Supabase, local checkpoint, or the approved secure system.
+      </p>
+    </section>
   </main>
+
+  <script>
+    const storagePrefix = 'amari-launch-board:';
+
+    document.querySelectorAll('input[type="checkbox"][data-key]').forEach((checkbox) => {
+      const key = `${storagePrefix}${checkbox.dataset.key}`;
+      checkbox.checked = window.localStorage.getItem(key) === 'true';
+      checkbox.addEventListener('change', () => {
+        window.localStorage.setItem(key, String(checkbox.checked));
+      });
+    });
+  </script>
 </body>
 </html>
