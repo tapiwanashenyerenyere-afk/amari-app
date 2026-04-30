@@ -769,6 +769,75 @@
 
         <article class="task-card">
           <div class="task-top">
+            <input type="checkbox" data-key="admin-mobile-code-issuing" aria-label="Admin mobile code issuing planned">
+            <div class="task-main">
+              <div class="task-title-row">
+                <h3 class="task-title">Admins issue codes from phones</h3>
+                <span class="status todo">Later</span>
+              </div>
+              <p class="task-copy">Build a secure admin-phone flow so approved admins can assign, send, and audit invitation codes without needing Supabase desktop access.</p>
+
+              <div class="subtask-list">
+                <div class="subtask">
+                  <input type="checkbox" data-key="admin-code-rpc-design" aria-label="Design secure admin invite RPC">
+                  <div class="subtask-copy">
+                    <strong>Design secure admin invite RPC</strong>
+                    <span>Use a tightly scoped RPC or server path that verifies admin rights before assigning codes.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="admin-code-phone-ui" aria-label="Build phone admin code UI">
+                  <div class="subtask-copy">
+                    <strong>Build the phone UI</strong>
+                    <span>Add an admin screen for selecting tier, recipient name/email, notes, and copy/share instructions.</span>
+                  </div>
+                </div>
+                <div class="subtask">
+                  <input type="checkbox" data-key="admin-code-audit-log" aria-label="Add admin invite audit trail">
+                  <div class="subtask-copy">
+                    <strong>Add audit trail</strong>
+                    <span>Record who issued the code, when it was issued, who it was issued to, and whether it was redeemed.</span>
+                  </div>
+                </div>
+              </div>
+
+              <details>
+                <summary>Configuration</summary>
+                <dl class="config-grid">
+                  <div class="config-item">
+                    <dt>Admin Surface</dt>
+                    <dd>Mobile admin tab, visible only to approved admin/staff roles.</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Live Table</dt>
+                    <dd><code>public.invitation_codes</code></dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Security Rule</dt>
+                    <dd>No direct public client write path. Gate by admin role and audit every issue action.</dd>
+                  </div>
+                  <div class="config-item">
+                    <dt>Share Rule</dt>
+                    <dd>Admins can copy or share one recipient's instructions, never export the full live code list.</dd>
+                  </div>
+                </dl>
+              </details>
+
+              <details>
+                <summary>Decision Network</summary>
+                <ul class="network-list">
+                  <li><strong>Connected to access control:</strong> the feature must trust admin role metadata/RLS, not just a hidden UI route.</li>
+                  <li><strong>Connected to invite support:</strong> phone issuing reduces bottlenecks when staff need to onboard people in real time.</li>
+                  <li><strong>Connected to privacy:</strong> recipient email/name handling must stay minimal, auditable, and not exposed in public docs.</li>
+                  <li><strong>Not needed for current Peggy-style manual issuing:</strong> manual Supabase assignment still works until the mobile admin tool is built.</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <article class="task-card">
+          <div class="task-top">
             <input type="checkbox" data-key="feedback-loop" aria-label="Tester feedback loop running">
             <div class="task-main">
               <div class="task-title-row">
