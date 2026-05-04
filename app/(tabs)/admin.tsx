@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
-import { C, T, S, R } from '../../lib/constants';
+import { C, T, S } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
@@ -16,6 +16,9 @@ interface AdminStats {
   codesRemaining: number;
   activeEvents: number;
   totalRsvps: number;
+  submittedProjects: number;
+  pendingProjects: number;
+  submittedInterests: number;
 }
 
 export default function AdminScreen() {
@@ -24,15 +27,18 @@ export default function AdminScreen() {
   const [stats, setStats] = useState<AdminStats>({
     totalMembers: 0, activeMembers: 0, codesUsed: 0,
     codesRemaining: 0, activeEvents: 0, totalRsvps: 0,
+    submittedProjects: 0, pendingProjects: 0, submittedInterests: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
-    const [members, codes, events, rsvps] = await Promise.all([
+    const [members, codes, events, rsvps, projects, interests] = await Promise.all([
       supabase.from('members').select('id, status', { count: 'exact', head: true }),
       supabase.from('invitation_codes').select('id, used_by', { count: 'exact' }),
       supabase.from('events').select('id', { count: 'exact' }).gte('ends_at', new Date().toISOString()),
       supabase.from('event_rsvps').select('id', { count: 'exact' }).eq('status', 'confirmed'),
+      supabase.from('projects').select('id, status', { count: 'exact' }),
+      supabase.from('aligned_tiles').select('id, type', { count: 'exact' }),
     ]);
 
     const allCodes = codes.data || [];
@@ -45,6 +51,9 @@ export default function AdminScreen() {
       codesRemaining: (codes.count || 0) - used,
       activeEvents: events.count || 0,
       totalRsvps: rsvps.count || 0,
+      submittedProjects: projects.count || 0,
+      pendingProjects: (projects.data || []).filter((project: any) => project.status === 'pending').length,
+      submittedInterests: interests.count || 0,
     });
   };
 
@@ -84,6 +93,12 @@ export default function AdminScreen() {
       subtitle: `${stats.codesUsed} used · ${stats.codesRemaining} remaining`,
       icon: '◇',
       route: '/admin/codes' as const,
+    },
+    {
+      title: 'Submitted Work',
+      subtitle: `${stats.submittedProjects} projects · ${stats.pendingProjects} pending · ${stats.submittedInterests} interests`,
+      icon: '◌',
+      route: '/admin/aligned' as const,
     },
     {
       title: 'Pulse',
@@ -128,7 +143,7 @@ export default function AdminScreen() {
           {[
             { n: stats.totalMembers, label: 'Members' },
             { n: stats.codesRemaining, label: 'Codes Left' },
-            { n: stats.activeEvents, label: 'Events' },
+            { n: stats.pendingProjects, label: 'Pending' },
           ].map((s, i) => (
             <LiquidGlassCard key={i} variant="dark" style={styles.statCard}>
               <Text style={styles.statNumber}>{s.n}</Text>
