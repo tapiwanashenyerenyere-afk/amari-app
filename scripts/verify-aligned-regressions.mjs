@@ -42,8 +42,11 @@ const migration = read('supabase/migrations/20260504000001_qr_member_connections
 const adminMigration = read('supabase/migrations/20260504000002_admin_member_operations.sql');
 const adminInviteHardeningMigration = read('supabase/migrations/20260504000004_admin_invites_membership_only.sql');
 const adminInvitePrefixMigration = read('supabase/migrations/20260504000005_admin_invite_tier_prefixes.sql');
+const adminProjectReviewMigration = read('supabase/migrations/20260504000006_admin_project_review.sql');
 const adminMembers = read('app/admin/members.tsx');
 const adminCodes = read('app/admin/codes.tsx');
+const adminHome = read('app/(tabs)/admin.tsx');
+const adminAligned = read('app/admin/aligned.tsx');
 const appJson = JSON.parse(read('app.json'));
 const packageJson = JSON.parse(read('package.json'));
 
@@ -152,6 +155,49 @@ assertIncludes(
   'Connect modal must communicate that the message goes to the project creator.',
 );
 pass('connect-message checks passed');
+
+// 2b. Aligned core navigation regressions.
+assertIncludes(
+  aligned,
+  "import { CardPopupModal }",
+  'Aligned board pass action must open the QR pass modal directly.',
+);
+assertIncludes(
+  aligned,
+  'const [showPassPopup, setShowPassPopup] = useState(false);',
+  'Aligned board pass action must have local pass modal state.',
+);
+assertIncludes(
+  aligned,
+  'setShowPassPopup(true);',
+  'Aligned board pass action must open the pass modal instead of navigating away.',
+);
+assertNotIncludes(
+  aligned,
+  "router.push('/(tabs)/profile');",
+  'Aligned board pass action must not route to Profile as a proxy for QR access.',
+);
+assertIncludes(
+  read('components/aligned/ViewToggle.tsx'),
+  "export type AlignedView = 'board' | 'map' | 'list' | 'interests';",
+  'Aligned top-level view toggle must include a project list view.',
+);
+assertIncludes(
+  aligned,
+  "onOpenMap={() => switchView('list')}",
+  'Aligned Projects entry card must open the list-first project view.',
+);
+assertIncludes(
+  aligned,
+  'Project list',
+  'Aligned project list view must have a visible Project list heading.',
+);
+assertIncludes(
+  aligned,
+  "switchView(activeView === 'list' ? 'map' : 'list')",
+  'Aligned project list must expose a direct map/list switch.',
+);
+pass('aligned navigation checks passed');
 
 // 3. QR pass connection RPC regressions.
 assertIncludes(
@@ -325,6 +371,51 @@ assertIncludes(
   'Admin codes screen must create membership codes through the admin RPC.',
 );
 assertIncludes(adminCodes, 'Create Membership Code', 'Admin codes screen must expose code creation.');
+assertIncludes(
+  adminProjectReviewMigration,
+  'create policy "Projects admin all"',
+  'Admin project review migration must allow admins to read pending projects.',
+);
+assertIncludes(
+  adminProjectReviewMigration,
+  'create or replace function public.admin_set_project_status',
+  'Admin project review migration must expose a project moderation RPC.',
+);
+assertIncludes(
+  adminProjectReviewMigration,
+  'perform public.refresh_map_cache();',
+  'Approving or rejecting a project must refresh the map cache.',
+);
+assertIncludes(
+  adminHome,
+  'Submitted Work',
+  'Admin home must link to submitted projects and interests.',
+);
+assertIncludes(
+  adminHome,
+  "route: '/admin/aligned'",
+  'Admin home submitted-work card must route to the aligned admin screen.',
+);
+assertIncludes(
+  adminAligned,
+  ".from('projects')",
+  'Admin submitted-work screen must fetch canonical project submissions.',
+);
+assertIncludes(
+  adminAligned,
+  ".from('aligned_tiles')",
+  'Admin submitted-work screen must fetch legacy interest/project tiles.',
+);
+assertIncludes(
+  adminAligned,
+  "supabase.rpc('admin_set_project_status'",
+  'Admin submitted-work screen must moderate canonical projects.',
+);
+assertIncludes(
+  adminAligned,
+  "supabase.rpc('review_aligned_tile'",
+  'Admin submitted-work screen must moderate aligned interest/project tiles.',
+);
 pass('admin operations checks passed');
 
 process.stdout.write('[verify:aligned-regressions] passed\n');
