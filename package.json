@@ -13,6 +13,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "verify:security": "node ./scripts/verify-security.mjs",
+    "verify:aligned-regressions": "node ./scripts/verify-aligned-regressions.mjs",
     "test:onboarding-security": "node ./scripts/verify-onboarding-security.mjs",
     "test:rls": "node ./scripts/verify-onboarding-security.mjs",
     "verify:release": "node ./scripts/verify-release.mjs",
