@@ -244,7 +244,7 @@ export default function ProfileScreen() {
       const projectIds = bookmarkRows.map((row) => row.project_id);
       const { data: projects, error: projectError } = await supabase
         .from('map_cache_projects')
-        .select('project_id, name, description, category, creator_first_name')
+        .select('project_id, name, description, category')
         .in('project_id', projectIds);
 
       if (projectError || !projects) {
@@ -253,7 +253,7 @@ export default function ProfileScreen() {
           expressedAt: row.created_at,
           category: 'Project',
           title: `Saved project ${index + 1}`,
-          author: 'AMARI member',
+          author: 'Project creator',
         }));
       }
 
@@ -267,7 +267,7 @@ export default function ProfileScreen() {
             expressedAt: row.created_at,
             category: 'Project',
             title: 'Saved project',
-            author: 'AMARI member',
+            author: 'Project creator',
           };
         }
 
@@ -276,7 +276,7 @@ export default function ProfileScreen() {
           expressedAt: row.created_at,
           category: sentenceCase(project.category || 'Project'),
           title: project.name || project.description || 'Saved project',
-          author: project.creator_first_name || 'AMARI member',
+          author: 'Project creator',
         };
       });
     },

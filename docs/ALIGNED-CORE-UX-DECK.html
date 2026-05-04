@@ -1,0 +1,1432 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMARI Aligned Core UX Deck</title>
+  <style>
+    :root {
+      --black: #0a0a0a;
+      --charcoal: #161616;
+      --card: #1c1c1c;
+      --bone: #f2ede6;
+      --cream: #fdfcfa;
+      --warm: #ede7de;
+      --gold: #c4a265;
+      --gold-dark: #a8884f;
+      --wine: #722f37;
+      --steel: #405366;
+      --sage: #52634b;
+      --muted: #746f67;
+      --line: rgba(10, 10, 10, 0.1);
+      --dark-line: rgba(255, 255, 255, 0.11);
+      --shadow: 0 20px 60px rgba(10, 10, 10, 0.14);
+      --sans: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
+      --serif: Georgia, "Times New Roman", serif;
+      --mono: "JetBrains Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(196, 162, 101, 0.14), transparent 32%),
+        radial-gradient(circle at 86% 18%, rgba(64, 83, 102, 0.12), transparent 30%),
+        var(--bone);
+      color: var(--black);
+      font-family: var(--sans);
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .deck {
+      display: grid;
+      grid-template-columns: 238px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .rail {
+      border-right: 1px solid var(--line);
+      padding: 22px 18px;
+      background: rgba(253, 252, 250, 0.64);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+    }
+
+    .brand-mark {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .brand-note {
+      margin-top: 3px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav button {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 10px 11px;
+      text-align: left;
+    }
+
+    .nav button.active {
+      border-color: rgba(196, 162, 101, 0.26);
+      background: rgba(196, 162, 101, 0.12);
+      color: var(--black);
+    }
+
+    .nav-kicker {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .nav-title {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .rail-foot {
+      position: absolute;
+      bottom: 22px;
+      width: 196px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .stage {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .slides {
+      display: flex;
+      height: 100vh;
+      transition: transform 520ms cubic-bezier(0.2, 0.72, 0.22, 1);
+    }
+
+    .slide {
+      display: grid;
+      grid-template-columns: minmax(360px, 0.88fr) minmax(460px, 1.12fr);
+      gap: 44px;
+      min-width: 100%;
+      padding: 52px 58px 72px;
+      align-items: center;
+    }
+
+    .slide.copy-wide {
+      grid-template-columns: minmax(500px, 1fr) minmax(420px, 0.8fr);
+    }
+
+    .kicker {
+      color: var(--gold-dark);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-weight: 600;
+      letter-spacing: -0.045em;
+      line-height: 0.94;
+    }
+
+    h1 {
+      font-size: clamp(58px, 7vw, 102px);
+      max-width: 840px;
+    }
+
+    h2 {
+      font-size: clamp(44px, 5vw, 76px);
+      max-width: 790px;
+    }
+
+    .lead {
+      max-width: 640px;
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    .principle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(253, 252, 250, 0.72);
+      padding: 8px 11px;
+      color: var(--black);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .note-card,
+    .dark-panel,
+    .map-card,
+    .admin-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(253, 252, 250, 0.78);
+      box-shadow: var(--shadow);
+    }
+
+    .note-card {
+      padding: 24px;
+    }
+
+    .note-card h3,
+    .admin-card h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+
+    .note-card p,
+    .admin-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .phone-row {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phone {
+      width: 276px;
+      height: 590px;
+      border: 10px solid #111;
+      border-radius: 38px;
+      background: var(--bone);
+      box-shadow: 0 28px 70px rgba(10, 10, 10, 0.24);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .phone.small {
+      width: 224px;
+      height: 476px;
+      border-radius: 32px;
+      border-width: 8px;
+    }
+
+    .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 16px 12px;
+    }
+
+    .phone-title {
+      font-family: var(--serif);
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.04em;
+    }
+
+    .icon-dot {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--cream);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin: 0 14px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(10, 10, 10, 0.04);
+      padding: 4px;
+    }
+
+    .segmented.two {
+      grid-template-columns: repeat(2, 1fr);
+      margin-top: 0;
+    }
+
+    .segment {
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 8px 2px;
+      text-align: center;
+    }
+
+    .segment.active {
+      background: var(--black);
+      color: var(--cream);
+    }
+
+    .search-bar {
+      margin: 0 14px 12px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--cream);
+      color: var(--muted);
+      padding: 12px 13px;
+      font-size: 12px;
+    }
+
+    .project-list {
+      display: grid;
+      gap: 10px;
+      padding: 0 14px 120px;
+    }
+
+    .project-card {
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 12px;
+      border: 1px solid rgba(10, 10, 10, 0.07);
+      border-radius: 14px;
+      background: var(--cream);
+      padding: 11px;
+    }
+
+    .project-thumb {
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 25% 20%, rgba(196, 162, 101, 0.32), transparent 34%),
+        linear-gradient(145deg, #161616, #262019);
+    }
+
+    .project-thumb.steel {
+      background:
+        radial-gradient(circle at 70% 20%, rgba(104, 132, 168, 0.34), transparent 35%),
+        linear-gradient(145deg, #151923, #0f1118);
+    }
+
+    .project-thumb.sage {
+      background:
+        radial-gradient(circle at 30% 25%, rgba(117, 151, 116, 0.35), transparent 35%),
+        linear-gradient(145deg, #121b14, #0d110e);
+    }
+
+    .meta {
+      color: var(--gold-dark);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .project-name {
+      color: var(--black);
+      font-family: var(--serif);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.12;
+    }
+
+    .project-desc {
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+      margin-top: 5px;
+    }
+
+    .bottom-tabs {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2px;
+      border-top: 1px solid rgba(10, 10, 10, 0.08);
+      background: rgba(253, 252, 250, 0.94);
+      padding: 10px 6px 12px;
+    }
+
+    .bottom-tab {
+      color: rgba(10, 10, 10, 0.28);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .bottom-tab.active {
+      color: var(--black);
+    }
+
+    .map-viewport {
+      position: relative;
+      height: 318px;
+      margin: 0 14px 10px;
+      border-radius: 20px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        #151515;
+      background-size: 28px 28px;
+      overflow: hidden;
+    }
+
+    .continent {
+      position: absolute;
+      border: 1px solid rgba(196, 162, 101, 0.28);
+      background: rgba(196, 162, 101, 0.06);
+      filter: blur(0.1px);
+    }
+
+    .continent.one {
+      width: 130px;
+      height: 98px;
+      left: 36px;
+      top: 84px;
+      border-radius: 56% 44% 52% 48%;
+      transform: rotate(-16deg);
+    }
+
+    .continent.two {
+      width: 72px;
+      height: 50px;
+      right: 34px;
+      bottom: 70px;
+      border-radius: 42% 58% 50% 50%;
+      transform: rotate(18deg);
+    }
+
+    .pin {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--black);
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 7px rgba(196, 162, 101, 0.13);
+    }
+
+    .pin.a { left: 76px; top: 124px; }
+    .pin.b { left: 144px; top: 166px; }
+    .pin.c { right: 58px; bottom: 95px; }
+
+    .map-sheet {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      border-radius: 16px;
+      background: var(--cream);
+      padding: 12px;
+    }
+
+    .map-sheet-title {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 9px;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 9px;
+      align-items: center;
+      border-top: 1px solid rgba(10, 10, 10, 0.06);
+      padding-top: 9px;
+    }
+
+    .dossier {
+      display: grid;
+      gap: 16px;
+      padding: 0 14px 118px;
+    }
+
+    .dossier-hero {
+      min-height: 158px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(196, 162, 101, 0.22), transparent 30%),
+        linear-gradient(145deg, #1c1c1c, #0f0f0f);
+      color: var(--cream);
+      padding: 18px;
+    }
+
+    .dossier-title {
+      margin-top: 36px;
+      font-family: var(--serif);
+      font-size: 23px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .dossier-copy {
+      margin-top: 9px;
+      color: rgba(253, 252, 250, 0.58);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .action {
+      border-radius: 13px;
+      background: var(--cream);
+      border: 1px solid var(--line);
+      padding: 12px 6px;
+      text-align: center;
+    }
+
+    .action strong {
+      display: block;
+      font-size: 12px;
+    }
+
+    .action span {
+      display: block;
+      color: var(--muted);
+      font-size: 9px;
+      margin-top: 4px;
+    }
+
+    .connection-profile {
+      display: grid;
+      gap: 10px;
+      padding: 0 14px 118px;
+    }
+
+    .member-card {
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(196, 162, 101, 0.2), transparent 34%),
+        linear-gradient(145deg, #1b1b1b, #0f0f0f);
+      color: var(--cream);
+      padding: 18px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: var(--black);
+      display: grid;
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 700;
+      place-items: center;
+    }
+
+    .member-name {
+      margin-top: 14px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .privacy-strip {
+      display: grid;
+      gap: 8px;
+    }
+
+    .privacy-row {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--cream);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 11px;
+    }
+
+    .privacy-row strong {
+      color: var(--black);
+    }
+
+    .dark-panel {
+      background: var(--charcoal);
+      border-color: var(--dark-line);
+      color: var(--cream);
+      padding: 22px;
+    }
+
+    .dark-panel p {
+      color: rgba(253, 252, 250, 0.62);
+    }
+
+    .qr-flow {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .qr-step {
+      border: 1px solid var(--dark-line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      min-height: 132px;
+      padding: 14px;
+    }
+
+    .qr-step-number {
+      color: var(--gold);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      margin-bottom: 18px;
+    }
+
+    .qr-step-title {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+
+    .qr-step-copy {
+      margin-top: 8px;
+      color: rgba(253, 252, 250, 0.56);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .scanner {
+      height: 264px;
+      margin: 0 14px 12px;
+      border-radius: 20px;
+      background:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+        #090909;
+      background-size: 24px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-frame {
+      position: absolute;
+      inset: 52px;
+      border: 2px solid rgba(196, 162, 101, 0.72);
+      border-radius: 22px;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 58px;
+      right: 58px;
+      top: 112px;
+      height: 2px;
+      background: var(--gold);
+      box-shadow: 0 0 20px rgba(196, 162, 101, 0.8);
+    }
+
+    .confirm-sheet {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      border-radius: 18px;
+      background: var(--cream);
+      padding: 14px;
+    }
+
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn {
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 11px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .btn.primary {
+      background: var(--black);
+      color: var(--cream);
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 26px;
+    }
+
+    .admin-card {
+      min-height: 210px;
+      padding: 20px;
+    }
+
+    .admin-rows {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .admin-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(10, 10, 10, 0.07);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.44);
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .status {
+      border-radius: 999px;
+      background: rgba(82, 99, 75, 0.12);
+      color: var(--sage);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      padding: 5px 7px;
+      text-transform: uppercase;
+    }
+
+    .status.warn {
+      background: rgba(114, 47, 55, 0.1);
+      color: var(--wine);
+    }
+
+    .journey {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .journey-step {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(253, 252, 250, 0.74);
+      min-height: 178px;
+      padding: 16px;
+      position: relative;
+    }
+
+    .journey-step::after {
+      content: "";
+      position: absolute;
+      top: 36px;
+      right: -18px;
+      width: 24px;
+      height: 1px;
+      background: rgba(10, 10, 10, 0.18);
+    }
+
+    .journey-step:last-child::after {
+      display: none;
+    }
+
+    .journey-step h3 {
+      margin: 24px 0 10px;
+      font-family: var(--serif);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .journey-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .guardrails {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .guardrail {
+      border-left: 3px solid var(--gold);
+      background: rgba(253, 252, 250, 0.68);
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .controls {
+      position: absolute;
+      right: 30px;
+      bottom: 26px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .controls button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(253, 252, 250, 0.78);
+      color: var(--black);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .progress {
+      position: absolute;
+      left: 58px;
+      right: 58px;
+      bottom: 34px;
+      height: 2px;
+      background: rgba(10, 10, 10, 0.08);
+      z-index: 5;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 10%;
+      background: var(--gold-dark);
+      transition: width 520ms cubic-bezier(0.2, 0.72, 0.22, 1);
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .deck {
+        display: block;
+      }
+
+      .rail {
+        display: none;
+      }
+
+      .slides {
+        display: block;
+        height: auto;
+        transform: none !important;
+      }
+
+      .slide {
+        display: block;
+        min-height: 100vh;
+        padding: 34px 18px 80px;
+      }
+
+      .phone-row,
+      .admin-grid,
+      .journey,
+      .qr-flow,
+      .guardrails {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .phone-row {
+        justify-items: center;
+        margin-top: 28px;
+      }
+
+      .controls,
+      .progress {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <aside class="rail">
+      <div class="brand">
+        <img src="../assets/images/amari-logo-dark.png" alt="">
+        <div>
+          <div class="brand-mark">AMARI</div>
+          <div class="brand-note">Aligned UX</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="rail-foot">
+        Use arrow keys or the controls. This deck is a visual brief for the Aligned rebuild before implementation.
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="slides" id="slides">
+        <article class="slide copy-wide" data-title="Aligned Is The Hub">
+          <div>
+            <div class="kicker">Product Direction</div>
+            <h1>Aligned becomes the work room.</h1>
+            <p class="lead">
+              The tab is not a social feed. It is where members find projects, understand what people are building,
+              save opportunities, make consent-based connections, and then contact each other through native phone apps.
+            </p>
+            <div class="principle-row">
+              <span class="pill">Projects first</span>
+              <span class="pill">Map and list</span>
+              <span class="pill">Consent-based contact</span>
+              <span class="pill">No in-app DMs yet</span>
+            </div>
+          </div>
+          <div class="dark-panel">
+            <div class="kicker">Core Rule</div>
+            <h2>Show the work, not the private graph.</h2>
+            <p class="lead">
+              Members should see all approved projects and interests. They should only see deeper member context
+              after a mutual connection, and should never see someone else's connection list.
+            </p>
+          </div>
+        </article>
+
+        <article class="slide" data-title="New Navigation">
+          <div>
+            <div class="kicker">Information Architecture</div>
+            <h2>Four rooms inside Aligned.</h2>
+            <p class="lead">
+              Projects and Interests are discovery surfaces. Connections is the trusted relationship layer.
+              My Board is the member's saved and submitted work.
+            </p>
+            <div class="guardrails">
+              <div class="guardrail"><strong>Projects:</strong> approved work from the network, with map/list browsing.</div>
+              <div class="guardrail"><strong>Interests:</strong> what people are looking for, offering, or exploring.</div>
+              <div class="guardrail"><strong>Connections:</strong> mutual members only, with their work and contact actions.</div>
+              <div class="guardrail"><strong>My Board:</strong> saved projects, my projects, and my interests.</div>
+            </div>
+          </div>
+          <div class="phone-row">
+            <div class="phone">
+              <div class="phone-header">
+                <div class="phone-title">Aligned</div>
+                <div class="icon-dot">S</div>
+              </div>
+              <div class="segmented">
+                <div class="segment active">Projects</div>
+                <div class="segment">Interests</div>
+                <div class="segment">People</div>
+                <div class="segment">Board</div>
+              </div>
+              <div class="segmented two">
+                <div class="segment active">List</div>
+                <div class="segment">Map</div>
+              </div>
+              <div class="search-bar">Search projects, sectors, regions</div>
+              <div class="project-list">
+                <div class="project-card">
+                  <div class="project-thumb"></div>
+                  <div>
+                    <div class="meta">Venture</div>
+                    <div class="project-name">Diaspora Capital Fund</div>
+                    <div class="project-desc">Early-stage capital for Black diaspora founders.</div>
+                  </div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb steel"></div>
+                  <div>
+                    <div class="meta">Technology</div>
+                    <div class="project-name">Founder OS</div>
+                    <div class="project-desc">Operating tools for African-led ventures.</div>
+                  </div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb sage"></div>
+                  <div>
+                    <div class="meta">Impact</div>
+                    <div class="project-name">Clinical Bridge</div>
+                    <div class="project-desc">Health access workflows across city networks.</div>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom-tabs">
+                <div class="bottom-tab">Pulse</div>
+                <div class="bottom-tab">Events</div>
+                <div class="bottom-tab active">Aligned</div>
+                <div class="bottom-tab">Corridor</div>
+                <div class="bottom-tab">Me</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide" data-title="Projects Map And List">
+          <div>
+            <div class="kicker">Projects Experience</div>
+            <h2>Map for place. List for speed.</h2>
+            <p class="lead">
+              Members should not have to understand the map to use Aligned. The same approved project data powers
+              both modes, with saved state, filters, search, and project detail preserved across the toggle.
+            </p>
+            <div class="principle-row">
+              <span class="pill">Same data source</span>
+              <span class="pill">Same filters</span>
+              <span class="pill">Save to board</span>
+              <span class="pill">Open dossier</span>
+            </div>
+          </div>
+          <div class="phone-row">
+            <div class="phone small">
+              <div class="phone-header">
+                <div class="phone-title">Projects</div>
+                <div class="icon-dot">F</div>
+              </div>
+              <div class="segmented two">
+                <div class="segment active">Map</div>
+                <div class="segment">List</div>
+              </div>
+              <div class="map-viewport">
+                <div class="continent one"></div>
+                <div class="continent two"></div>
+                <div class="pin a"></div>
+                <div class="pin b"></div>
+                <div class="pin c"></div>
+                <div class="map-sheet">
+                  <div class="map-sheet-title"><span>18 projects in view</span><span>Expand</span></div>
+                  <div class="mini-row">
+                    <div class="project-thumb"></div>
+                    <div>
+                      <div class="meta">Venture</div>
+                      <div class="project-name">Capital Fund</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone small">
+              <div class="phone-header">
+                <div class="phone-title">Projects</div>
+                <div class="icon-dot">L</div>
+              </div>
+              <div class="segmented two">
+                <div class="segment">Map</div>
+                <div class="segment active">List</div>
+              </div>
+              <div class="search-bar">Filter: Venture, AU, saved</div>
+              <div class="project-list">
+                <div class="project-card">
+                  <div class="project-thumb"></div>
+                  <div><div class="meta">Saved</div><div class="project-name">Diaspora Capital Fund</div><div class="project-desc">Open dossier</div></div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb steel"></div>
+                  <div><div class="meta">Technology</div><div class="project-name">Founder OS</div><div class="project-desc">Save to board</div></div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb sage"></div>
+                  <div><div class="meta">Impact</div><div class="project-name">Clinical Bridge</div><div class="project-desc">Request context</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide" data-title="Project Dossier">
+          <div>
+            <div class="kicker">Project Detail</div>
+            <h2>The project dossier is the new unit of value.</h2>
+            <p class="lead">
+              Every project opens into a focused work profile: what it is, who submitted it, where it sits,
+              what the member needs, and the next permitted action.
+            </p>
+            <div class="guardrails">
+              <div class="guardrail">Before connection: save, request intro, visit public link if available.</div>
+              <div class="guardrail">After connection: see the member's projects and interests, then contact.</div>
+            </div>
+          </div>
+          <div class="phone-row">
+            <div class="phone">
+              <div class="phone-header">
+                <div class="phone-title">Dossier</div>
+                <div class="icon-dot">X</div>
+              </div>
+              <div class="dossier">
+                <div class="dossier-hero">
+                  <div class="meta">Venture / Melbourne</div>
+                  <div class="dossier-title">Diaspora Capital Fund</div>
+                  <div class="dossier-copy">Early-stage fund investing in Australia's Black diaspora founders.</div>
+                </div>
+                <div class="action-grid">
+                  <div class="action"><strong>Save</strong><span>Board</span></div>
+                  <div class="action"><strong>Intro</strong><span>Consent</span></div>
+                  <div class="action"><strong>Link</strong><span>External</span></div>
+                </div>
+                <div class="project-card">
+                  <div class="avatar">@</div>
+                  <div>
+                    <div class="meta">Submitted by</div>
+                    <div class="project-name">Project creator</div>
+                    <div class="project-desc">Contact email visible if shared. Personal name stays hidden in browsing.</div>
+                  </div>
+                </div>
+                <div class="privacy-row">
+                  <strong>Privacy:</strong> no submitter name, phone, or connection graph is shown from project browsing.
+                </div>
+              </div>
+              <div class="bottom-tabs">
+                <div class="bottom-tab">Pulse</div>
+                <div class="bottom-tab">Events</div>
+                <div class="bottom-tab active">Aligned</div>
+                <div class="bottom-tab">Corridor</div>
+                <div class="bottom-tab">Me</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide" data-title="Connection Profiles">
+          <div>
+            <div class="kicker">Connections</div>
+            <h2>Connections unlock work context, not private networks.</h2>
+            <p class="lead">
+              Once connected, members can see each other's submitted projects and interests. They cannot see each
+              other's full connection lists. Contact options open native apps, not AMARI chat.
+            </p>
+            <div class="principle-row">
+              <span class="pill">Their projects</span>
+              <span class="pill">Their interests</span>
+              <span class="pill">Contact actions</span>
+              <span class="pill">No connection graph</span>
+            </div>
+          </div>
+          <div class="phone-row">
+            <div class="phone">
+              <div class="phone-header">
+                <div class="phone-title">Connection</div>
+                <div class="icon-dot">...</div>
+              </div>
+              <div class="connection-profile">
+                <div class="member-card">
+                  <div class="avatar">IM</div>
+                  <div class="member-name">Ivy Mutuku</div>
+                  <div class="dossier-copy">Platinum member. Connected through Capital Fund.</div>
+                </div>
+                <div class="action-grid">
+                  <div class="action"><strong>Email</strong><span>Mail app</span></div>
+                  <div class="action"><strong>Message</strong><span>If shared</span></div>
+                  <div class="action"><strong>Phone</strong><span>Intl code</span></div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb steel"></div>
+                  <div><div class="meta">Her project</div><div class="project-name">Africa Retail Ledger</div><div class="project-desc">Payments and inventory rails.</div></div>
+                </div>
+                <div class="project-card">
+                  <div class="project-thumb sage"></div>
+                  <div><div class="meta">Her interest</div><div class="project-name">Seeking operators</div><div class="project-desc">Retail, compliance, finance.</div></div>
+                </div>
+                <div class="privacy-row"><strong>Hidden:</strong> Ivy's other connections are not visible.</div>
+              </div>
+              <div class="bottom-tabs">
+                <div class="bottom-tab">Pulse</div>
+                <div class="bottom-tab">Events</div>
+                <div class="bottom-tab active">Aligned</div>
+                <div class="bottom-tab">Corridor</div>
+                <div class="bottom-tab">Me</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide" data-title="Contact Handoff">
+          <div>
+            <div class="kicker">Contact Model</div>
+            <h2>Use the phone's apps now. Log the intent only.</h2>
+            <p class="lead">
+              AMARI should not host private messaging until legal, moderation, retention, and governance rules are solved.
+              For now, connected members can contact each other through email or phone messaging when a number is shared
+              with an international code.
+            </p>
+            <div class="guardrails">
+              <div class="guardrail">Log actor, target, channel, related project, and timestamp.</div>
+              <div class="guardrail">Require a short connection message before opening the native email app.</div>
+              <div class="guardrail">Do not store email body, message text, call records, or private notes.</div>
+              <div class="guardrail">Phone/message actions require explicit contact sharing. No vCard export.</div>
+              <div class="guardrail">Future: in-app messaging after governance decision.</div>
+            </div>
+          </div>
+          <div class="dark-panel">
+            <div class="kicker">Native Handoff</div>
+            <div class="qr-flow">
+              <div class="qr-step">
+                <div class="qr-step-number">01</div>
+                <div class="qr-step-title">Tap Connect</div>
+                <div class="qr-step-copy">Project creator name stays hidden; contact email is shown if shared.</div>
+              </div>
+              <div class="qr-step">
+                <div class="qr-step-number">02</div>
+                <div class="qr-step-title">Write Message</div>
+                <div class="qr-step-copy">Explain why you want to connect before any handoff.</div>
+              </div>
+              <div class="qr-step">
+                <div class="qr-step-number">03</div>
+                <div class="qr-step-title">Open Email</div>
+                <div class="qr-step-copy">Native mail opens with subject, project, and your note.</div>
+              </div>
+              <div class="qr-step">
+                <div class="qr-step-number">04</div>
+                <div class="qr-step-title">Audit Intent</div>
+                <div class="qr-step-copy">Record that contact was initiated, not what was said.</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide" data-title="QR Connect">
+          <div>
+            <div class="kicker">Pass And Scan</div>
+            <h2>QR becomes a live bridge, not a dead image.</h2>
+            <p class="lead">
+              The pass modal gets two clear modes: show my pass and scan another pass. Scanning verifies the secure
+              rotating token server-side, then asks for confirmation before creating a mutual connection.
+            </p>
+            <div class="principle-row">
+              <span class="pill">Camera permission</span>
+              <span class="pill">Server verify</span>
+              <span class="pill">Confirm connect</span>
+              <span class="pill">No self-scan</span>
+            </div>
+          </div>
+          <div class="phone-row">
+            <div class="phone small">
+              <div class="phone-header">
+                <div class="phone-title">Scan Pass</div>
+                <div class="icon-dot">Q</div>
+              </div>
+              <div class="scanner">
+                <div class="scan-frame"></div>
+                <div class="scan-line"></div>
+                <div class="confirm-sheet">
+                  <div class="meta">Verified member</div>
+                  <div class="project-name">Tinashe Mapindu</div>
+                  <div class="project-desc">Silver member. AMARI-2026-0142</div>
+                  <div class="confirm-actions">
+                    <div class="btn">Cancel</div>
+                    <div class="btn primary">Connect</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dark-panel">
+              <div class="kicker">Flow</div>
+              <div class="qr-flow" style="grid-template-columns:1fr">
+                <div class="qr-step"><div class="qr-step-number">01</div><div class="qr-step-title">Open pass</div><div class="qr-step-copy">Member chooses show or scan.</div></div>
+                <div class="qr-step"><div class="qr-step-number">02</div><div class="qr-step-title">Scan token</div><div class="qr-step-copy">Camera reads another member's rotating QR.</div></div>
+                <div class="qr-step"><div class="qr-step-number">03</div><div class="qr-step-title">Confirm</div><div class="qr-step-copy">Preview minimal identity, then connect.</div></div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide copy-wide" data-title="Admin Operations">
+          <div>
+            <div class="kicker">Admin From Phone</div>
+            <h2>Admin becomes an operating desk.</h2>
+            <p class="lead">
+              Admins need to see all members across iOS and Android, change tiers, issue one invite at a time,
+              and suspend or reactivate members with reasons. Dangerous actions should use RPCs and audit logs.
+            </p>
+          </div>
+          <div>
+            <div class="admin-grid">
+              <div class="admin-card">
+                <h3>Members</h3>
+                <p>Search all members, filter by tier and status, then open one member record.</p>
+                <div class="admin-rows">
+                  <div class="admin-row"><span>Tinashe M.</span><span class="status">Silver</span></div>
+                  <div class="admin-row"><span>Ivy M.</span><span class="status">Platinum</span></div>
+                  <div class="admin-row"><span>Suspended</span><span class="status warn">Reason</span></div>
+                </div>
+              </div>
+              <div class="admin-card">
+                <h3>Invite Codes</h3>
+                <p>Issue, assign, copy, and share one recipient code without exposing the live code list.</p>
+                <div class="admin-rows">
+                  <div class="admin-row"><span>Tier</span><span>Silver</span></div>
+                  <div class="admin-row"><span>Recipient</span><span>Email</span></div>
+                  <div class="admin-row"><span>Action</span><span class="status">Copy one</span></div>
+                </div>
+              </div>
+              <div class="admin-card">
+                <h3>Audit</h3>
+                <p>Every tier, status, invite, and contact-action log has actor, target, time, and reason.</p>
+                <div class="admin-rows">
+                  <div class="admin-row"><span>Tier changed</span><span class="status">Logged</span></div>
+                  <div class="admin-row"><span>Invite issued</span><span class="status">Logged</span></div>
+                  <div class="admin-row"><span>Contact opened</span><span class="status">Intent</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide copy-wide" data-title="User Journey">
+          <div>
+            <div class="kicker">Member Journey</div>
+            <h2>The full Aligned path.</h2>
+            <p class="lead">
+              This is the journey we should optimise around: discover work, save it, connect with the person,
+              then move the relationship into the real world through the phone's native apps.
+            </p>
+            <div class="journey">
+              <div class="journey-step"><div class="meta">Step 1</div><h3>Browse</h3><p>Member opens Aligned and browses projects by list or map.</p></div>
+              <div class="journey-step"><div class="meta">Step 2</div><h3>Understand</h3><p>They open a project dossier and see the work clearly.</p></div>
+              <div class="journey-step"><div class="meta">Step 3</div><h3>Save</h3><p>They save the project or request context without exposing contact data.</p></div>
+              <div class="journey-step"><div class="meta">Step 4</div><h3>Connect</h3><p>They connect through QR, project, or interest consent.</p></div>
+              <div class="journey-step"><div class="meta">Step 5</div><h3>Contact</h3><p>Email opens outside AMARI with the required connect note.</p></div>
+            </div>
+          </div>
+          <div class="note-card">
+            <h3>Success measure</h3>
+            <p>
+              A member should be able to answer, in under 30 seconds: what are people building,
+              which projects matter to me, who can I speak to, and what is the next respectful action?
+            </p>
+          </div>
+        </article>
+
+        <article class="slide copy-wide" data-title="Implementation Guardrails">
+          <div>
+            <div class="kicker">Build Plan</div>
+            <h2>Ship the trust fixes before the magic.</h2>
+            <p class="lead">
+              Aligned can be ambitious, but the first implementation pass should remove privacy risks,
+              clarify project browsing, then add scanner and admin controls behind hardened server functions.
+            </p>
+            <div class="guardrails">
+              <div class="guardrail">1. Remove connection exposure from board and shared exports.</div>
+              <div class="guardrail">2. Rebuild Aligned navigation into Projects, Interests, Connections, My Board.</div>
+              <div class="guardrail">3. Add connection profile with projects, interests, and contact handoff.</div>
+              <div class="guardrail">4. Add QR scanner plus server-side connect RPC.</div>
+              <div class="guardrail">5. Add admin member directory, status actions, and invite issuing.</div>
+              <div class="guardrail">6. Build new iOS and Android releases because scanner is native.</div>
+            </div>
+          </div>
+          <div class="dark-panel">
+            <div class="kicker">Do Not Break</div>
+            <div class="qr-flow" style="grid-template-columns:repeat(2,1fr)">
+              <div class="qr-step"><div class="qr-step-title">Invite security</div><div class="qr-step-copy">No public code lists or direct client tier writes.</div></div>
+              <div class="qr-step"><div class="qr-step-title">Auth paths</div><div class="qr-step-copy">Keep OTP, magic link, Google, Apple, reviewer password.</div></div>
+              <div class="qr-step"><div class="qr-step-title">Release rules</div><div class="qr-step-copy">No unsigned production OTA. Android Play builds use GitHub signing.</div></div>
+              <div class="qr-step"><div class="qr-step-title">Map compliance</div><div class="qr-step-copy">Do not hide Mapbox logo or attribution.</div></div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="progress"><span id="progress"></span></div>
+      <div class="controls">
+        <button id="prev" aria-label="Previous slide">&lt;</button>
+        <button id="next" aria-label="Next slide">&gt;</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const track = document.getElementById('slides');
+    const progress = document.getElementById('progress');
+    const nav = document.getElementById('nav');
+    const prev = document.getElementById('prev');
+    const next = document.getElementById('next');
+    let index = 0;
+
+    slides.forEach((slide, slideIndex) => {
+      const button = document.createElement('button');
+      button.innerHTML = `<span class="nav-kicker">${String(slideIndex + 1).padStart(2, '0')}</span><span class="nav-title">${slide.dataset.title}</span>`;
+      button.addEventListener('click', () => go(slideIndex));
+      nav.appendChild(button);
+    });
+
+    const navButtons = Array.from(nav.querySelectorAll('button'));
+
+    function go(nextIndex) {
+      index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      track.style.transform = `translateX(-${index * 100}%)`;
+      navButtons.forEach((button, buttonIndex) => {
+        button.classList.toggle('active', buttonIndex === index);
+      });
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+    }
+
+    prev.addEventListener('click', () => go(index - 1));
+    next.addEventListener('click', () => go(index + 1));
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') go(index - 1);
+      if (event.key === 'ArrowRight' || event.key === ' ') go(index + 1);
+    });
+
+    go(0);
+  </script>
+</body>
+</html>

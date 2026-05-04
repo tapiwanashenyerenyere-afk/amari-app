@@ -1,13 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Modal, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import QRCode from 'react-native-qrcode-svg';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
+import { useQueryClient } from '@tanstack/react-query';
 import { colors, typography } from '@/lib/theme';
+import { supabase } from '@/lib/supabase';
 import { useBarcode } from '@/hooks/useBarcode';
 import { ProfileMembershipCard } from './ProfileMembershipCard';
 
 const AMARI_LOGO_DARK = require('../../assets/images/amari-logo-dark.png');
+
+interface PassConnectResult {
+  success?: boolean;
+  already_connected?: boolean;
+  connection_id?: string;
+  display_id?: string;
+  name?: string;
+  error?: string;
+}
 
 interface CardPopupModalProps {
   visible: boolean;
@@ -29,6 +41,11 @@ export function CardPopupModal({
   memberUuid,
 }: CardPopupModalProps) {
   const [mounted, setMounted] = useState(visible);
+  const [scanMode, setScanMode] = useState(false);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanStatus, setScanStatus] = useState('Align another member pass inside the frame.');
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const queryClient = useQueryClient();
   const { data: barcode, isLoading: barcodeLoading, refetch } = useBarcode();
 
   useEffect(() => {
@@ -38,13 +55,12 @@ export function CardPopupModal({
       return;
     }
 
+    setScanMode(false);
+    setScanBusy(false);
+    setScanStatus('Align another member pass inside the frame.');
     const timeout = setTimeout(() => setMounted(false), 420);
     return () => clearTimeout(timeout);
   }, [visible, refetch]);
-
-  if (!mounted) {
-    return null;
-  }
 
   const memberProfileUrl = `https://amari.app/member/${memberUuid}`;
   const qrValue = barcode?.token ?? '';
@@ -90,6 +106,79 @@ export function CardPopupModal({
     }
   };
 
+  const handleScanPress = useCallback(async () => {
+    const permission = cameraPermission?.granted ? cameraPermission : await requestCameraPermission();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Camera permission needed',
+        'AMARI needs camera access to scan another member pass.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
+      return;
+    }
+
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setScanStatus('Align another member pass inside the frame.');
+    setScanMode(true);
+  }, [cameraPermission, requestCameraPermission]);
+
+  const handleBarcodeScanned = useCallback(
+    async (result: BarcodeScanningResult) => {
+      if (scanBusy || !result.data) {
+        return;
+      }
+
+      setScanBusy(true);
+      setScanStatus('Verifying secure pass...');
+
+      try {
+        const { data, error } = await supabase.rpc('connect_with_member_barcode', {
+          p_token: result.data,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        const connectResult = data as PassConnectResult;
+        if (!connectResult?.success) {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          setScanStatus(connectResult?.error || 'This pass could not be verified.');
+          Alert.alert('Pass not verified', connectResult?.error || 'This QR code is not a valid AMARI member pass.');
+          setScanBusy(false);
+          return;
+        }
+
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setScanMode(false);
+        setScanBusy(false);
+        setScanStatus('Align another member pass inside the frame.');
+        queryClient.invalidateQueries({ queryKey: ['aligned', 'recent-connections'] });
+
+        Alert.alert(
+          connectResult.already_connected ? 'Already connected' : 'Connection added',
+          connectResult.name
+            ? `${connectResult.name} is now available in your Aligned connections.`
+            : 'This member is now available in your Aligned connections.',
+        );
+      } catch (error: any) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setScanStatus('Scan failed. Try again.');
+        Alert.alert('Scan failed', error?.message || 'The pass could not be checked right now.');
+        setScanBusy(false);
+      }
+    },
+    [queryClient, scanBusy],
+  );
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <Modal transparent visible onRequestClose={onClose}>
       <View style={styles.root}>
@@ -125,33 +214,67 @@ export function CardPopupModal({
             transition={{ type: 'timing', duration: 320, delay: 180 }}
             style={styles.qrSection}
           >
-            <View style={styles.qrShell}>
-              {qrValue ? (
-                <QRCode
-                  value={qrValue}
-                  size={156}
-                  color={colors.black}
-                  backgroundColor={colors.white}
-                  ecl="H"
+            {scanMode ? (
+              <View style={styles.scannerShell}>
+                <CameraView
+                  active={visible && scanMode}
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  facing="back"
+                  onBarcodeScanned={scanBusy ? undefined : handleBarcodeScanned}
+                  style={styles.cameraPreview}
                 />
-              ) : barcodeLoading ? (
-                <View style={styles.qrState}>
-                  <ActivityIndicator color={colors.black} />
-                  <Text style={styles.qrStateTitle}>Generating secure pass</Text>
-                  <Text style={styles.qrStateText}>Preparing today&apos;s event access code.</Text>
+                <View pointerEvents="none" style={styles.scannerFrame}>
+                  <View style={styles.scannerCornerTopLeft} />
+                  <View style={styles.scannerCornerTopRight} />
+                  <View style={styles.scannerCornerBottomLeft} />
+                  <View style={styles.scannerCornerBottomRight} />
                 </View>
-              ) : (
-                <Pressable onPress={() => refetch()} style={styles.qrState}>
-                  <Text style={styles.qrStateTitle}>Pass unavailable</Text>
-                  <Text style={styles.qrStateText}>
-                    Tap to retry loading your secure event access code.
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-            <Image source={AMARI_LOGO_DARK} style={styles.qrLogoMark} resizeMode="contain" />
-            <Text style={styles.qrId}>{displayId}</Text>
-            {expiryLabel ? <Text style={styles.qrExpiry}>Valid until {expiryLabel}</Text> : null}
+                <View style={styles.scannerFooter}>
+                  {scanBusy ? <ActivityIndicator color={colors.white} /> : null}
+                  <Text style={styles.scannerStatus}>{scanStatus}</Text>
+                  <Pressable
+                    onPress={() => {
+                      setScanMode(false);
+                      setScanBusy(false);
+                      setScanStatus('Align another member pass inside the frame.');
+                    }}
+                    style={styles.scannerCancelButton}
+                  >
+                    <Text style={styles.scannerCancelText}>Cancel scan</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View style={styles.qrShell}>
+                  {qrValue ? (
+                    <QRCode
+                      value={qrValue}
+                      size={156}
+                      color={colors.black}
+                      backgroundColor={colors.white}
+                      ecl="H"
+                    />
+                  ) : barcodeLoading ? (
+                    <View style={styles.qrState}>
+                      <ActivityIndicator color={colors.black} />
+                      <Text style={styles.qrStateTitle}>Generating secure pass</Text>
+                      <Text style={styles.qrStateText}>Preparing today&apos;s event access code.</Text>
+                    </View>
+                  ) : (
+                    <Pressable onPress={() => refetch()} style={styles.qrState}>
+                      <Text style={styles.qrStateTitle}>Pass unavailable</Text>
+                      <Text style={styles.qrStateText}>
+                        Tap to retry loading your secure event access code.
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                <Image source={AMARI_LOGO_DARK} style={styles.qrLogoMark} resizeMode="contain" />
+                <Text style={styles.qrId}>{displayId}</Text>
+                {expiryLabel ? <Text style={styles.qrExpiry}>Valid until {expiryLabel}</Text> : null}
+              </>
+            )}
           </MotiView>
 
           <MotiView
@@ -176,6 +299,12 @@ export function CardPopupModal({
             >
               <Text style={styles.walletButtonText}>Share to apps</Text>
             </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.walletButton, pressed && styles.walletButtonPressed]}
+              onPress={handleScanPress}
+            >
+              <Text style={styles.walletButtonText}>Scan pass</Text>
+            </Pressable>
           </MotiView>
 
           <MotiView
@@ -184,7 +313,7 @@ export function CardPopupModal({
             transition={{ type: 'timing', duration: 220, delay: 320 }}
           >
             <Text style={styles.dismissText}>
-              The QR rotates daily for secure event access. Use the share sheet for Notes, Messages, Mail, and other apps.
+              The QR rotates daily. Scan another member pass to connect, or share yours through native apps.
             </Text>
           </MotiView>
         </View>
@@ -230,6 +359,99 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+  },
+  scannerShell: {
+    width: 248,
+    height: 300,
+    overflow: 'hidden',
+    borderRadius: 22,
+    backgroundColor: colors.black,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  cameraPreview: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  scannerFrame: {
+    position: 'absolute',
+    top: 38,
+    left: 36,
+    right: 36,
+    height: 176,
+  },
+  scannerCornerTopLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 32,
+    height: 32,
+    borderLeftWidth: 3,
+    borderTopWidth: 3,
+    borderColor: '#E6CF8C',
+  },
+  scannerCornerTopRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 32,
+    height: 32,
+    borderRightWidth: 3,
+    borderTopWidth: 3,
+    borderColor: '#E6CF8C',
+  },
+  scannerCornerBottomLeft: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    width: 32,
+    height: 32,
+    borderLeftWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: '#E6CF8C',
+  },
+  scannerCornerBottomRight: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 32,
+    height: 32,
+    borderRightWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: '#E6CF8C',
+  },
+  scannerFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 86,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(0,0,0,0.58)',
+  },
+  scannerStatus: {
+    marginTop: 6,
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.white,
+    textAlign: 'center',
+  },
+  scannerCancelButton: {
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  scannerCancelText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.82)',
   },
   qrState: {
     flex: 1,

@@ -1,8 +1,9 @@
 import React, { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   Share,
   ScrollView,
@@ -43,9 +44,10 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../providers/AuthProvider';
 import type { ProjectCategory } from '../../../types/database';
 
+const PROJECT_CREATOR_LABEL = 'Project creator';
+const MIN_CONNECT_MESSAGE_LENGTH = 12;
+
 interface DirectoryProject extends MapResultsProject {
-  creatorFullName: string | null;
-  creatorPhotoUrl: string | null;
   tags: string[];
 }
 
@@ -62,15 +64,9 @@ interface ProjectOwnerRow {
   creator:
     | {
         email: string | null;
-        full_name: string | null;
-        interests: string[] | null;
-        photo_url: string | null;
       }
     | Array<{
         email: string | null;
-        full_name: string | null;
-        interests: string[] | null;
-        photo_url: string | null;
       }>
     | null;
 }
@@ -261,16 +257,14 @@ function InterestDetailCard({
     <View style={styles.interestDetailCard}>
       <View style={styles.interestDetailTop}>
         <View style={styles.interestAvatar}>
-          {project.creatorPhotoUrl ? (
-            <Image source={{ uri: project.creatorPhotoUrl }} style={styles.interestAvatarImage} />
-          ) : (
-            <Text style={styles.interestAvatarInitials}>{initialsFromName(project.creatorLabel)}</Text>
-          )}
+          <Text style={styles.interestAvatarInitials}>{project.name.slice(0, 2).toUpperCase()}</Text>
         </View>
 
         <View style={styles.interestDetailCopy}>
-          <Text style={styles.interestDetailName}>{project.creatorLabel}</Text>
-          <Text style={styles.interestDetailLocation}>{project.display_label}</Text>
+          <Text style={styles.interestDetailName}>{project.name}</Text>
+          <Text style={styles.interestDetailLocation}>
+            {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
+          </Text>
         </View>
 
         <Pressable onPress={onClear} style={styles.closePill}>
@@ -312,8 +306,14 @@ function InterestDetailCard({
       {project.creatorEmail ? (
         <Pressable onPress={() => onContact(project)} style={styles.contactAction}>
           <Mail color={colors.white} size={15} strokeWidth={1.8} />
-          <Text style={styles.contactActionText}>Contact {project.creatorShortName.split(' ')[0]}</Text>
+          <Text style={styles.contactActionText}>Connect with project creator</Text>
         </Pressable>
+      ) : null}
+
+      {project.creatorEmail ? (
+        <Text style={styles.contactRequirementText}>
+          A short message is required before this opens your email app.
+        </Text>
       ) : null}
 
       {project.external_link ? (
@@ -349,18 +349,17 @@ function InterestRow({
   return (
     <Pressable onPress={onPress} style={[styles.interestRow, active ? styles.interestRowActive : null]}>
       <View style={styles.interestRowAvatar}>
-        {project.creatorPhotoUrl ? (
-          <Image source={{ uri: project.creatorPhotoUrl }} style={styles.interestRowAvatarImage} />
-        ) : (
-          <Text style={styles.interestRowInitials}>{initialsFromName(project.creatorLabel)}</Text>
-        )}
+        <Text style={styles.interestRowInitials}>{project.name.slice(0, 2).toUpperCase()}</Text>
       </View>
 
       <View style={styles.interestRowCopy}>
         <Text style={[styles.interestRowCategory, { color: accent }]}>{CATEGORY_COLORS[project.category]?.label ?? project.category}</Text>
-        <Text style={styles.interestRowName}>{project.creatorLabel}</Text>
+        <Text style={styles.interestRowName}>{project.name}</Text>
         <Text style={styles.interestRowDescription} numberOfLines={1}>
           {project.description}
+        </Text>
+        <Text style={styles.interestRowContact} numberOfLines={1}>
+          {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
         </Text>
         <View style={styles.interestRowTags}>
           {project.tags.slice(0, 3).map((tag) => (
@@ -399,7 +398,7 @@ function SearchOverlay({
     if (!normalized) return projects.slice(0, 8);
 
     return projects.filter((project) =>
-      [project.name, project.description, project.creatorLabel, project.display_label, ...project.tags]
+      [project.name, project.description, project.creatorEmail ?? '', project.display_label, ...project.tags]
         .join(' ')
         .toLowerCase()
         .includes(normalized),
@@ -423,7 +422,7 @@ function SearchOverlay({
             <TextInput
               autoFocus
               onChangeText={setQuery}
-              placeholder="Projects, members, places"
+              placeholder="Projects, sectors, places, contact email"
               placeholderTextColor={colors.grayLight}
               style={styles.searchInput}
               value={query}
@@ -437,7 +436,7 @@ function SearchOverlay({
                   <View style={styles.searchResultCopy}>
                     <Text style={styles.searchResultTitle}>{project.name}</Text>
                     <Text style={styles.searchResultMeta}>
-                      {project.creatorLabel} {'\u00B7'} {project.display_label}
+                      {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
                     </Text>
                   </View>
                   <ChevronRight color="rgba(10,10,10,0.22)" size={15} />
@@ -467,8 +466,11 @@ export default function AlignedScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showFullscreenMap, setShowFullscreenMap] = useState(false);
+  const [connectProject, setConnectProject] = useState<MapResultsProject | null>(null);
+  const [connectMessage, setConnectMessage] = useState('');
 
   const contentWidth = Math.min(Math.max(width - spacing.xl * 2, 300), 760);
+  const connectMessageReady = connectMessage.trim().length >= MIN_CONNECT_MESSAGE_LENGTH;
 
   const { data: bookmarkData = [] } = useProjectBookmarks();
   const toggleBookmark = useToggleBookmark();
@@ -479,7 +481,7 @@ export default function AlignedScreen() {
     queryFn: async () => {
       const { data: cacheRows, error: cacheError } = await supabase
         .from('map_cache_projects')
-        .select('project_id, name, description, category, creator_first_name, display_label, image_url, external_link, refreshed_at')
+        .select('project_id, name, description, category, display_label, image_url, external_link, refreshed_at')
         .order('refreshed_at', { ascending: false });
 
       if (cacheError) throw cacheError;
@@ -490,7 +492,7 @@ export default function AlignedScreen() {
       if (projectIds.length) {
         const { data: projects, error: projectError } = await supabase
           .from('projects')
-          .select('id, creator:members!projects_creator_id_fkey(full_name, email, photo_url, interests)')
+          .select('id, creator:members!projects_creator_id_fkey(email)')
           .in('id', projectIds);
 
         if (projectError) throw projectError;
@@ -506,17 +508,13 @@ export default function AlignedScreen() {
 
       return (cacheRows || []).map((row) => {
         const creator = ownerMap.get(row.project_id);
-        const creatorFullName = creator?.full_name?.trim() || row.creator_first_name;
-        const creatorShortName = shortMemberName(creator?.full_name, row.creator_first_name);
-        const tags = dedupe([sentenceCase(row.category), ...(creator?.interests || []).slice(0, 2)]);
+        const tags = dedupe([sentenceCase(row.category)]);
 
         return {
           category: row.category,
           creatorEmail: creator?.email ?? null,
-          creatorFullName,
-          creatorLabel: creatorFullName,
-          creatorPhotoUrl: creator?.photo_url ?? null,
-          creatorShortName,
+          creatorLabel: PROJECT_CREATOR_LABEL,
+          creatorShortName: PROJECT_CREATOR_LABEL,
           description: row.description,
           display_label: row.display_label,
           external_link: row.external_link,
@@ -590,10 +588,8 @@ export default function AlignedScreen() {
         return {
           category: project.category,
           creatorEmail: null,
-          creatorFullName: project.creator_first_name,
-          creatorLabel: project.creator_first_name,
-          creatorPhotoUrl: null,
-          creatorShortName: project.creator_first_name,
+          creatorLabel: PROJECT_CREATOR_LABEL,
+          creatorShortName: PROJECT_CREATOR_LABEL,
           description: project.description,
           display_label: project.display_label,
           external_link: project.external_link,
@@ -659,24 +655,67 @@ export default function AlignedScreen() {
     [toggleBookmark],
   );
 
-  const handleContact = useCallback(async (project: MapResultsProject) => {
+  const openConnectRequest = useCallback((project: MapResultsProject) => {
+    setConnectProject(project);
+    setConnectMessage('');
+  }, []);
+
+  const closeConnectRequest = useCallback(() => {
+    setConnectProject(null);
+    setConnectMessage('');
+  }, []);
+
+  const handleContact = useCallback(async (project: MapResultsProject, message: string) => {
     if (!project.creatorEmail) {
       Alert.alert('Contact unavailable', 'This member has not shared a contact email yet.');
-      return;
+      return false;
+    }
+
+    const cleanMessage = message.trim();
+    if (cleanMessage.length < MIN_CONNECT_MESSAGE_LENGTH) {
+      Alert.alert('Message required', 'Please add a short note explaining why you want to connect.');
+      return false;
     }
 
     const subject = encodeURIComponent(`AMARI — Connecting on ${project.name}`);
+    const body = encodeURIComponent(
+      [
+        'Hi,',
+        '',
+        cleanMessage,
+        '',
+        `Project: ${project.name}`,
+        'Sent via AMARI.',
+      ].join('\n'),
+    );
     const email = project.creatorEmail.trim();
-    const mailtoUrl = `mailto:${email}?subject=${subject}`;
+    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
     const canOpen = await Linking.canOpenURL(mailtoUrl);
     if (!canOpen) {
       Alert.alert('Email unavailable', 'No mail app is available on this device.');
-      return;
+      return false;
     }
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await Linking.openURL(mailtoUrl);
+    return true;
   }, []);
+
+  const handleSubmitConnectRequest = useCallback(async () => {
+    if (!connectProject) return;
+
+    const cleanMessage = connectMessage.trim();
+    if (cleanMessage.length < MIN_CONNECT_MESSAGE_LENGTH) {
+      Alert.alert('Message required', 'Please add a short note explaining why you want to connect.');
+      return;
+    }
+
+    const didOpen = await handleContact(connectProject, cleanMessage);
+    if (didOpen) {
+      setConnectProject(null);
+      setConnectMessage('');
+    }
+  }, [connectMessage, connectProject, handleContact]);
 
   const handleVisitLink = useCallback(async (url: string) => {
     const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
@@ -718,7 +757,7 @@ export default function AlignedScreen() {
       savedProjects.length ? 'Saved projects' : 'Saved projects: none yet',
       ...savedProjects.flatMap((project, index) => ([
         `${index + 1}. ${project.name}`,
-        `   ${project.creatorShortName} · ${project.display_label}`,
+        project.creatorEmail ? `   Contact: ${project.creatorEmail}` : `   ${project.display_label}`,
         `   ${project.description}`,
         project.external_link ? `   ${project.external_link}` : null,
       ].filter(Boolean) as string[])),
@@ -753,7 +792,7 @@ export default function AlignedScreen() {
       />
 
       <MapResultsSheet
-        onContact={handleContact}
+        onContact={openConnectRequest}
         onProjectSelect={setSelectedProjectId}
         onToggleBookmark={handleToggleBookmark}
         onVisitLink={handleVisitLink}
@@ -819,7 +858,7 @@ export default function AlignedScreen() {
                   {selectedInterestProject ? (
                     <InterestDetailCard
                       onClear={() => setSelectedProjectId(null)}
-                      onContact={handleContact}
+                      onContact={openConnectRequest}
                       onOpenLink={handleVisitLink}
                       onToggleBookmark={handleToggleBookmark}
                       project={selectedInterestProject}
@@ -863,6 +902,70 @@ export default function AlignedScreen() {
             <View style={styles.fullscreenMapBody}>{mapScene}</View>
           </View>
         </Modal>
+
+        {connectProject ? (
+          <Modal
+            animationType="fade"
+            onRequestClose={closeConnectRequest}
+            transparent
+            visible={!!connectProject}
+          >
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={styles.connectBackdrop}
+            >
+              <Pressable onPress={closeConnectRequest} style={StyleSheet.absoluteFillObject} />
+              <View style={styles.connectCard}>
+                <View style={styles.connectHeader}>
+                  <View>
+                    <Text style={styles.connectEyebrow}>Connect request</Text>
+                    <Text style={styles.connectTitle}>Message the project creator</Text>
+                  </View>
+                  <Pressable onPress={closeConnectRequest} style={styles.closePill}>
+                    <X color={colors.gray} size={14} strokeWidth={2} />
+                  </Pressable>
+                </View>
+
+                <Text style={styles.connectProjectName}>{connectProject.name}</Text>
+                <Text style={styles.connectContactLine}>
+                  {connectProject.creatorEmail ? `Contact: ${connectProject.creatorEmail}` : 'Contact email unavailable'}
+                </Text>
+
+                <TextInput
+                  autoFocus
+                  multiline
+                  maxLength={640}
+                  onChangeText={setConnectMessage}
+                  placeholder="Share why you want to connect, how you can help, or what you would like to discuss."
+                  placeholderTextColor={colors.grayLight}
+                  style={styles.connectInput}
+                  textAlignVertical="top"
+                  value={connectMessage}
+                />
+                <Text style={styles.connectHintText}>
+                  This note is required and will be included in the email that opens on your phone.
+                </Text>
+
+                <View style={styles.connectActions}>
+                  <Pressable onPress={closeConnectRequest} style={styles.connectSecondaryButton}>
+                    <Text style={styles.connectSecondaryButtonText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    disabled={!connectMessageReady}
+                    onPress={handleSubmitConnectRequest}
+                    style={[
+                      styles.connectPrimaryButton,
+                      !connectMessageReady ? styles.connectPrimaryButtonDisabled : null,
+                    ]}
+                  >
+                    <Mail color={colors.white} size={15} strokeWidth={1.8} />
+                    <Text style={styles.connectPrimaryButtonText}>Open email</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Modal>
+        ) : null}
 
         {searchOpen ? (
           <SearchOverlay
@@ -1249,6 +1352,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.white,
   },
+  contactRequirementText: {
+    marginTop: 6,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.gray,
+  },
   linkAction: {
     marginTop: 10,
     alignSelf: 'flex-start',
@@ -1327,6 +1437,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.gray,
   },
+  interestRowContact: {
+    marginTop: 4,
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.black,
+  },
   interestRowTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1396,6 +1512,114 @@ const styles = StyleSheet.create({
   },
   fullscreenMapBody: {
     flex: 1,
+  },
+  connectBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  connectCard: {
+    width: '100%',
+    maxWidth: 520,
+    borderRadius: radius.xl,
+    backgroundColor: colors.bone,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  connectHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  connectEyebrow: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    color: colors.gray,
+  },
+  connectTitle: {
+    marginTop: 4,
+    fontFamily: typography.serif.medium,
+    fontSize: 20,
+    color: colors.black,
+  },
+  connectProjectName: {
+    marginTop: 18,
+    fontFamily: typography.serif.medium,
+    fontSize: 16,
+    color: colors.black,
+  },
+  connectContactLine: {
+    marginTop: 4,
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    color: colors.gray,
+  },
+  connectInput: {
+    minHeight: 126,
+    marginTop: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: 'rgba(10,10,10,0.08)',
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.black,
+  },
+  connectHintText: {
+    marginTop: 8,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.gray,
+  },
+  connectActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 16,
+    flexWrap: 'wrap',
+  },
+  connectSecondaryButton: {
+    minHeight: 42,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(10,10,10,0.06)',
+  },
+  connectSecondaryButtonText: {
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    color: colors.black,
+  },
+  connectPrimaryButton: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.black,
+  },
+  connectPrimaryButtonDisabled: {
+    opacity: 0.42,
+  },
+  connectPrimaryButtonText: {
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    color: colors.white,
   },
   searchBackdrop: {
     flex: 1,

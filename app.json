@@ -37,6 +37,14 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow AMARI to scan member passes and connect with other members.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-font",
       "expo-apple-authentication",
       "@react-native-google-signin/google-signin",

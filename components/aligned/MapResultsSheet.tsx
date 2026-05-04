@@ -86,7 +86,7 @@ function ListCard({
           {project.description}
         </Text>
         <Text style={styles.listMeta}>
-          {project.creatorShortName} {'\u00B7'} {project.display_label}
+          {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
         </Text>
       </View>
 
@@ -146,7 +146,9 @@ export function MapResultsSheet({
               <Text style={styles.detailTitle}>{detailProject.name}</Text>
               <Text style={styles.detailDescription}>{detailProject.description}</Text>
               <Text style={styles.detailMeta}>
-                {detailProject.creatorShortName} {'\u00B7'} {detailProject.display_label}
+                {detailProject.creatorEmail
+                  ? `Contact: ${detailProject.creatorEmail}`
+                  : `Project creator ${'\u00B7'} ${detailProject.display_label}`}
               </Text>
             </View>
           </View>
@@ -192,8 +194,14 @@ export function MapResultsSheet({
           {detailProject.creatorEmail ? (
             <Pressable onPress={() => onContact(detailProject)} style={styles.contactButton}>
               <Mail color={colors.white} size={16} strokeWidth={1.8} />
-              <Text style={styles.contactButtonText}>Contact {detailProject.creatorShortName.split(' ')[0]}</Text>
+              <Text style={styles.contactButtonText}>Connect with project creator</Text>
             </Pressable>
+          ) : null}
+
+          {detailProject.creatorEmail ? (
+            <Text style={styles.connectHint}>
+              A short message is required before this opens your email app.
+            </Text>
           ) : null}
 
           <Text style={styles.disclaimer}>
@@ -378,6 +386,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.medium,
     fontSize: 12,
     color: colors.white,
+  },
+  connectHint: {
+    marginTop: 6,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.gray,
   },
   disclaimer: {
     marginTop: 10,
