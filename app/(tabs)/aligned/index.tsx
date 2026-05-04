@@ -35,13 +35,15 @@ import { FilterChips } from '../../../components/aligned/FilterChips';
 import { MapResultsSheet, type MapResultsProject } from '../../../components/aligned/MapResultsSheet';
 import { type MapRegionKey, ProjectMap } from '../../../components/aligned/ProjectMap';
 import { type AlignedView, ViewToggle } from '../../../components/aligned/ViewToggle';
+import { CardPopupModal } from '../../../components/v2/CardPopupModal';
 import { useMapProjects } from '../../../hooks/useMapData';
 import { type ViewportBounds } from '../../../hooks/useMapViewport';
 import { useProjectBookmarks, useToggleBookmark } from '../../../hooks/useProjectBookmarks';
 import { CATEGORY_COLORS } from '../../../lib/mapbox';
-import { colors, radius, spacing, typography } from '../../../lib/theme';
+import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '../../../lib/theme';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../providers/AuthProvider';
+import { useMyProfile } from '../../../queries/members';
 import type { ProjectCategory } from '../../../types/database';
 
 const PROJECT_CREATOR_LABEL = 'Project creator';
@@ -187,7 +189,7 @@ function BoardView({
       <ProjectEntryCard
         colors={['#1C1815', '#111111', '#14120F']}
         onPress={onOpenMap}
-        subtitle="Explore projects on the map, save what belongs on your board."
+        subtitle="Browse projects as a list, then switch into the map when location matters."
         tag="See what people are building"
         title="Projects"
       />
@@ -216,7 +218,7 @@ function BoardView({
 
       <ActionRow
         dark
-        description="Open your QR card and share it"
+        description="Show your QR code, scan another pass, or share yours"
         icon={<ScanLine color={colors.white} size={18} strokeWidth={1.8} />}
         onPress={onOpenPass}
         title="Your pass"
@@ -456,7 +458,8 @@ export default function AlignedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ view?: string }>();
-  const { user } = useAuth();
+  const { user, tier } = useAuth();
+  const { data: profile } = useMyProfile();
   const { width } = useWindowDimensions();
 
   const [activeView, setActiveView] = useState<AlignedView>('map');
@@ -466,11 +469,16 @@ export default function AlignedScreen() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showFullscreenMap, setShowFullscreenMap] = useState(false);
+  const [showPassPopup, setShowPassPopup] = useState(false);
   const [connectProject, setConnectProject] = useState<MapResultsProject | null>(null);
   const [connectMessage, setConnectMessage] = useState('');
 
   const contentWidth = Math.min(Math.max(width - spacing.xl * 2, 300), 760);
   const connectMessageReady = connectMessage.trim().length >= MIN_CONNECT_MESSAGE_LENGTH;
+  const fullName = profile?.full_name?.trim() || 'AMARI Member';
+  const locationLabel = profile?.city?.trim() || 'Australia';
+  const displayId = profile?.display_id || `AMARI-${new Date().getFullYear()}-0000`;
+  const tierLabel = tier ? TIER_DISPLAY_NAMES[tier] || tier.toUpperCase() : 'MEMBER';
 
   const { data: bookmarkData = [] } = useProjectBookmarks();
   const toggleBookmark = useToggleBookmark();
@@ -621,13 +629,13 @@ export default function AlignedScreen() {
   );
 
   useEffect(() => {
-    if (activeView === 'interests' && selectedInterestProject && !selectedProjectId) {
+    if ((activeView === 'interests' || activeView === 'list') && selectedInterestProject && !selectedProjectId) {
       setSelectedProjectId(selectedInterestProject.project_id);
     }
   }, [activeView, selectedInterestProject, selectedProjectId]);
 
   useEffect(() => {
-    if (params.view === 'map' || params.view === 'board' || params.view === 'interests') {
+    if (params.view === 'map' || params.view === 'board' || params.view === 'list' || params.view === 'interests') {
       setActiveView(params.view);
     }
   }, [params.view]);
@@ -841,16 +849,37 @@ export default function AlignedScreen() {
                 <BoardView
                   connections={recentConnections}
                   onOpenInterests={() => switchView('interests')}
-                  onOpenMap={() => switchView('map')}
+                  onOpenMap={() => switchView('list')}
                   onOpenNotes={handleOpenNotes}
                   onOpenPass={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/(tabs)/profile');
+                    setShowPassPopup(true);
                   }}
                   onStartProject={() => router.push('/(tabs)/aligned/create')}
                 />
               ) : (
                 <>
+                  <View style={styles.projectModeHeader}>
+                    <View style={styles.projectModeCopy}>
+                      <Text style={styles.projectModeTitle}>
+                        {activeView === 'list' ? 'Project list' : 'Interests'}
+                      </Text>
+                      <Text style={styles.projectModeSubtitle}>
+                        {activeView === 'list'
+                          ? 'Scan every approved project, filter by category, then jump back to the map.'
+                          : 'Browse projects and ideas through the categories members care about.'}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => switchView(activeView === 'list' ? 'map' : 'list')}
+                      style={styles.projectModeButton}
+                    >
+                      <Text style={styles.projectModeButtonText}>
+                        {activeView === 'list' ? 'Map' : 'Project list'}
+                      </Text>
+                    </Pressable>
+                  </View>
+
                   <View style={styles.filterWrap}>
                     <FilterChips activeFilter={activeCategory} onFilterChange={setActiveCategory} />
                   </View>
@@ -967,13 +996,23 @@ export default function AlignedScreen() {
           </Modal>
         ) : null}
 
+        <CardPopupModal
+          visible={showPassPopup}
+          onClose={() => setShowPassPopup(false)}
+          fullName={fullName}
+          city={locationLabel}
+          tierLabel={tierLabel}
+          displayId={displayId}
+          memberUuid={user?.id || profile?.id || ''}
+        />
+
         {searchOpen ? (
           <SearchOverlay
             onClose={() => setSearchOpen(false)}
             onSelect={(projectId) => {
               setSelectedProjectId(projectId);
               setSearchOpen(false);
-              switchView('interests');
+              switchView('list');
             }}
             projects={directoryProjects}
           />
@@ -1216,6 +1255,45 @@ const styles = StyleSheet.create({
   },
   filterWrap: {
     marginBottom: 16,
+  },
+  projectModeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: 'rgba(10,10,10,0.05)',
+  },
+  projectModeCopy: {
+    flex: 1,
+  },
+  projectModeTitle: {
+    fontFamily: typography.serif.semiBold,
+    fontSize: 20,
+    color: colors.black,
+  },
+  projectModeSubtitle: {
+    marginTop: 4,
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.gray,
+  },
+  projectModeButton: {
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    backgroundColor: colors.black,
+  },
+  projectModeButtonText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.white,
   },
   interestDetailCard: {
     padding: 18,

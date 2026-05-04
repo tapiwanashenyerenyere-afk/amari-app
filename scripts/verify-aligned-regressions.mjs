@@ -153,6 +153,49 @@ assertIncludes(
 );
 pass('connect-message checks passed');
 
+// 2b. Aligned core navigation regressions.
+assertIncludes(
+  aligned,
+  "import { CardPopupModal }",
+  'Aligned board pass action must open the QR pass modal directly.',
+);
+assertIncludes(
+  aligned,
+  'const [showPassPopup, setShowPassPopup] = useState(false);',
+  'Aligned board pass action must have local pass modal state.',
+);
+assertIncludes(
+  aligned,
+  'setShowPassPopup(true);',
+  'Aligned board pass action must open the pass modal instead of navigating away.',
+);
+assertNotIncludes(
+  aligned,
+  "router.push('/(tabs)/profile');",
+  'Aligned board pass action must not route to Profile as a proxy for QR access.',
+);
+assertIncludes(
+  read('components/aligned/ViewToggle.tsx'),
+  "export type AlignedView = 'board' | 'map' | 'list' | 'interests';",
+  'Aligned top-level view toggle must include a project list view.',
+);
+assertIncludes(
+  aligned,
+  "onOpenMap={() => switchView('list')}",
+  'Aligned Projects entry card must open the list-first project view.',
+);
+assertIncludes(
+  aligned,
+  'Project list',
+  'Aligned project list view must have a visible Project list heading.',
+);
+assertIncludes(
+  aligned,
+  "switchView(activeView === 'list' ? 'map' : 'list')",
+  'Aligned project list must expose a direct map/list switch.',
+);
+pass('aligned navigation checks passed');
+
 // 3. QR pass connection RPC regressions.
 assertIncludes(
   cardPopup,

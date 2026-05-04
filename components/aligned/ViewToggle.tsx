@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, radius, typography } from '../../lib/theme';
 
-export type AlignedView = 'board' | 'map' | 'interests';
+export type AlignedView = 'board' | 'map' | 'list' | 'interests';
 
 interface ViewToggleProps {
   activeView: AlignedView;
@@ -13,6 +13,7 @@ interface ViewToggleProps {
 const VIEWS: { key: AlignedView; label: string }[] = [
   { key: 'board', label: 'Board' },
   { key: 'map', label: 'Map' },
+  { key: 'list', label: 'List' },
   { key: 'interests', label: 'Interests' },
 ];
 
