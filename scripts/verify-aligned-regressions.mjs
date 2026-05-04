@@ -39,6 +39,10 @@ const projectMap = read('components/aligned/ProjectMap.tsx');
 const cardPopup = read('components/v2/CardPopupModal.tsx');
 const mapbox = read('lib/mapbox.ts');
 const migration = read('supabase/migrations/20260504000001_qr_member_connections.sql');
+const adminMigration = read('supabase/migrations/20260504000002_admin_member_operations.sql');
+const adminInviteHardeningMigration = read('supabase/migrations/20260504000004_admin_invites_membership_only.sql');
+const adminMembers = read('app/admin/members.tsx');
+const adminCodes = read('app/admin/codes.tsx');
 const appJson = JSON.parse(read('app.json'));
 const packageJson = JSON.parse(read('package.json'));
 
@@ -241,5 +245,60 @@ pass('native camera config checks passed');
 assertIncludes(mapbox, "id: 'country-border-halo'", 'Fallback map style must keep country border halo contrast.');
 assertIncludes(projectMap, 'amari-country-boundary-halo', 'Live map must keep country boundary halo layer.');
 pass('map border contrast checks passed');
+
+// Admin operations regression: member management must preserve history and code creation.
+assertIncludes(
+  adminMigration,
+  'connections, projects, or audit records',
+  'Admin status migration must document that kick-out preserves member history.',
+);
+assertIncludes(
+  adminMigration,
+  'create or replace function public.admin_set_member_status',
+  'Admin status RPC must exist.',
+);
+assertIncludes(
+  adminMigration,
+  'Admins cannot change their own account status',
+  'Admin status RPC must protect admins from locking themselves out.',
+);
+assertIncludes(
+  adminMigration,
+  'create or replace function public.admin_create_invitation_code',
+  'Admin invitation-code RPC must exist.',
+);
+assertIncludes(
+  adminInviteHardeningMigration,
+  'This panel creates membership codes only',
+  'Admin invitation-code RPC must reject staff/admin grants from the mobile panel.',
+);
+assertIncludes(
+  adminInviteHardeningMigration,
+  "'grants_admin', false",
+  'Admin invitation-code RPC must return membership-only grants.',
+);
+assertIncludes(
+  adminCodes,
+  'p_grants_admin: false',
+  'Admin code creation must default to non-admin membership codes.',
+);
+assertIncludes(
+  adminMembers,
+  '.range(0, 999)',
+  'Admin member list must not stay capped at 100 members.',
+);
+assertIncludes(
+  adminMembers,
+  "supabase.rpc('admin_set_member_status'",
+  'Admin member list must call the status-management RPC.',
+);
+assertIncludes(adminMembers, 'Kick out', 'Admin member list must expose the kick-out action.');
+assertIncludes(
+  adminCodes,
+  "supabase.rpc('admin_create_invitation_code'",
+  'Admin codes screen must create membership codes through the admin RPC.',
+);
+assertIncludes(adminCodes, 'Create Membership Code', 'Admin codes screen must expose code creation.');
+pass('admin operations checks passed');
 
 process.stdout.write('[verify:aligned-regressions] passed\n');
