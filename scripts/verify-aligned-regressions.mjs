@@ -43,10 +43,13 @@ const adminMigration = read('supabase/migrations/20260504000002_admin_member_ope
 const adminInviteHardeningMigration = read('supabase/migrations/20260504000004_admin_invites_membership_only.sql');
 const adminInvitePrefixMigration = read('supabase/migrations/20260504000005_admin_invite_tier_prefixes.sql');
 const adminProjectReviewMigration = read('supabase/migrations/20260504000006_admin_project_review.sql');
+const inviteValidationRateLimitMigration = read('supabase/migrations/20260504000007_invite_validation_rate_limit_fix.sql');
 const adminMembers = read('app/admin/members.tsx');
 const adminCodes = read('app/admin/codes.tsx');
 const adminHome = read('app/(tabs)/admin.tsx');
 const adminAligned = read('app/admin/aligned.tsx');
+const inviteScreen = read('app/(auth)/invite.tsx');
+const onboarding = read('components/v2/Onboarding.tsx');
 const appJson = JSON.parse(read('app.json'));
 const packageJson = JSON.parse(read('package.json'));
 
@@ -348,6 +351,31 @@ assertIncludes(
   adminInvitePrefixMigration,
   'v_code := upper(public.generate_share_invite_code(v_prefix));',
   'Admin invitation-code RPC must create random codes from the tier prefix.',
+);
+assertIncludes(
+  inviteValidationRateLimitMigration,
+  'create or replace function public.validate_invitation_code',
+  'Invite validation rate-limit migration must replace the validation RPC.',
+);
+assertIncludes(
+  inviteValidationRateLimitMigration,
+  "where endpoint = 'invite_validate';",
+  'Invite validation rate-limit migration must clear existing invite validation lockouts.',
+);
+assertNotIncludes(
+  inviteValidationRateLimitMigration,
+  'check_rate_limit',
+  'Invite validation must not use a shared anon rate-limit bucket before signup.',
+);
+assertIncludes(
+  inviteScreen,
+  'placeholder="AMARI-PLAT-XXXXXXXX"',
+  'Invite screen placeholder must match the current tier-code format.',
+);
+assertIncludes(
+  onboarding,
+  'placeholder="AMARI-PLAT-XXXXXXXX"',
+  'Onboarding invite placeholder must match the current tier-code format.',
 );
 assertIncludes(
   adminCodes,
