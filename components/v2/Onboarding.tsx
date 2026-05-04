@@ -309,7 +309,7 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
               setError('');
               setIsValid(false);
             }}
-            placeholder="AMARI-XXXX-XXX"
+            placeholder="AMARI-PLAT-XXXXXXXX"
             placeholderTextColor="rgba(255,255,255,0.15)"
             autoCapitalize="characters"
             autoCorrect={false}
