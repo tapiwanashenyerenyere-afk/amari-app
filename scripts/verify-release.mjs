@@ -108,6 +108,10 @@ function validateStaticReleaseConfig() {
     packageJson.scripts?.['verify:security'] === 'node ./scripts/verify-security.mjs',
     'verify:security must stay wired to the security regression checks.',
   );
+  assert(
+    packageJson.scripts?.['verify:aligned-regressions'] === 'node ./scripts/verify-aligned-regressions.mjs',
+    'verify:aligned-regressions must stay wired to the Aligned privacy/contact/QR regression checks.',
+  );
 
   const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
   const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
@@ -146,6 +150,10 @@ const steps = [
   {
     command: 'npm run verify:security',
     label: 'Security regression',
+  },
+  {
+    command: 'npm run verify:aligned-regressions',
+    label: 'Aligned regression',
   },
   {
     command: 'npm run lint',

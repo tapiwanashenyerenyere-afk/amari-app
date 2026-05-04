@@ -207,7 +207,7 @@ export interface Connection {
   id: string;
   user_a: string;
   user_b: string;
-  matched_via: 'project' | 'interest';
+  matched_via: 'project' | 'interest' | 'pass';
   tile_a_id: string | null;
   tile_b_id: string | null;
   status: 'mutual' | 'archived';

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { Alert, Share, TextInput, View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 import { MotiView } from 'moti';
-import { C, T, S, R } from '../../lib/constants';
+import { C, T, S, R, TIERS } from '../../lib/constants';
+import type { MembershipTier } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
 import { GrainOverlay } from '../../components/ui/GrainOverlay';
@@ -32,6 +33,10 @@ export default function CodesScreen() {
   const [summary, setSummary] = useState<CodeSummary[]>([]);
   const [recentCodes, setRecentCodes] = useState<CodeDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [selectedTier, setSelectedTier] = useState<MembershipTier>('member');
+  const [creating, setCreating] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -82,6 +87,53 @@ export default function CodesScreen() {
     member: C.lightSecondary,
   };
 
+  const handleCreateCode = async () => {
+    if (!recipientName.trim() || !recipientEmail.trim()) {
+      Alert.alert('Recipient required', 'Add the recipient name and email before creating a code.');
+      return;
+    }
+
+    setCreating(true);
+    const { data, error } = await supabase.rpc('admin_create_invitation_code', {
+      p_recipient_name: recipientName.trim(),
+      p_recipient_email: recipientEmail.trim(),
+      p_tier: selectedTier,
+      p_grants_admin: false,
+      p_staff_role: null,
+      p_expires_at: null,
+    });
+    setCreating(false);
+
+    if (error) {
+      Alert.alert('Code not created', error.message);
+      return;
+    }
+
+    if (!data?.success) {
+      Alert.alert('Code not created', data?.error || 'Unknown error');
+      return;
+    }
+
+    const code = String(data.code);
+    setRecipientName('');
+    setRecipientEmail('');
+    setSelectedTier('member');
+    fetchData();
+
+    Alert.alert('Membership code created', `${code}\n\nTier: ${selectedTier}`, [
+      { text: 'Close', style: 'cancel' },
+      {
+        text: 'Share',
+        onPress: () => {
+          Share.share({
+            title: 'AMARI membership code',
+            message: `AMARI membership code for ${data.recipient_name}\n\n${code}\n\nTier: ${selectedTier}`,
+          }).catch(() => Alert.alert('Share unavailable', 'The share sheet could not be opened.'));
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <GrainOverlay opacity={0.03} />
@@ -101,6 +153,47 @@ export default function CodesScreen() {
               </Pressable>
               <Text style={styles.title}>Invite Codes</Text>
             </View>
+
+            <LiquidGlassCard variant="dark" style={styles.createCard}>
+              <Text style={styles.createTitle}>Create Membership Code</Text>
+              <Text style={styles.createHint}>Generate a one-use code for a named recipient.</Text>
+              <TextInput
+                style={styles.input}
+                value={recipientName}
+                onChangeText={setRecipientName}
+                placeholder="Recipient name"
+                placeholderTextColor={C.lightFaint}
+              />
+              <TextInput
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={styles.input}
+                value={recipientEmail}
+                onChangeText={setRecipientEmail}
+                placeholder="Recipient email"
+                placeholderTextColor={C.lightFaint}
+              />
+              <View style={styles.tierPicker}>
+                {TIERS.map(tier => (
+                  <Pressable
+                    key={tier}
+                    onPress={() => setSelectedTier(tier)}
+                    style={[styles.tierButton, selectedTier === tier ? styles.tierButtonActive : null]}
+                  >
+                    <Text style={[styles.tierButtonText, selectedTier === tier ? styles.tierButtonTextActive : null]}>
+                      {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable
+                disabled={creating}
+                onPress={handleCreateCode}
+                style={[styles.createButton, creating ? styles.createButtonDisabled : null]}
+              >
+                <Text style={styles.createButtonText}>{creating ? 'Creating...' : 'Create code'}</Text>
+              </Pressable>
+            </LiquidGlassCard>
 
             {/* Summary Cards */}
             <View style={styles.summaryGrid}>
@@ -183,6 +276,43 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: S._8, alignSelf: 'flex-start' },
   backText: { ...T.nav, color: C.lightTertiary },
   title: { ...T.title, color: C.lightPrimary, marginTop: S._4 },
+  createCard: { marginHorizontal: S._12, marginTop: S._16 },
+  createTitle: { ...T.cardTitleSm, color: C.lightPrimary },
+  createHint: { ...T.meta, color: C.lightTertiary, marginTop: S._4, marginBottom: S._12 },
+  input: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 14,
+    color: C.lightPrimary,
+    backgroundColor: 'rgba(248,246,243,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,246,243,0.1)',
+    borderRadius: 12,
+    padding: S._12,
+    paddingHorizontal: S._16,
+    marginTop: S._8,
+  },
+  tierPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: S._8, marginTop: S._12 },
+  tierButton: {
+    paddingHorizontal: S._12,
+    paddingVertical: S._8,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  tierButtonActive: { backgroundColor: 'rgba(114,47,55,0.4)', borderColor: 'rgba(114,47,55,0.6)' },
+  tierButtonText: { ...T.meta, color: C.lightSecondary },
+  tierButtonTextActive: { color: C.lightPrimary },
+  createButton: {
+    marginTop: S._16,
+    minHeight: 44,
+    borderRadius: R.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.burgundyOnDark,
+  },
+  createButtonDisabled: { opacity: 0.48 },
+  createButtonText: { ...T.btn, color: C.lightPrimary },
   summaryGrid: { paddingHorizontal: S._12, marginTop: S._16, gap: S._8 },
   summaryCard: {},
   summaryTier: { ...T.label, marginBottom: S._12 },
