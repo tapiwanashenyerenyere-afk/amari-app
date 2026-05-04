@@ -41,6 +41,7 @@ const mapbox = read('lib/mapbox.ts');
 const migration = read('supabase/migrations/20260504000001_qr_member_connections.sql');
 const adminMigration = read('supabase/migrations/20260504000002_admin_member_operations.sql');
 const adminInviteHardeningMigration = read('supabase/migrations/20260504000004_admin_invites_membership_only.sql');
+const adminInvitePrefixMigration = read('supabase/migrations/20260504000005_admin_invite_tier_prefixes.sql');
 const adminMembers = read('app/admin/members.tsx');
 const adminCodes = read('app/admin/codes.tsx');
 const appJson = JSON.parse(read('app.json'));
@@ -276,6 +277,31 @@ assertIncludes(
   adminInviteHardeningMigration,
   "'grants_admin', false",
   'Admin invitation-code RPC must return membership-only grants.',
+);
+assertIncludes(
+  adminInvitePrefixMigration,
+  "when 'platinum' then 'AMARI-PLAT'",
+  'Admin invitation-code RPC must generate platinum-facing prefixes.',
+);
+assertIncludes(
+  adminInvitePrefixMigration,
+  "when 'silver' then 'AMARI-SLVR'",
+  'Admin invitation-code RPC must generate silver-facing prefixes.',
+);
+assertIncludes(
+  adminInvitePrefixMigration,
+  "when 'laureate' then 'AMARI-LAUR'",
+  'Admin invitation-code RPC must generate laureate-facing prefixes.',
+);
+assertIncludes(
+  adminInvitePrefixMigration,
+  "else 'AMARI-MEMB'",
+  'Admin invitation-code RPC must generate member-facing prefixes.',
+);
+assertIncludes(
+  adminInvitePrefixMigration,
+  'v_code := upper(public.generate_share_invite_code(v_prefix));',
+  'Admin invitation-code RPC must create random codes from the tier prefix.',
 );
 assertIncludes(
   adminCodes,
