@@ -136,58 +136,68 @@ export default function RegisterScreen() {
   if (magicLinkSent) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <View style={styles.centeredContent}>
-          <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', damping: 15 }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView
+            contentContainerStyle={styles.centeredContent}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.checkIcon}>✓</Text>
-            <Text style={[styles.title, { textAlign: 'center' }]}>Check Your Email</Text>
-            <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.sm }]}>
-              We sent a magic link to {email}. Tap it to complete your registration.
-            </Text>
-            <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.md }]}>
-              If the link opens in a browser instead of AMARI, enter the one-time code from the email below.
-            </Text>
-
-            <TextInput
-              style={[styles.fieldInput, styles.otpInput]}
-              value={otpCode}
-              onChangeText={(value) => {
-                setOtpCode(value.replace(/\D/g, '').slice(0, 6));
-                setOtpError('');
-              }}
-              placeholder="123456"
-              placeholderTextColor={colors.grayLight}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              maxLength={6}
-              autoFocus
-            />
-
-            {otpError ? <Text style={styles.otpError}>{otpError}</Text> : null}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.submitBtn,
-                styles.otpSubmit,
-                isSubmitting && styles.submitBtnDisabled,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
-              ]}
-              onPress={handleOtpVerification}
-              disabled={isSubmitting}
-              accessibilityRole="button"
-              accessibilityLabel="Verify one-time code"
+            <MotiView
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', damping: 15 }}
             >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Text style={styles.submitBtnText}>Verify Code</Text>
-              )}
-            </Pressable>
-          </MotiView>
-        </View>
+              <Text style={styles.checkIcon}>✓</Text>
+              <Text style={[styles.title, { textAlign: 'center' }]}>Check Your Email</Text>
+              <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.sm }]}>
+                We sent a magic link to {email}. Tap it to complete your registration.
+              </Text>
+              <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.md }]}>
+                If the link opens in a browser instead of AMARI, enter the one-time code from the email below.
+              </Text>
+
+              <TextInput
+                style={[styles.fieldInput, styles.otpInput]}
+                value={otpCode}
+                onChangeText={(value) => {
+                  setOtpCode(value.replace(/\D/g, '').slice(0, 6));
+                  setOtpError('');
+                }}
+                placeholder="123456"
+                placeholderTextColor={colors.grayLight}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                maxLength={6}
+                autoFocus
+              />
+
+              {otpError ? <Text style={styles.otpError}>{otpError}</Text> : null}
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  styles.otpSubmit,
+                  isSubmitting && styles.submitBtnDisabled,
+                  pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+                ]}
+                onPress={handleOtpVerification}
+                disabled={isSubmitting}
+                accessibilityRole="button"
+                accessibilityLabel="Verify one-time code"
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.submitBtnText}>Verify Code</Text>
+                )}
+              </Pressable>
+            </MotiView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -202,6 +212,7 @@ export default function RegisterScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Back */}
           <Pressable
@@ -362,12 +373,14 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bone },
+  keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: spacing.xxxl + 8 },
   centeredContent: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   backBtn: {
     paddingHorizontal: spacing.xl,

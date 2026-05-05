@@ -44,6 +44,7 @@ const adminInviteHardeningMigration = read('supabase/migrations/20260504000004_a
 const adminInvitePrefixMigration = read('supabase/migrations/20260504000005_admin_invite_tier_prefixes.sql');
 const adminProjectReviewMigration = read('supabase/migrations/20260504000006_admin_project_review.sql');
 const inviteValidationRateLimitMigration = read('supabase/migrations/20260504000007_invite_validation_rate_limit_fix.sql');
+const safeMapRefreshMigration = read('supabase/migrations/20260505000001_safe_map_cache_refresh.sql');
 const adminMembers = read('app/admin/members.tsx');
 const adminCodes = read('app/admin/codes.tsx');
 const adminHome = read('app/(tabs)/admin.tsx');
@@ -413,6 +414,26 @@ assertIncludes(
   adminProjectReviewMigration,
   'perform public.refresh_map_cache();',
   'Approving or rejecting a project must refresh the map cache.',
+);
+assertIncludes(
+  safeMapRefreshMigration,
+  'create or replace function public.refresh_map_cache',
+  'Safe map refresh migration must replace the cache refresh RPC.',
+);
+assertIncludes(
+  safeMapRefreshMigration,
+  'delete from public.map_cache_countries where true;',
+  'Map country cache refresh delete must satisfy safe-update WHERE protection.',
+);
+assertIncludes(
+  safeMapRefreshMigration,
+  'delete from public.map_cache_states where true;',
+  'Map state cache refresh delete must satisfy safe-update WHERE protection.',
+);
+assertIncludes(
+  safeMapRefreshMigration,
+  'delete from public.map_cache_projects where true;',
+  'Map project cache refresh delete must satisfy safe-update WHERE protection.',
 );
 assertIncludes(
   adminHome,

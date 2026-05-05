@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Share, TextInput, View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
@@ -138,13 +149,19 @@ export default function CodesScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <GrainOverlay opacity={0.03} />
 
-      <FlatList
-        data={recentCodes}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor={C.lightPrimary} />}
-        ListHeaderComponent={
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <FlatList
+          data={recentCodes}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor={C.lightPrimary} />}
+          ListHeaderComponent={
           <>
             {/* Header */}
             <View style={styles.header}>
@@ -236,42 +253,44 @@ export default function CodesScreen() {
             <Text style={styles.sectionTitle}>Recently Used</Text>
           </>
         }
-        renderItem={({ item, index }) => (
-          <MotiView
-            from={{ opacity: 0, translateX: -10 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'timing', duration: 200, delay: index * 30 }}
-          >
-            <LiquidGlassCard variant="dark" style={styles.codeCard}>
-              <View style={styles.codeRow}>
-                <View>
-                  <Text style={styles.codePrefix}>{item.code_prefix || '???'}</Text>
-                  <Text style={styles.codeTier}>{item.tier_grant}</Text>
+          renderItem={({ item, index }) => (
+            <MotiView
+              from={{ opacity: 0, translateX: -10 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: 'timing', duration: 200, delay: index * 30 }}
+            >
+              <LiquidGlassCard variant="dark" style={styles.codeCard}>
+                <View style={styles.codeRow}>
+                  <View>
+                    <Text style={styles.codePrefix}>{item.code_prefix || '???'}</Text>
+                    <Text style={styles.codeTier}>{item.tier_grant}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.codeUsedAt}>
+                      {item.used_at ? new Date(item.used_at).toLocaleDateString('en-AU', {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                      }) : '—'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.codeUsedAt}>
-                    {item.used_at ? new Date(item.used_at).toLocaleDateString('en-AU', {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                    }) : '—'}
-                  </Text>
-                </View>
-              </View>
-            </LiquidGlassCard>
-          </MotiView>
-        )}
-        ListEmptyComponent={
-          !loading ? (
-            <Text style={styles.emptyText}>No codes have been used yet.</Text>
-          ) : null
-        }
-      />
+              </LiquidGlassCard>
+            </MotiView>
+          )}
+          ListEmptyComponent={
+            !loading ? (
+              <Text style={styles.emptyText}>No codes have been used yet.</Text>
+            ) : null
+          }
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.charcoal },
-  content: { paddingBottom: S._40 + 84 },
+  keyboardView: { flex: 1 },
+  content: { paddingBottom: S._40 + 156 },
   header: { paddingHorizontal: S._20, paddingTop: S._8 },
   backBtn: { paddingVertical: S._8, alignSelf: 'flex-start' },
   backText: { ...T.nav, color: C.lightTertiary },

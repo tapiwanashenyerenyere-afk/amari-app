@@ -27,6 +27,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "package": "com.amari.mobile"
     },
@@ -70,6 +71,8 @@
     },
     "updates": {
       "url": "https://u.expo.dev/651e1611-72e6-4b4c-a804-08b40a6aa92e",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
       "codeSigningCertificate": "./certs/certificate.pem",
       "codeSigningMetadata": {
         "keyid": "main",

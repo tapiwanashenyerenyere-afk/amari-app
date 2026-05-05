@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Image,
   TextInput, Alert, ScrollView, RefreshControl,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -231,229 +232,237 @@ export default function EventsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <GrainOverlay opacity={0.03} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchEvents} tintColor={C.lightPrimary} />}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Admin</Text>
-          </Pressable>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>Events</Text>
-            <Pressable
-              style={styles.addBtn}
-              onPress={() => setShowForm(!showForm)}
-            >
-              <Text style={styles.addBtnText}>{showForm ? 'Cancel' : '+ New'}</Text>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchEvents} tintColor={C.lightPrimary} />}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backText}>← Admin</Text>
             </Pressable>
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>Events</Text>
+              <Pressable
+                style={styles.addBtn}
+                onPress={() => setShowForm(!showForm)}
+              >
+                <Text style={styles.addBtnText}>{showForm ? 'Cancel' : '+ New'}</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
 
-        {/* Create Form */}
-        {showForm && (
-          <MotiView
-            from={{ opacity: 0, translateY: -10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
-          >
-            <LiquidGlassCard variant="dark" style={styles.formCard}>
-              <Text style={styles.formLabel}>Cover Image</Text>
-              <Pressable style={styles.imageUpload} onPress={pickImage}>
-                {formImageUri ? (
-                  <Image source={{ uri: formImageUri }} style={styles.imagePreview} />
-                ) : (
-                  <View style={styles.imagePlaceholder}>
-                    <Text style={styles.imagePlaceholderIcon}>+</Text>
-                    <Text style={styles.imagePlaceholderText}>Tap to upload</Text>
+          {/* Create Form */}
+          {showForm && (
+            <MotiView
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 300 }}
+            >
+              <LiquidGlassCard variant="dark" style={styles.formCard}>
+                <Text style={styles.formLabel}>Cover Image</Text>
+                <Pressable style={styles.imageUpload} onPress={pickImage}>
+                  {formImageUri ? (
+                    <Image source={{ uri: formImageUri }} style={styles.imagePreview} />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <Text style={styles.imagePlaceholderIcon}>+</Text>
+                      <Text style={styles.imagePlaceholderText}>Tap to upload</Text>
+                    </View>
+                  )}
+                </Pressable>
+
+                <Text style={styles.formLabel}>Event Type</Text>
+                <View style={styles.typeRow}>
+                  {EVENT_TYPES.map(t => (
+                    <Pressable
+                      key={t}
+                      style={[styles.typeBtn, formType === t && styles.typeBtnActive]}
+                      onPress={() => setFormType(t)}
+                    >
+                      <Text style={[styles.typeBtnText, formType === t && styles.typeBtnTextActive]}>
+                        {t === 'networking'
+                          ? 'Networking'
+                          : t === 'lifestyle'
+                            ? 'Lifestyle'
+                            : t === 'collaboration'
+                              ? 'Collaboration'
+                              : t.charAt(0).toUpperCase() + t.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <Text style={styles.formLabel}>Title</Text>
+                <TextInput style={styles.input} value={formTitle} onChangeText={setFormTitle}
+                  placeholder="Event title" placeholderTextColor={C.lightFaint} />
+
+                <Text style={styles.formLabel}>Description</Text>
+                <TextInput style={[styles.input, { height: 80 }]} value={formDesc} onChangeText={setFormDesc}
+                  placeholder="Event description" placeholderTextColor={C.lightFaint} multiline />
+
+                <Text style={styles.formLabel}>Min Tier</Text>
+                <View style={styles.typeRow}>
+                  {TIERS.map(t => (
+                    <Pressable
+                      key={t}
+                      style={[styles.typeBtn, formTier === t && styles.typeBtnActive]}
+                      onPress={() => setFormTier(t)}
+                    >
+                      <Text style={[styles.typeBtnText, formTier === t && styles.typeBtnTextActive]}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <View style={styles.row}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Date (YYYY-MM-DD)</Text>
+                    <TextInput style={styles.input} value={formDate} onChangeText={setFormDate}
+                      placeholder="2026-04-15" placeholderTextColor={C.lightFaint} />
                   </View>
-                )}
-              </Pressable>
-
-              <Text style={styles.formLabel}>Event Type</Text>
-              <View style={styles.typeRow}>
-                {EVENT_TYPES.map(t => (
-                  <Pressable
-                    key={t}
-                    style={[styles.typeBtn, formType === t && styles.typeBtnActive]}
-                    onPress={() => setFormType(t)}
-                  >
-                    <Text style={[styles.typeBtnText, formType === t && styles.typeBtnTextActive]}>
-                      {t === 'networking'
-                        ? 'Networking'
-                        : t === 'lifestyle'
-                          ? 'Lifestyle'
-                          : t === 'collaboration'
-                            ? 'Collaboration'
-                            : t.charAt(0).toUpperCase() + t.slice(1)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Text style={styles.formLabel}>Title</Text>
-              <TextInput style={styles.input} value={formTitle} onChangeText={setFormTitle}
-                placeholder="Event title" placeholderTextColor={C.lightFaint} />
-
-              <Text style={styles.formLabel}>Description</Text>
-              <TextInput style={[styles.input, { height: 80 }]} value={formDesc} onChangeText={setFormDesc}
-                placeholder="Event description" placeholderTextColor={C.lightFaint} multiline />
-
-              <Text style={styles.formLabel}>Min Tier</Text>
-              <View style={styles.typeRow}>
-                {TIERS.map(t => (
-                  <Pressable
-                    key={t}
-                    style={[styles.typeBtn, formTier === t && styles.typeBtnActive]}
-                    onPress={() => setFormTier(t)}
-                  >
-                    <Text style={[styles.typeBtnText, formTier === t && styles.typeBtnTextActive]}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>Date (YYYY-MM-DD)</Text>
-                  <TextInput style={styles.input} value={formDate} onChangeText={setFormDate}
-                    placeholder="2026-04-15" placeholderTextColor={C.lightFaint} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Start (HH:MM)</Text>
+                    <TextInput style={styles.input} value={formTime} onChangeText={setFormTime}
+                      placeholder="18:00" placeholderTextColor={C.lightFaint} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>End (HH:MM)</Text>
+                    <TextInput style={styles.input} value={formEndTime} onChangeText={setFormEndTime}
+                      placeholder="21:00" placeholderTextColor={C.lightFaint} />
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>Start (HH:MM)</Text>
-                  <TextInput style={styles.input} value={formTime} onChangeText={setFormTime}
-                    placeholder="18:00" placeholderTextColor={C.lightFaint} />
+
+                <View style={styles.row}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Capacity</Text>
+                    <TextInput style={styles.input} value={formCapacity} onChangeText={setFormCapacity}
+                      placeholder="100" placeholderTextColor={C.lightFaint} keyboardType="number-pad" />
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>End (HH:MM)</Text>
-                  <TextInput style={styles.input} value={formEndTime} onChangeText={setFormEndTime}
-                    placeholder="21:00" placeholderTextColor={C.lightFaint} />
+
+                <Text style={styles.formLabel}>Venue</Text>
+                <TextInput style={styles.input} value={formVenue} onChangeText={setFormVenue}
+                  placeholder="Venue name" placeholderTextColor={C.lightFaint} />
+
+                <Text style={styles.formLabel}>Address</Text>
+                <TextInput style={styles.input} value={formAddress} onChangeText={setFormAddress}
+                  placeholder="Full address" placeholderTextColor={C.lightFaint} />
+
+                <View style={styles.row}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Dress Code</Text>
+                    <TextInput style={styles.input} value={formDressCode} onChangeText={setFormDressCode}
+                      placeholder="Black Tie" placeholderTextColor={C.lightFaint} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formLabel}>Eventbrite ID</Text>
+                    <TextInput style={styles.input} value={formEventbriteId} onChangeText={setFormEventbriteId}
+                      placeholder="optional" placeholderTextColor={C.lightFaint} autoCapitalize="none" />
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>Capacity</Text>
-                  <TextInput style={styles.input} value={formCapacity} onChangeText={setFormCapacity}
-                    placeholder="100" placeholderTextColor={C.lightFaint} keyboardType="number-pad" />
-                </View>
-              </View>
+                <Text style={styles.formLabel}>Registration URL</Text>
+                <TextInput style={styles.input} value={formRegistrationUrl} onChangeText={setFormRegistrationUrl}
+                  placeholder="https://eventbrite.com/..." placeholderTextColor={C.lightFaint} autoCapitalize="none" />
 
-              <Text style={styles.formLabel}>Venue</Text>
-              <TextInput style={styles.input} value={formVenue} onChangeText={setFormVenue}
-                placeholder="Venue name" placeholderTextColor={C.lightFaint} />
-
-              <Text style={styles.formLabel}>Address</Text>
-              <TextInput style={styles.input} value={formAddress} onChangeText={setFormAddress}
-                placeholder="Full address" placeholderTextColor={C.lightFaint} />
-
-              <View style={styles.row}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>Dress Code</Text>
-                  <TextInput style={styles.input} value={formDressCode} onChangeText={setFormDressCode}
-                    placeholder="Black Tie" placeholderTextColor={C.lightFaint} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.formLabel}>Eventbrite ID</Text>
-                  <TextInput style={styles.input} value={formEventbriteId} onChangeText={setFormEventbriteId}
-                    placeholder="optional" placeholderTextColor={C.lightFaint} autoCapitalize="none" />
-                </View>
-              </View>
-
-              <Text style={styles.formLabel}>Registration URL</Text>
-              <TextInput style={styles.input} value={formRegistrationUrl} onChangeText={setFormRegistrationUrl}
-                placeholder="https://eventbrite.com/..." placeholderTextColor={C.lightFaint} autoCapitalize="none" />
-
-              <Pressable
-                style={[styles.featuredToggle, formFeatured && styles.featuredToggleActive]}
-                onPress={() => setFormFeatured(!formFeatured)}
-              >
-                <Text style={styles.featuredToggleTitle}>{formFeatured ? 'Featured Hero On' : 'Featured Hero Off'}</Text>
-                <Text style={styles.featuredToggleText}>
-                  {formFeatured ? 'This event will claim the hero position.' : 'Turn on to push this event into the hero card.'}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-                onPress={handleCreateEvent}
-                disabled={submitting}
-              >
-                <Text style={styles.submitBtnText}>
-                  {submitting ? 'Creating...' : 'Create Event'}
-                </Text>
-              </Pressable>
-            </LiquidGlassCard>
-          </MotiView>
-        )}
-
-        {/* Event List */}
-        {events.map((event, i) => (
-          <MotiView
-            key={event.id}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300, delay: i * 50 }}
-          >
-            <LiquidGlassCard variant="dark" style={styles.eventCard}>
-              {event.cover_image_path ? (
-                <Image source={{ uri: event.cover_image_path }} style={styles.eventCover} />
-              ) : null}
-              <View style={styles.eventHeader}>
-                <View style={styles.eventTypeBadge}>
-                  <Text style={styles.eventTypeText}>
-                    {event.type === 'networking'
-                      ? 'NETWORKING'
-                      : event.type === 'lifestyle'
-                        ? 'LIFESTYLE'
-                        : event.type === 'collaboration'
-                          ? 'COLLABORATION'
-                          : event.type.toUpperCase()}
+                <Pressable
+                  style={[styles.featuredToggle, formFeatured && styles.featuredToggleActive]}
+                  onPress={() => setFormFeatured(!formFeatured)}
+                >
+                  <Text style={styles.featuredToggleTitle}>{formFeatured ? 'Featured Hero On' : 'Featured Hero Off'}</Text>
+                  <Text style={styles.featuredToggleText}>
+                    {formFeatured ? 'This event will claim the hero position.' : 'Turn on to push this event into the hero card.'}
                   </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+                  onPress={handleCreateEvent}
+                  disabled={submitting}
+                >
+                  <Text style={styles.submitBtnText}>
+                    {submitting ? 'Creating...' : 'Create Event'}
+                  </Text>
+                </Pressable>
+              </LiquidGlassCard>
+            </MotiView>
+          )}
+
+          {/* Event List */}
+          {events.map((event, i) => (
+            <MotiView
+              key={event.id}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 300, delay: i * 50 }}
+            >
+              <LiquidGlassCard variant="dark" style={styles.eventCard}>
+                {event.cover_image_path ? (
+                  <Image source={{ uri: event.cover_image_path }} style={styles.eventCover} />
+                ) : null}
+                <View style={styles.eventHeader}>
+                  <View style={styles.eventTypeBadge}>
+                    <Text style={styles.eventTypeText}>
+                      {event.type === 'networking'
+                        ? 'NETWORKING'
+                        : event.type === 'lifestyle'
+                          ? 'LIFESTYLE'
+                          : event.type === 'collaboration'
+                            ? 'COLLABORATION'
+                            : event.type.toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.eventTier}>{event.min_tier}+</Text>
                 </View>
-                <Text style={styles.eventTier}>{event.min_tier}+</Text>
-              </View>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventMeta}>
-                {new Date(event.starts_at).toLocaleDateString('en-AU', {
-                  weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                })}
-              </Text>
-              <Text style={styles.eventVenue}>{event.venue_name}</Text>
-              {event.dress_code ? (
-                <Text style={styles.eventDetail}>Dress: {event.dress_code}</Text>
-              ) : null}
-              {event.registration_url ? (
-                <Text style={styles.eventDetail} numberOfLines={1}>Link: {event.registration_url}</Text>
-              ) : null}
-              {event.is_featured ? (
-                <Text style={styles.eventFeatured}>FEATURED HERO</Text>
-              ) : null}
-              {event.capacity && (
-                <Text style={styles.eventCapacity}>Capacity: {event.capacity}</Text>
-              )}
-              <Pressable
-                style={styles.deleteBtn}
-                onPress={() => handleDeleteEvent(event)}
-              >
-                <Text style={styles.deleteBtnText}>Delete</Text>
-              </Pressable>
-            </LiquidGlassCard>
-          </MotiView>
-        ))}
-      </ScrollView>
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.eventMeta}>
+                  {new Date(event.starts_at).toLocaleDateString('en-AU', {
+                    weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </Text>
+                <Text style={styles.eventVenue}>{event.venue_name}</Text>
+                {event.dress_code ? (
+                  <Text style={styles.eventDetail}>Dress: {event.dress_code}</Text>
+                ) : null}
+                {event.registration_url ? (
+                  <Text style={styles.eventDetail} numberOfLines={1}>Link: {event.registration_url}</Text>
+                ) : null}
+                {event.is_featured ? (
+                  <Text style={styles.eventFeatured}>FEATURED HERO</Text>
+                ) : null}
+                {event.capacity && (
+                  <Text style={styles.eventCapacity}>Capacity: {event.capacity}</Text>
+                )}
+                <Pressable
+                  style={styles.deleteBtn}
+                  onPress={() => handleDeleteEvent(event)}
+                >
+                  <Text style={styles.deleteBtnText}>Delete</Text>
+                </Pressable>
+              </LiquidGlassCard>
+            </MotiView>
+          ))}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.charcoal },
+  keyboardView: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 + 84 },
+  content: { paddingBottom: S._40 + 156 },
   header: { paddingHorizontal: S._20, paddingTop: S._8 },
   backBtn: { paddingVertical: S._8, alignSelf: 'flex-start' },
   backText: { ...T.nav, color: C.lightTertiary },
