@@ -94,7 +94,7 @@ export default function CreateProjectScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {/* Header */}
@@ -116,9 +116,13 @@ export default function CreateProjectScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 128, 148) },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Image upload */}
           <Text style={styles.label}>
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.xl, paddingBottom: 100 },
+  scrollContent: { paddingHorizontal: spacing.xl },
 
   // Labels
   label: {

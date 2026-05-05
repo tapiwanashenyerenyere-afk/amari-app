@@ -2,7 +2,9 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -505,65 +507,72 @@ function GraphScreen({
   };
 
   return (
-    <ScrollView
-      style={styles.graphScroll}
-      contentContainerStyle={styles.graphContent}
-      showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView
+      style={styles.graphKeyboardView}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ProgressRail step={3} />
-      <Text style={styles.eyebrow}>Signal map</Text>
-      <Text style={styles.title}>Move the A to map your builder energy.</Text>
-      <Text style={styles.graphIntro}>
-        Current strongest signal: <Text style={styles.graphIntroStrong}>{dominant.label}</Text>
-      </Text>
+      <ScrollView
+        style={styles.graphScroll}
+        contentContainerStyle={styles.graphContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
+        <ProgressRail step={3} />
+        <Text style={styles.eyebrow}>Signal map</Text>
+        <Text style={styles.title}>Move the A to map your builder energy.</Text>
+        <Text style={styles.graphIntro}>
+          Current strongest signal: <Text style={styles.graphIntroStrong}>{dominant.label}</Text>
+        </Text>
 
-      <SignalMap scores={scores} onScoresChange={setScores} />
+        <SignalMap scores={scores} onScoresChange={setScores} />
 
-      <View style={styles.presetRow}>
-        {PRESETS.map((preset) => (
-          <Pressable
-            key={preset.label}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setScores(preset.scores);
-            }}
-            style={({ pressed }) => [styles.presetPill, pressed && styles.pressed]}
-          >
-            <Text style={styles.presetText}>{preset.label}</Text>
+        <View style={styles.presetRow}>
+          {PRESETS.map((preset) => (
+            <Pressable
+              key={preset.label}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setScores(preset.scores);
+              }}
+              style={({ pressed }) => [styles.presetPill, pressed && styles.pressed]}
+            >
+              <Text style={styles.presetText}>{preset.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.axisInputs}>
+          {AXES.map((axis) => (
+            <View key={axis.key} style={styles.axisInputRow}>
+              <View style={[styles.axisSwatch, { backgroundColor: axis.accent }]} />
+              <Text style={styles.axisInputLabel}>{axis.label}</Text>
+              <TextInput
+                accessibilityLabel={`${axis.label} score`}
+                keyboardType="number-pad"
+                value={String(Math.round(scores[axis.key]))}
+                onChangeText={(value) => setAxisScore(axis.key, value)}
+                maxLength={3}
+                style={styles.axisInput}
+              />
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.graphActions}>
+          <Pressable onPress={onBack} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
           </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.axisInputs}>
-        {AXES.map((axis) => (
-          <View key={axis.key} style={styles.axisInputRow}>
-            <View style={[styles.axisSwatch, { backgroundColor: axis.accent }]} />
-            <Text style={styles.axisInputLabel}>{axis.label}</Text>
-            <TextInput
-              accessibilityLabel={`${axis.label} score`}
-              keyboardType="number-pad"
-              value={String(Math.round(scores[axis.key]))}
-              onChangeText={(value) => setAxisScore(axis.key, value)}
-              maxLength={3}
-              style={styles.axisInput}
-            />
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.graphActions}>
-        <Pressable onPress={onBack} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
-          <Text style={styles.secondaryButtonText}>Back</Text>
-        </Pressable>
-        <Pressable
-          disabled={isSubmitting}
-          onPress={onSubmit}
-          style={({ pressed }) => [styles.primaryButton, styles.submitButton, isSubmitting && styles.disabledButton, pressed && !isSubmitting && styles.pressed]}
-        >
-          {isSubmitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryButtonText}>Enter AMARI</Text>}
-        </Pressable>
-      </View>
-    </ScrollView>
+          <Pressable
+            disabled={isSubmitting}
+            onPress={onSubmit}
+            style={({ pressed }) => [styles.primaryButton, styles.submitButton, isSubmitting && styles.disabledButton, pressed && !isSubmitting && styles.pressed]}
+          >
+            {isSubmitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryButtonText}>Enter AMARI</Text>}
+          </Pressable>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -754,10 +763,13 @@ const styles = StyleSheet.create({
   graphScroll: {
     flex: 1,
   },
+  graphKeyboardView: {
+    flex: 1,
+  },
   graphContent: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxxl,
-    paddingBottom: 42,
+    paddingBottom: 132,
   },
   graphIntro: {
     fontFamily: typography.body.regular,

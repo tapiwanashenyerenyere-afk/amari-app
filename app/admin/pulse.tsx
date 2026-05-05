@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  TextInput, Alert, RefreshControl,
+  TextInput, Alert, RefreshControl, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -92,98 +92,106 @@ export default function PulseAdminScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <GrainOverlay opacity={0.03} />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchEditions} tintColor={C.lightPrimary} />}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Admin</Text>
-          </Pressable>
-          <View style={styles.headerRow}>
-            <Text style={styles.title}>The Pulse</Text>
-            <Pressable style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
-              <Text style={styles.addBtnText}>{showForm ? 'Cancel' : '+ New'}</Text>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchEditions} tintColor={C.lightPrimary} />}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+              <Text style={styles.backText}>← Admin</Text>
             </Pressable>
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>The Pulse</Text>
+              <Pressable style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
+                <Text style={styles.addBtnText}>{showForm ? 'Cancel' : '+ New'}</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
 
-        {/* Create Form */}
-        {showForm && (
-          <MotiView
-            from={{ opacity: 0, translateY: -10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
-          >
-            <LiquidGlassCard variant="dark" style={styles.formCard}>
-              <Text style={styles.formLabel}>Headline</Text>
-              <TextInput style={styles.input} value={headline} onChangeText={setHeadline}
-                placeholder="This week's headline" placeholderTextColor={C.lightFaint} />
+          {/* Create Form */}
+          {showForm && (
+            <MotiView
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 300 }}
+            >
+              <LiquidGlassCard variant="dark" style={styles.formCard}>
+                <Text style={styles.formLabel}>Headline</Text>
+                <TextInput style={styles.input} value={headline} onChangeText={setHeadline}
+                  placeholder="This week's headline" placeholderTextColor={C.lightFaint} />
 
-              <Text style={styles.formLabel}>Summary</Text>
-              <TextInput style={[styles.input, { height: 80 }]} value={summary} onChangeText={setSummary}
-                placeholder="Brief summary for the card" placeholderTextColor={C.lightFaint} multiline />
+                <Text style={styles.formLabel}>Summary</Text>
+                <TextInput style={[styles.input, { height: 80 }]} value={summary} onChangeText={setSummary}
+                  placeholder="Brief summary for the card" placeholderTextColor={C.lightFaint} multiline />
 
-              <Text style={styles.formLabel}>Full Content</Text>
-              <TextInput style={[styles.input, { height: 120 }]} value={fullContent} onChangeText={setFullContent}
-                placeholder="Full editorial content" placeholderTextColor={C.lightFaint} multiline />
+                <Text style={styles.formLabel}>Full Content</Text>
+                <TextInput style={[styles.input, { height: 120 }]} value={fullContent} onChangeText={setFullContent}
+                  placeholder="Full editorial content" placeholderTextColor={C.lightFaint} multiline />
 
-              <Pressable
-                style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-                onPress={handleCreate}
-                disabled={submitting}
-              >
-                <Text style={styles.submitBtnText}>
-                  {submitting ? 'Creating...' : 'Create Draft'}
-                </Text>
-              </Pressable>
-            </LiquidGlassCard>
-          </MotiView>
-        )}
+                <Pressable
+                  style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+                  onPress={handleCreate}
+                  disabled={submitting}
+                >
+                  <Text style={styles.submitBtnText}>
+                    {submitting ? 'Creating...' : 'Create Draft'}
+                  </Text>
+                </Pressable>
+              </LiquidGlassCard>
+            </MotiView>
+          )}
 
-        {/* Editions List */}
-        {editions.map((edition, i) => (
-          <MotiView
-            key={edition.id}
-            from={{ opacity: 0, translateY: 10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300, delay: i * 50 }}
-          >
-            <LiquidGlassCard variant="dark" style={styles.editionCard}>
-              <View style={styles.editionHeader}>
-                <View style={[
-                  styles.statusBadge,
-                  edition.status === 'published' && styles.statusPublished,
-                  edition.status === 'archived' && styles.statusArchived,
-                ]}>
-                  <Text style={styles.statusText}>{edition.status}</Text>
+          {/* Editions List */}
+          {editions.map((edition, i) => (
+            <MotiView
+              key={edition.id}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 300, delay: i * 50 }}
+            >
+              <LiquidGlassCard variant="dark" style={styles.editionCard}>
+                <View style={styles.editionHeader}>
+                  <View style={[
+                    styles.statusBadge,
+                    edition.status === 'published' && styles.statusPublished,
+                    edition.status === 'archived' && styles.statusArchived,
+                  ]}>
+                    <Text style={styles.statusText}>{edition.status}</Text>
+                  </View>
+                  <Text style={styles.editionDate}>{edition.publish_date}</Text>
                 </View>
-                <Text style={styles.editionDate}>{edition.publish_date}</Text>
-              </View>
-              <Text style={styles.editionHeadline}>{edition.headline}</Text>
-              <Pressable
-                style={styles.publishBtn}
-                onPress={() => handlePublish(edition)}
-              >
-                <Text style={styles.publishBtnText}>
-                  {edition.status === 'published' ? 'Archive' : 'Publish'}
-                </Text>
-              </Pressable>
-            </LiquidGlassCard>
-          </MotiView>
-        ))}
-      </ScrollView>
+                <Text style={styles.editionHeadline}>{edition.headline}</Text>
+                <Pressable
+                  style={styles.publishBtn}
+                  onPress={() => handlePublish(edition)}
+                >
+                  <Text style={styles.publishBtnText}>
+                    {edition.status === 'published' ? 'Archive' : 'Publish'}
+                  </Text>
+                </Pressable>
+              </LiquidGlassCard>
+            </MotiView>
+          ))}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.charcoal },
+  keyboardView: { flex: 1 },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 + 84 },
+  content: { paddingBottom: S._40 + 156 },
   header: { paddingHorizontal: S._20, paddingTop: S._8 },
   backBtn: { paddingVertical: S._8, alignSelf: 'flex-start' },
   backText: { ...T.nav, color: C.lightTertiary },
