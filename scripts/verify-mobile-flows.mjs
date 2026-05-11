@@ -45,12 +45,13 @@ AMARI Android tester script for Tinashe
 
 Tester account
 - Platform: Android through Google Play Alpha/closed testing, not Apple TestFlight.
-- Tester email: tinashemapindu@yahoo.com.au
+- AMARI login email: tinashemapindu@yahoo.com.au
+- Google Play tester account: use tinashemapindu@yahoo.com.au only if that is the Google account on his Android phone. If Play Store uses a different Gmail or Google Workspace account, add that Google account to the tester list and still use tinashemapindu@yahoo.com.au inside AMARI.
 - AMARI invite code: AMARI-SLVR-A3B44BDA
 - Auth method: email one-time code. Do not use Apple sign-in for this tester.
 
 Play Console prerequisite
-1. In Google Play Console, add tinashemapindu@yahoo.com.au to the Alpha/closed testing tester list or the tester Google Group.
+1. In Google Play Console, add Tinashe's Android Play Store Google account to the Alpha/closed testing tester list or the tester Google Group.
 2. Send Tinashe the Android closed-testing opt-in link, not a TestFlight link.
 3. Confirm the available Android release is AMARI 1.1.2, versionCode 52 or newer.
 
@@ -130,6 +131,7 @@ assert(
   tinasheAndroidTestScript.includes('tinashemapindu@yahoo.com.au') &&
     tinasheAndroidTestScript.includes('AMARI-SLVR-A3B44BDA') &&
     tinasheAndroidTestScript.includes('Google Play Alpha/closed testing') &&
+    tinasheAndroidTestScript.includes("Tinashe's Android Play Store Google account") &&
     tinasheAndroidTestScript.includes('not Apple TestFlight'),
   'Tinashe Android test script must use the Android Play tester account and avoid TestFlight.',
 );
