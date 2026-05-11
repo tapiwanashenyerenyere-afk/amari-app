@@ -112,6 +112,11 @@ function validateStaticReleaseConfig() {
     packageJson.scripts?.['verify:aligned-regressions'] === 'node ./scripts/verify-aligned-regressions.mjs',
     'verify:aligned-regressions must stay wired to the Aligned privacy/contact/QR regression checks.',
   );
+  assert(
+    packageJson.scripts?.['test:mobile-flows'] === 'node ./scripts/verify-mobile-flows.mjs' &&
+      packageJson.scripts?.['test:mobile-flows:tinashe'] === 'node ./scripts/verify-mobile-flows.mjs --tinashe-android',
+    'mobile flow test scripts must stay wired, including the Android Tinashe tester script.',
+  );
 
   const registerSource = readFileSync('app/(auth)/register.tsx', 'utf8');
   const inviteSource = readFileSync('app/(auth)/invite.tsx', 'utf8');
@@ -154,6 +159,10 @@ const steps = [
   {
     command: 'npm run verify:aligned-regressions',
     label: 'Aligned regression',
+  },
+  {
+    command: 'npm run test:mobile-flows',
+    label: 'Mobile flow regression',
   },
   {
     command: 'npm run lint',
