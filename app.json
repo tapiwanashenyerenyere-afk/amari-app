@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.amari.mobile",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "AMARI uses your location while the app is open to show relevant project and member map context near you."
       }
     },
     "android": {
