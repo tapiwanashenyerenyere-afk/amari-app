@@ -40,8 +40,53 @@ Android Play Store
 10. Tap Your pass, test Email details, Share to apps, and Scan pass.
 `;
 
+const tinasheAndroidTestScript = `
+AMARI Android tester script for Tinashe
+
+Tester account
+- Platform: Android through Google Play Alpha/closed testing, not Apple TestFlight.
+- Tester email: tinashemapindu@yahoo.com.au
+- AMARI invite code: AMARI-SLVR-A3B44BDA
+- Auth method: email one-time code. Do not use Apple sign-in for this tester.
+
+Play Console prerequisite
+1. In Google Play Console, add tinashemapindu@yahoo.com.au to the Alpha/closed testing tester list or the tester Google Group.
+2. Send Tinashe the Android closed-testing opt-in link, not a TestFlight link.
+3. Confirm the available Android release is AMARI 1.1.2, versionCode 52 or newer.
+
+Android install and sign-in
+1. Open the Google Play closed-testing opt-in link on Tinashe's Android phone.
+2. Opt in to testing, then install or update AMARI from Google Play.
+3. Open AMARI.
+4. If this is his first redemption, tap Invitation Code and enter AMARI-SLVR-A3B44BDA.
+5. Continue with email using tinashemapindu@yahoo.com.au.
+6. Enter the one-time email code.
+7. If the invite code has already been redeemed, tap Already a member? Sign in with email.
+8. Sign in with tinashemapindu@yahoo.com.au and enter the one-time email code.
+
+Regression checks
+1. Confirm the app reaches the main member experience without a network error.
+2. Open Aligned, tap Projects, then tap at least three project rows.
+3. Confirm each project opens a detail view without requiring Save first.
+4. In project detail, test Keep me updated, Save, Connect with project creator, and any project link.
+5. Tap Your pass, then Email details.
+6. If no mail app opens, confirm the Android share sheet appears.
+7. Test Share to apps and Scan pass.
+
+Pass/fail notes to collect
+- Device model and Android version.
+- Installed AMARI version/build shown by Google Play if visible.
+- Whether invite-code path or returning-member email sign-in was used.
+- Screenshots or exact text for any network/auth/project/pass failure.
+`;
+
 if (process.argv.includes('--manual')) {
   process.stdout.write(`${manualTestScript.trim()}\n`);
+  process.exit(0);
+}
+
+if (process.argv.includes('--tinashe-android')) {
+  process.stdout.write(`${tinasheAndroidTestScript.trim()}\n`);
   process.exit(0);
 }
 
@@ -80,6 +125,13 @@ assert(
     passModal.includes('await Share.share({') &&
     passModal.includes("title: `AMARI pass — ${fullName}`"),
   'Pass Email details must fall back to native sharing when mailto is unavailable.',
+);
+assert(
+  tinasheAndroidTestScript.includes('tinashemapindu@yahoo.com.au') &&
+    tinasheAndroidTestScript.includes('AMARI-SLVR-A3B44BDA') &&
+    tinasheAndroidTestScript.includes('Google Play Alpha/closed testing') &&
+    tinasheAndroidTestScript.includes('not Apple TestFlight'),
+  'Tinashe Android test script must use the Android Play tester account and avoid TestFlight.',
 );
 
 process.stdout.write('[verify:mobile-flows] passed\n');
