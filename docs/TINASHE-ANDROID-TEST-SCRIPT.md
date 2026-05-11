@@ -6,14 +6,18 @@ Store tester instructions.
 ## Tester Account
 
 - Platform: Android through Google Play Alpha/closed testing
-- Tester email: `tinashemapindu@yahoo.com.au`
+- AMARI login email: `tinashemapindu@yahoo.com.au`
+- Google Play tester account: use `tinashemapindu@yahoo.com.au` only if that is
+  the Google account on his Android phone. If Play Store uses a different Gmail
+  or Google Workspace account, add that Google account to the tester list and
+  still use `tinashemapindu@yahoo.com.au` inside AMARI.
 - AMARI invite code: `AMARI-SLVR-A3B44BDA`
 - Auth method: email one-time code
 
 ## Play Console Setup
 
-1. Add `tinashemapindu@yahoo.com.au` to the Google Play Alpha/closed testing
-   tester list or the tester Google Group.
+1. Add Tinashe's Android Play Store Google account to the Google Play
+   Alpha/closed testing tester list or the tester Google Group.
 2. Send him the Android closed-testing opt-in link.
 3. Confirm the available Android release is AMARI `1.1.2`, versionCode `52` or
    newer.
