@@ -53,6 +53,9 @@ Recently merged PRs:
   - Bumped `expo.version`, package version, and lockfile version to `1.1.2`
     after App Store Connect rejected additional `1.1.1` uploads because the
     approved `1.1.1` train was closed.
+- PR #37: `fix: add ios location purpose string`
+  - Added `NSLocationWhenInUseUsageDescription` for the Mapbox/location-capable
+    iOS bundle warning reported by App Store Connect.
 
 - PR #19: `fix: refine onboarding signal and gala nominee story`
   - White transparent AMARI A in onboarding.
@@ -72,21 +75,27 @@ Recently merged PRs:
 
 Store artifacts:
 
-- iOS version `1.1.2`, build `19`, uploaded to App Store Connect/TestFlight on
-  2026-05-11:
+- iOS version `1.1.2`, build `20`, uploaded to App Store Connect on
+  2026-05-11 after fixing the location purpose string warning:
+  `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/fe6672f8-6422-4ff3-81ef-ef80599b4821`
+- App Store version `1.1.2` was resubmitted for live App Store Review with
+  build `20`; review submission `e020502a-4a32-42e5-83bb-c7afff9cd758` is
+  `WAITING_FOR_REVIEW`.
+- Superseded iOS build `19` upload:
   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1068ab4f-9661-4d43-befc-123245697b10`
 - Android version `1.1.2`, versionCode `52`, submitted successfully to Google
   Play Alpha/closed testing on 2026-05-11:
   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/da672749-4490-48ac-b63e-ea65bed15bbc`
-- Android production remains blocked by Google Play Console state. Direct
+- Android production remains blocked by Google Play Console state/access. Direct
   Android Publisher API tests accepted AAB uploads for versionCodes `51` and
   `52`, then failed updating the `production` track with
   `FAILED_PRECONDITION`. The production track currently has no active release
   and `countryAvailability/production` returns HTTP `204`; Alpha has completed
   release `1.1.2` / versionCode `52`.
-- To release Android publicly, first configure/activate production countries or
-  first-production-release state in Play Console, then retry production track
-  submission for build `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72`.
+- To release Android publicly, complete Google's production access requirements
+  in Play Console, then configure/activate production countries and retry
+  production track submission for build
+  `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72`.
 - Accepted Android AAB archive:
   `C:\Users\tapiw\amari-build\amari-mobile-1.1.2-v52-play-2026-05-11\amari-production-1.1.2-v52.aab`
 - AAB SHA256:

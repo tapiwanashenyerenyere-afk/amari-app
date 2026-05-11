@@ -191,27 +191,37 @@ Release outcome:
    build `19`, runtime `1.1.2`, commit `6305931`, finished successfully.
 2. EAS Submit uploaded the iOS build to App Store Connect/TestFlight:
    `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1068ab4f-9661-4d43-befc-123245697b10`
-3. GitHub Actions run `25653253525` used the Play upload-key workflow and
+3. App Store Connect reported warning `90683` for missing
+   `NSLocationWhenInUseUsageDescription`. PR #37 added the iOS purpose string,
+   then EAS build `f2ae2b91-03a1-46d4-9c65-1bae96a1cfa8` produced version
+   `1.1.2`, build `20`, commit `d2e89aa`.
+4. EAS Submit uploaded iOS build `20` to App Store Connect:
+   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/fe6672f8-6422-4ff3-81ef-ef80599b4821`
+   App Store version `1.1.2` was resubmitted for live review with build `20`;
+   review submission `e020502a-4a32-42e5-83bb-c7afff9cd758` is
+   `WAITING_FOR_REVIEW`.
+5. GitHub Actions run `25653253525` used the Play upload-key workflow and
    produced Android EAS build `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72`, version
    `1.1.2`, versionCode `52`, runtime `1.1.2`, commit `6305931`.
-4. The Android AAB was archived at
+6. The Android AAB was archived at
    `C:\Users\tapiw\amari-build\amari-mobile-1.1.2-v52-play-2026-05-11\amari-production-1.1.2-v52.aab`
    with SHA256
    `3f1eef7075e23209c2ee9df95e19cb6e4f1b2c5f843c631aa7f00ff8cf02755f`.
-5. Direct Android Publisher API production tests accepted AAB uploads for
-   versionCodes `51` and `52`, then failed on `edits.tracks.update` for
-   `production` with `FAILED_PRECONDITION`. `countryAvailability/production`
-   returns HTTP `204`, and the production track has no active release.
-6. EAS Submit successfully uploaded Android build
+7. Direct Android Publisher API production tests accepted AAB uploads for
+   versionCodes `51` and `52`, and a later alpha-to-production promotion retry
+   also failed on `edits.tracks.update` for `production` with
+   `FAILED_PRECONDITION`. `countryAvailability/production` returns HTTP `204`,
+   and the production track has no active release.
+8. EAS Submit successfully uploaded Android build
    `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72` to Google Play Alpha/closed testing:
    `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/da672749-4490-48ac-b63e-ea65bed15bbc`
 
 To release Android publicly, fix the Play Console production-track state first:
-configure/activate production country availability or complete the first
-production release setup in Play Console. After production country availability
-is non-empty, retry production submission for build
-`0cafe8d2-9e41-4553-bca4-1fd0b94dfd72` or rebuild from `release/v2-redesign-signed`
-if a newer commit has landed.
+complete Google's production access requirements in Play Console, then
+configure/activate production country availability. After production access and
+country availability are active, retry production submission for build
+`0cafe8d2-9e41-4553-bca4-1fd0b94dfd72` or rebuild from
+`release/v2-redesign-signed` if a newer commit has landed.
 
 ## Required Environment Variables
 
