@@ -52,14 +52,12 @@ export function useCurrentMatch() {
 }
 
 export function useAlignedDecide() {
-  const { user } = useAuth();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ matchId, decision }: { matchId: number; decision: 'accept' | 'pass' }) => {
       const { data, error } = await supabase.rpc('aligned_decide', {
         p_match_id: matchId,
-        p_member_id: user!.id,
         p_decision: decision,
       });
       if (error) throw error;

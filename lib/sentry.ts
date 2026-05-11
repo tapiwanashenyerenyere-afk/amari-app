@@ -13,7 +13,5 @@ export function initSentry() {
       environment: __DEV__ ? 'development' : 'production',
       enabled: !__DEV__,
     });
-  } catch {
-    console.log('Sentry not installed — monitoring disabled');
-  }
+  } catch {}
 }

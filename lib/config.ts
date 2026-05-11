@@ -92,10 +92,3 @@ export const config: Config = {
 
 // DEMO MODE: Set to true to bypass backend and use mock data
 export const DEMO_MODE = true;
-
-// For debugging - only in development with redacted URL
-if (__DEV__) {
-  const redactedUrl = config.apiBaseUrl.replace(/\/\/[^/]+/, '//***');
-  console.log('[Config] Environment: development');
-  console.log('[Config] API Base URL:', redactedUrl);
-}

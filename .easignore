@@ -1,0 +1,24 @@
+# EAS Build ignore — reduce upload size and avoid conflicts
+.expo/
+.github/
+.husky/_/
+dist/
+preview/
+*.aab
+*.apk
+*.b64
+*.csv
+google-services.json
+google-play-service-account*.json
+play-service-account*.json
+# NOTE: *.jks intentionally NOT excluded — needed for local credential builds
+__tests__/
+.claude/
+SESSION-RESUME.md
+CLAUDE-RESUME-PROMPT.txt
+AMARI-FRESH-BUILD.md
+ARCHITECTURE.md
+BETA_TESTING.md
+BUILD_ANDROID.md
+DEVELOPMENT.md
+assets/store-assets/

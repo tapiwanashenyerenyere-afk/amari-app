@@ -30,6 +30,7 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+!certs/certificate.pem
 
 # local env files
 .env
@@ -52,6 +53,9 @@ supabase/.temp/
 # Claude
 .claude/
 
+# Husky generated files
+.husky/_/
+
 # Large media
 assets/videos/
 
@@ -61,11 +65,21 @@ SESSION-RESUME.md
 
 # Secrets
 *.b64
+google-services.json
+google-play-service-account*.json
+play-service-account*.json
 keystore.b64
 SECURE-CODES-DO-NOT-COMMIT.csv
+
+# Build artifacts
+*.aab
+*.apk
 
 # Build docs (generated, not source)
 AMARI-FRESH-BUILD.md
 ARCHITECTURE.md
 BETA_TESTING.md
 BUILD_ANDROID.md
+
+# Design preview (local only)
+preview/

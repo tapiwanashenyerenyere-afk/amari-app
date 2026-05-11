@@ -1,31 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { C, T, R } from '../../lib/constants';
-import type { MembershipTier } from '../../lib/constants';
+import { colors, typography, radius } from '../../lib/theme';
 
-const TIER_PILL_COLORS: Record<
-  MembershipTier,
-  { text: string; border: string; bg: string }
-> = {
+type MembershipTier = 'member' | 'silver' | 'platinum' | 'laureate';
+
+const TIER_PILL_COLORS: Record<MembershipTier, { text: string; border: string; bg: string }> = {
   member: {
-    text: C.lightSecondary,
-    border: 'rgba(255,255,255,0.1)',
-    bg: 'rgba(255,255,255,0.06)',
+    text: colors.gray,
+    border: colors.rule,
+    bg: colors.ghost,
   },
   silver: {
-    text: '#C0C0C0',
-    border: 'rgba(192,192,192,0.2)',
-    bg: 'rgba(192,192,192,0.08)',
+    text: '#9A9A94',
+    border: 'rgba(154,154,148,0.2)',
+    bg: 'rgba(154,154,148,0.08)',
   },
   platinum: {
-    text: '#E5E4E2',
-    border: 'rgba(229,228,226,0.2)',
-    bg: 'rgba(229,228,226,0.08)',
+    text: '#C8C4BC',
+    border: 'rgba(200,196,188,0.2)',
+    bg: 'rgba(200,196,188,0.08)',
   },
   laureate: {
-    text: C.goldOnDark,
-    border: 'rgba(201,169,98,0.2)',
-    bg: 'rgba(201,169,98,0.08)',
+    text: colors.sand,
+    border: 'rgba(139,115,85,0.2)',
+    bg: 'rgba(139,115,85,0.08)',
   },
 };
 
@@ -34,17 +32,12 @@ interface TierBadgeProps {
 }
 
 export function TierBadge({ tier }: TierBadgeProps) {
-  const colors = TIER_PILL_COLORS[tier];
+  const c = TIER_PILL_COLORS[tier];
   const label = tier.charAt(0).toUpperCase() + tier.slice(1);
 
   return (
-    <View
-      style={[
-        styles.pill,
-        { borderColor: colors.border, backgroundColor: colors.bg },
-      ]}
-    >
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+    <View style={[styles.pill, { borderColor: c.border, backgroundColor: c.bg }]}>
+      <Text style={[styles.label, { color: c.text }]}>{label}</Text>
     </View>
   );
 }
@@ -53,13 +46,15 @@ const styles = StyleSheet.create({
   pill: {
     paddingVertical: 6,
     paddingHorizontal: 16,
-    borderRadius: R.pill,
+    borderRadius: radius.full,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },
   label: {
-    ...T.label,
+    fontFamily: typography.geo.medium,
     fontSize: 9,
+    fontWeight: '500',
     letterSpacing: 3,
+    textTransform: 'uppercase',
   },
 });

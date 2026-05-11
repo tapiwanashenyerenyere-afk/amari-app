@@ -13,16 +13,20 @@ import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
 import { TierBadge } from '../../components/badges/TierBadge';
 import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
+type MemberStatus = 'pending' | 'active' | 'suspended' | 'inactive';
+
 interface Member {
   id: string;
   full_name: string;
   email: string;
   tier: MembershipTier;
-  status: string;
+  status: MemberStatus;
   city: string | null;
   industry: string | null;
   created_at: string;
 }
+
+const STATUS_OPTIONS: MemberStatus[] = ['active', 'pending', 'suspended', 'inactive'];
 
 export default function MembersScreen() {
   const router = useRouter();
@@ -37,7 +41,7 @@ export default function MembersScreen() {
       .from('members')
       .select('id, full_name, email, tier, status, city, industry, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .range(0, 999);
 
     if (search.trim()) {
       query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -71,6 +75,44 @@ export default function MembersScreen() {
     }
   };
 
+  const handleSetStatus = async (member: Member, nextStatus: MemberStatus) => {
+    const runUpdate = async () => {
+      const { data, error } = await supabase.rpc('admin_set_member_status', {
+        p_member_id: member.id,
+        p_status: nextStatus,
+        p_reason: `Admin set ${member.full_name} to ${nextStatus} from mobile admin panel`,
+      });
+
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+
+      if (data?.success) {
+        Alert.alert('Updated', `${member.full_name} is now ${nextStatus}`);
+        setSelectedMember(null);
+        fetchMembers();
+        return;
+      }
+
+      Alert.alert('Failed', data?.error || 'Unknown error');
+    };
+
+    if (nextStatus === 'suspended' || nextStatus === 'inactive') {
+      Alert.alert(
+        nextStatus === 'suspended' ? 'Kick out member?' : 'Deactivate member?',
+        `${member.full_name} will lose active member access, but their history, projects, and audit records stay intact.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: nextStatus === 'suspended' ? 'Kick out' : 'Deactivate', style: 'destructive', onPress: runUpdate },
+        ],
+      );
+      return;
+    }
+
+    await runUpdate();
+  };
+
   const renderMember = ({ item, index }: { item: Member; index: number }) => (
     <MotiView
       from={{ opacity: 0, translateY: 10 }}
@@ -88,6 +130,9 @@ export default function MembersScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>{item.full_name}</Text>
               <Text style={styles.memberEmail}>{item.email}</Text>
+              <Text style={[styles.statusPill, item.status === 'active' ? styles.statusPillActive : null]}>
+                {item.status.toUpperCase()}
+              </Text>
             </View>
             <TierBadge tier={item.tier} />
           </View>
@@ -115,6 +160,29 @@ export default function MembersScreen() {
                   </Pressable>
                 ))}
               </View>
+              <Text style={[styles.tierActionsLabel, styles.statusActionsLabel]}>Member Status</Text>
+              <View style={styles.tierButtons}>
+                {STATUS_OPTIONS.map(status => (
+                  <Pressable
+                    key={status}
+                    style={[
+                      styles.tierBtn,
+                      status === item.status && styles.tierBtnActive,
+                      status === 'suspended' && status !== item.status ? styles.dangerBtn : null,
+                    ]}
+                    onPress={() => status !== item.status && handleSetStatus(item, status)}
+                    disabled={status === item.status}
+                  >
+                    <Text style={[
+                      styles.tierBtnText,
+                      status === item.status && styles.tierBtnTextActive,
+                      status === 'suspended' && status !== item.status ? styles.dangerBtnText : null,
+                    ]}>
+                      {status === 'suspended' ? 'Kick out' : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
               <View style={styles.memberMeta}>
                 {item.city && <Text style={styles.metaText}>{item.city}</Text>}
                 {item.industry && <Text style={styles.metaText}>{item.industry}</Text>}
@@ -137,7 +205,7 @@ export default function MembersScreen() {
           <Text style={styles.backText}>← Admin</Text>
         </Pressable>
         <Text style={styles.title}>Members</Text>
-        <Text style={styles.count}>{members.length} total</Text>
+        <Text style={styles.count}>{members.length} loaded across all statuses</Text>
       </View>
 
       {/* Search */}
@@ -196,9 +264,25 @@ const styles = StyleSheet.create({
   memberInitials: { ...T.label, fontSize: 12, color: C.lightPrimary, letterSpacing: 0 },
   memberName: { ...T.cardTitleSm, color: C.lightPrimary },
   memberEmail: { ...T.meta, color: C.lightTertiary, marginTop: S._2 },
+  statusPill: {
+    ...T.label,
+    alignSelf: 'flex-start',
+    marginTop: S._6,
+    paddingHorizontal: S._8,
+    paddingVertical: S._4,
+    borderRadius: R.pill,
+    overflow: 'hidden',
+    color: C.lightTertiary,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  statusPillActive: {
+    color: C.goldOnDark,
+    backgroundColor: 'rgba(201,169,98,0.12)',
+  },
   tierActions: { marginTop: S._16, paddingTop: S._12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.08)' },
   tierActionsLabel: { ...T.label, color: C.lightTertiary, marginBottom: S._8 },
-  tierButtons: { flexDirection: 'row', gap: S._8 },
+  statusActionsLabel: { marginTop: S._16 },
+  tierButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: S._8 },
   tierBtn: {
     paddingVertical: S._8, paddingHorizontal: S._12,
     borderRadius: R.md, borderWidth: 1,
@@ -206,8 +290,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   tierBtnActive: { backgroundColor: 'rgba(114,47,55,0.4)', borderColor: 'rgba(114,47,55,0.6)' },
+  dangerBtn: { borderColor: 'rgba(239,68,68,0.44)', backgroundColor: 'rgba(239,68,68,0.10)' },
   tierBtnText: { ...T.meta, color: C.lightSecondary },
   tierBtnTextActive: { color: C.lightPrimary },
+  dangerBtnText: { color: '#fca5a5' },
   memberMeta: { marginTop: S._12, gap: S._4 },
   metaText: { ...T.meta, color: C.lightFaint },
 });

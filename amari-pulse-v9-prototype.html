@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AMARI Pulse — V9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0A0A0A;
+    --bone: #F2EDE6;
+    --warm: #EDE7DE;
+    --cream: #FDFCFA;
+    --white: #fff;
+    --gold: #C9A962;
+    --gold-dark: #A8884F;
+    --charcoal: #1C1C1C;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:var(--sans); background:var(--bone); max-width:430px; margin:0 auto; overflow-x:hidden; min-height:100vh; }
+
+  /* ═══ TOP BAR ═══ */
+  .top-bar { padding:52px 20px 0; display:flex; justify-content:space-between; align-items:center; }
+  .greeting { font-family:var(--sans); font-size:13px; font-weight:400; color:rgba(0,0,0,0.4); }
+  .card-btn {
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px 8px 10px; border-radius:12px;
+    background:var(--charcoal); cursor:pointer;
+    transition:transform 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  }
+  .card-btn:active { transform:scale(0.95); }
+  .card-btn-avatar { width:28px; height:28px; border-radius:14px; background:linear-gradient(135deg, var(--gold), #D4B87A); display:flex; align-items:center; justify-content:center; }
+  .card-btn-initials { font-family:var(--sans); font-size:10px; font-weight:700; color:var(--black); }
+  .card-btn-text { font-family:var(--sans); font-size:11px; font-weight:600; color:var(--white); }
+  .card-btn-dot { width:6px; height:6px; border-radius:3px; background:var(--gold); animation:pdot 2s ease-in-out infinite; }
+  @keyframes pdot { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+
+  .header { padding:6px 20px 18px; }
+  .h-title { font-family:var(--sans); font-size:32px; font-weight:700; color:var(--black); letter-spacing:-0.5px; }
+
+  /* ═══ HERO STORY ═══ */
+  .hero-wrap { padding:0 20px; position:relative; }
+  .hero-scroll { display:flex; gap:14px; overflow-x:auto; scrollbar-width:none; scroll-snap-type:x mandatory; }
+  .hero-scroll::-webkit-scrollbar { display:none; }
+
+  .hero {
+    flex-shrink:0; width:calc(100% - 0px); scroll-snap-align:start;
+    border-radius:20px; overflow:hidden;
+    position:relative; min-height:320px;
+    cursor:pointer; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .hero:active { transform:scale(0.975); }
+  .hero-bg { position:absolute; inset:0; }
+  .hero-bg.dark { background:linear-gradient(155deg, #1A1510 0%, #0A0A0A 50%, #14100C 100%); }
+  .hero-bg.navy { background:linear-gradient(155deg, #10141E 0%, #0A0E16 50%, #141A26 100%); }
+  .hero-grain { position:absolute; inset:0; pointer-events:none; opacity:0.04; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .hero-glow { position:absolute; width:200px; height:200px; border-radius:50%; top:-40px; right:-20px; background:radial-gradient(circle, rgba(201,169,98,0.08) 0%, transparent 70%); pointer-events:none; }
+  .hero-line { position:absolute; bottom:0; left:24px; right:24px; height:1px; background:linear-gradient(90deg, transparent, rgba(201,169,98,0.15), transparent); }
+
+  .hero-content { position:relative; z-index:2; padding:24px; display:flex; flex-direction:column; min-height:320px; }
+  .hero-badge { align-self:flex-start; font-family:var(--mono); font-size:8px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; padding:5px 10px; border-radius:6px; color:var(--gold); background:rgba(201,169,98,0.1); border:1px solid rgba(201,169,98,0.15); margin-bottom:auto; }
+  .hero-cat { font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:8px; }
+  .hero-title { font-family:var(--sans); font-size:24px; font-weight:700; color:var(--white); line-height:1.2; letter-spacing:-0.3px; margin-bottom:8px; }
+  .hero-excerpt { font-family:var(--sans); font-size:13px; font-weight:400; color:rgba(255,255,255,0.45); line-height:1.5; margin-bottom:14px; }
+  .hero-footer { display:flex; justify-content:space-between; align-items:center; }
+  .hero-date { font-family:var(--mono); font-size:10px; font-weight:400; color:rgba(255,255,255,0.25); }
+  .hero-read { font-family:var(--sans); font-size:13px; font-weight:600; color:var(--gold); }
+
+  .scroll-dots { display:flex; justify-content:center; gap:6px; padding:14px 0 18px; }
+  .scroll-dot { width:6px; height:6px; border-radius:3px; background:rgba(0,0,0,0.1); }
+  .scroll-dot.on { width:18px; background:var(--gold); }
+
+  /* ═══ BRIDGE TILES ═══ */
+  .bridge { display:flex; gap:10px; padding:0 20px 20px; }
+  .bridge-tile {
+    flex:1; border-radius:16px; overflow:hidden; position:relative;
+    min-height:130px; cursor:pointer;
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .bridge-tile:active { transform:scale(0.97); }
+  .bt-bg { position:absolute; inset:0; }
+  .bt-bg.event { background:linear-gradient(160deg, #1A1510 0%, #0F0A06 50%, #1C1510 100%); }
+  .bt-bg.map { background:linear-gradient(160deg, #101820 0%, #0A1018 50%, #141C24 100%); }
+  .bt-grain { position:absolute; inset:0; pointer-events:none; opacity:0.04; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .bt-content { position:relative; z-index:2; padding:16px; display:flex; flex-direction:column; min-height:130px; }
+  .bt-label { font-family:var(--mono); font-size:7px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:auto; }
+  .bt-title { font-family:var(--sans); font-size:15px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:4px; }
+  .bt-meta { font-family:var(--sans); font-size:11px; font-weight:400; color:rgba(255,255,255,0.4); }
+  .bt-date { font-family:var(--sans); font-size:28px; font-weight:700; color:var(--white); line-height:1; }
+  .bt-month { font-family:var(--mono); font-size:9px; font-weight:500; color:var(--gold); letter-spacing:1.5px; text-transform:uppercase; }
+  .bt-count { font-family:var(--sans); font-size:22px; font-weight:700; color:var(--white); }
+  .bt-count-label { font-family:var(--sans); font-size:11px; font-weight:400; color:rgba(255,255,255,0.4); }
+
+  /* ═══ FEED ═══ */
+  .feed-header { display:flex; justify-content:space-between; align-items:baseline; padding:0 20px 14px; }
+  .feed-title { font-family:var(--sans); font-size:18px; font-weight:700; color:var(--black); letter-spacing:-0.3px; }
+  .feed-link { font-family:var(--sans); font-size:12px; font-weight:600; color:var(--gold-dark); cursor:pointer; }
+
+  .feed-card {
+    display:flex; gap:14px; padding:16px 20px;
+    border-bottom:1px solid rgba(0,0,0,0.05);
+    cursor:pointer; transition:background 0.2s;
+  }
+  .feed-card:active { background:rgba(0,0,0,0.02); }
+  .feed-info { flex:1; }
+  .feed-cat { font-family:var(--mono); font-size:8px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:rgba(0,0,0,0.3); margin-bottom:5px; }
+  .feed-name { font-family:var(--sans); font-size:16px; font-weight:700; color:var(--black); line-height:1.3; margin-bottom:4px; }
+  .feed-desc { font-family:var(--sans); font-size:12px; font-weight:400; color:rgba(0,0,0,0.45); line-height:1.4; }
+  .feed-meta { font-family:var(--mono); font-size:9px; font-weight:400; color:rgba(0,0,0,0.25); margin-top:6px; }
+  .feed-img { width:80px; height:80px; border-radius:12px; flex-shrink:0; background:var(--charcoal); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .feed-img-letter { font-family:var(--sans); font-size:28px; font-weight:700; color:rgba(255,255,255,0.06); }
+
+  /* ═══ ARTICLE DETAIL (overlay) ═══ */
+  .article-overlay {
+    display:none; position:fixed; inset:0; z-index:200;
+    background:var(--bone); overflow-y:auto;
+  }
+  .article-overlay.open { display:block; animation:slideUp 0.35s ease; }
+  @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+
+  .article-header { padding:52px 20px 14px; display:flex; align-items:center; }
+  .article-back { width:36px; height:36px; border-radius:10px; background:rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:rgba(0,0,0,0.5); }
+  .article-back:active { background:rgba(0,0,0,0.1); }
+
+  .article-cover { margin:0 20px 20px; height:200px; border-radius:16px; background:var(--charcoal); display:flex; align-items:center; justify-content:center; }
+  .article-cover-text { font-family:var(--sans); font-size:12px; font-weight:500; color:rgba(255,255,255,0.15); letter-spacing:1px; text-transform:uppercase; }
+
+  .article-body { padding:0 20px; }
+  .article-cat { font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:8px; }
+  .article-title { font-family:var(--sans); font-size:26px; font-weight:700; color:var(--black); line-height:1.2; letter-spacing:-0.3px; margin-bottom:12px; }
+  .article-date { font-family:var(--mono); font-size:10px; font-weight:400; color:rgba(0,0,0,0.3); margin-bottom:20px; }
+  .article-text { font-family:var(--sans); font-size:15px; font-weight:400; color:rgba(0,0,0,0.7); line-height:1.7; margin-bottom:16px; }
+  .article-text strong { font-weight:600; color:var(--black); }
+  .article-divider { height:1px; background:rgba(0,0,0,0.06); margin:24px 0; }
+  .article-matched { font-family:var(--sans); font-size:12px; font-weight:400; color:rgba(0,0,0,0.4); font-style:italic; margin-bottom:40px; }
+  .article-matched strong { font-weight:600; color:var(--gold-dark); font-style:normal; }
+
+  /* ═══ FOOTER ═══ */
+  .emblem-footer { text-align:center; padding:40px 0 24px; }
+  .emblem-mark { font-family:var(--sans); font-size:9px; font-weight:600; letter-spacing:4px; color:rgba(0,0,0,0.06); text-transform:uppercase; }
+
+  /* ═══ TAB BAR ═══ */
+  .tab-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; background:var(--cream); border-top:1px solid rgba(0,0,0,0.06); display:flex; justify-content:space-around; align-items:center; padding:8px 0 28px; z-index:100; }
+  .ti { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; opacity:0.4; }
+  .ti.on { opacity:1; }
+  .ti svg { width:22px; height:22px; color:#555; }
+  .ti.on svg { color:var(--black); }
+  .tl { font-family:var(--sans); font-size:10px; font-weight:500; color:#555; }
+  .ti.on .tl { color:var(--black); }
+  .ti.on::after { content:''; width:4px; height:4px; background:var(--gold); border-radius:50%; margin-top:1px; }
+  .bottom-spacer { height:90px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="top-bar">
+  <div class="greeting">Good afternoon, Jeremy</div>
+  <div class="card-btn" onclick="document.getElementById('cardOverlay').classList.add('open')">
+    <div class="card-btn-avatar"><span class="card-btn-initials">JN</span></div>
+    <span class="card-btn-text">My Card</span>
+    <div class="card-btn-dot"></div>
+  </div>
+</div>
+
+<div class="header"><div class="h-title">Explore</div></div>
+
+<!-- ═══ HERO STORIES (swipeable) ═══ -->
+<div class="hero-wrap">
+  <div class="hero-scroll">
+    <div class="hero" onclick="openArticle('zivai')">
+      <div class="hero-bg dark"></div>
+      <div class="hero-grain"></div>
+      <div class="hero-glow"></div>
+      <div class="hero-line"></div>
+      <div class="hero-content">
+        <span class="hero-badge">New this week</span>
+        <div class="hero-cat">Business &amp; Leadership</div>
+        <div class="hero-title">Zivai Matipano Named Among 101 Collins Street's Leading Ladies</div>
+        <div class="hero-excerpt">Recognised as one of the Leading Ladies of 2026 as part of the building's International Women's Day programme.</div>
+        <div class="hero-footer">
+          <span class="hero-date">8 Mar, 2026</span>
+          <span class="hero-read">Read &rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero" onclick="openArticle('kalu')">
+      <div class="hero-bg navy"></div>
+      <div class="hero-grain"></div>
+      <div class="hero-glow" style="background:radial-gradient(circle, rgba(140,170,210,0.08) 0%, transparent 70%);"></div>
+      <div class="hero-line"></div>
+      <div class="hero-content">
+        <span class="hero-badge" style="color:rgba(140,170,210,0.8); background:rgba(140,170,210,0.1); border-color:rgba(140,170,210,0.15);">Featured</span>
+        <div class="hero-cat">Film</div>
+        <div class="hero-title">Kalu Oji's Pasa Faho Screens at Sydney Opera House</div>
+        <div class="hero-excerpt">A groundbreaking documentary exploring identity and belonging in the African diaspora.</div>
+        <div class="hero-footer">
+          <span class="hero-date">21 Jan, 2026</span>
+          <span class="hero-read">Read &rarr;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-dots">
+  <div class="scroll-dot on"></div>
+  <div class="scroll-dot"></div>
+</div>
+
+<!-- ═══ BRIDGE TILES — Connect to rest of app ═══ -->
+<div class="bridge">
+  <!-- Next Event -->
+  <div class="bridge-tile" onclick="alert('Opens Events tab')">
+    <div class="bt-bg event"></div>
+    <div class="bt-grain"></div>
+    <div class="bt-content">
+      <div class="bt-label">Next event</div>
+      <div style="margin-bottom:8px;">
+        <div class="bt-date">15</div>
+        <div class="bt-month">Nov</div>
+      </div>
+      <div class="bt-title">AMARI Gala</div>
+      <div class="bt-meta">Black Tie</div>
+    </div>
+  </div>
+
+  <!-- Map / Projects -->
+  <div class="bridge-tile" onclick="alert('Opens Aligned Map')">
+    <div class="bt-bg map"></div>
+    <div class="bt-grain"></div>
+    <div class="bt-content">
+      <div class="bt-label">On the map</div>
+      <div style="margin-bottom:8px;">
+        <div class="bt-count">12</div>
+        <div class="bt-count-label">projects nearby</div>
+      </div>
+      <div class="bt-meta" style="color:var(--gold); font-weight:500;">3 new this week &rarr;</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE PULSE FEED ═══ -->
+<div class="feed-header">
+  <div class="feed-title">The Pulse</div>
+  <div class="feed-link">Archive &rarr;</div>
+</div>
+
+<div class="feed-card" onclick="openArticle('jamal')">
+  <div class="feed-info">
+    <div class="feed-cat">Business</div>
+    <div class="feed-name">Jamal Elsheikh Brokers Anti-Racism Partnership Between Melbourne's A-League Rivals</div>
+    <div class="feed-desc">A landmark agreement bringing two rival clubs together for community impact.</div>
+    <div class="feed-meta">17 Dec 2025</div>
+  </div>
+  <div class="feed-img"><span class="feed-img-letter">J</span></div>
+</div>
+
+<div class="feed-card" onclick="openArticle('mohamed')">
+  <div class="feed-info">
+    <div class="feed-cat">Policy</div>
+    <div class="feed-name">Mohamed Semra Elected Mayor of Merri-bek</div>
+    <div class="feed-desc">The youngest mayor in the council's history and a founding AMARI member.</div>
+    <div class="feed-meta">28 Nov 2025</div>
+  </div>
+  <div class="feed-img"><span class="feed-img-letter">M</span></div>
+</div>
+
+<div class="feed-card">
+  <div class="feed-info">
+    <div class="feed-cat">Community</div>
+    <div class="feed-name">AMARI Melbourne Chapter Crosses 200 Members</div>
+    <div class="feed-meta">15 Nov 2025</div>
+  </div>
+  <div class="feed-img"><span class="feed-img-letter">A</span></div>
+</div>
+
+<div class="feed-card">
+  <div class="feed-info">
+    <div class="feed-cat">Tech</div>
+    <div class="feed-name">African-Australian Founders Raise $12M in Record Quarter</div>
+    <div class="feed-desc">A new wave of venture-backed startups led by diaspora founders.</div>
+    <div class="feed-meta">2 Nov 2025</div>
+  </div>
+  <div class="feed-img"><span class="feed-img-letter">F</span></div>
+</div>
+
+<div class="emblem-footer"><div class="emblem-mark">AMARI</div></div>
+<div class="bottom-spacer"></div>
+
+<!-- ═══ ARTICLE DETAIL OVERLAY ═══ -->
+<div class="article-overlay" id="articleOverlay">
+  <div class="article-header">
+    <div class="article-back" onclick="closeArticle()">&larr;</div>
+  </div>
+  <div class="article-cover"><span class="article-cover-text">Cover image</span></div>
+  <div class="article-body">
+    <div class="article-cat" id="artCat"></div>
+    <div class="article-title" id="artTitle"></div>
+    <div class="article-date" id="artDate"></div>
+    <div class="article-text" id="artBody"></div>
+    <div class="article-divider"></div>
+    <div class="article-matched" id="artMatched"></div>
+  </div>
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- ═══ CARD POPUP OVERLAY — Full screen, same card as profile ═══ -->
+<div class="article-overlay" id="cardOverlay" style="background:rgba(5,5,5,0.97);">
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:40px 24px;">
+
+    <!-- Full membership card — identical to profile -->
+    <div style="width:100%; max-width:380px; position:relative; border-radius:16px; overflow:hidden; padding:22px 22px 18px; min-height:170px; background:linear-gradient(155deg, #1C1C1C 0%, #0F0F0F 50%, #1A1510 100%); box-shadow:0 12px 40px rgba(0,0,0,0.5); margin-bottom:32px;">
+      <!-- Grain -->
+      <div style="position:absolute; inset:0; pointer-events:none; opacity:0.04; background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E');"></div>
+      <!-- Shimmer -->
+      <div style="position:absolute; inset:0; pointer-events:none; background:linear-gradient(110deg, transparent 30%, rgba(201,169,98,0.06) 45%, rgba(255,255,255,0.04) 50%, rgba(201,169,98,0.06) 55%, transparent 70%); animation:shimmer 5s ease-in-out infinite;"></div>
+      <!-- Gold glow -->
+      <div style="position:absolute; width:200px; height:200px; border-radius:50%; top:-40px; right:-30px; background:radial-gradient(circle, rgba(201,169,98,0.08) 0%, transparent 70%); pointer-events:none;"></div>
+      <!-- Gold line -->
+      <div style="position:absolute; bottom:0; left:20px; right:20px; height:1px; background:linear-gradient(90deg, transparent, rgba(201,169,98,0.2), transparent);"></div>
+
+      <!-- Card top -->
+      <div style="display:flex; justify-content:space-between; align-items:center; position:relative; z-index:2; margin-bottom:20px;">
+        <span style="font-family:var(--sans); font-size:13px; font-weight:700; letter-spacing:5px; color:rgba(255,255,255,0.7); text-transform:uppercase;">AMARI</span>
+        <span style="font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:1px; color:var(--gold); padding:4px 10px; border-radius:6px; border:1px solid rgba(201,169,98,0.2); background:rgba(201,169,98,0.06);">PLATINUM</span>
+      </div>
+
+      <!-- Card member -->
+      <div style="display:flex; align-items:center; gap:14px; position:relative; z-index:2; margin-bottom:16px;">
+        <div style="width:48px; height:48px; border-radius:24px; background:linear-gradient(135deg, var(--gold), #D4B87A); display:flex; align-items:center; justify-content:center;">
+          <span style="font-family:var(--sans); font-size:16px; font-weight:700; color:var(--black);">JN</span>
+        </div>
+        <div>
+          <div style="font-family:var(--sans); font-size:20px; font-weight:700; color:var(--white);">Jeremy Nyerenyere</div>
+          <div style="font-family:var(--sans); font-size:11px; font-weight:400; color:rgba(255,255,255,0.4); margin-top:2px;">Melbourne, AU</div>
+        </div>
+      </div>
+
+      <!-- Card bottom -->
+      <div style="display:flex; justify-content:space-between; align-items:center; position:relative; z-index:2;">
+        <span style="font-family:var(--mono); font-size:9px; font-weight:400; color:rgba(255,255,255,0.25); letter-spacing:0.5px;">AMARI-2026-BF85</span>
+      </div>
+    </div>
+
+    <!-- QR Code — pure white, generous quiet zone, no logo inside QR -->
+    <div style="width:200px; height:200px; border-radius:16px; background:#FFFFFF; display:flex; align-items:center; justify-content:center; margin-bottom:6px; box-shadow:0 4px 24px rgba(0,0,0,0.25); padding:22px;">
+      <div style="width:100%; height:100%; border-radius:2px; background:repeating-conic-gradient(var(--black) 0% 25%, #FFFFFF 0% 50%) 0 0 / 8px 8px; opacity:0.3;"></div>
+    </div>
+    <!-- Emblem sits below QR, not inside it -->
+    <div style="font-family:var(--sans); font-size:8px; font-weight:600; letter-spacing:3px; color:rgba(255,255,255,0.12); text-transform:uppercase; margin-bottom:4px;">AMARI</div>
+
+    <div style="font-family:var(--mono); font-size:10px; font-weight:400; color:rgba(255,255,255,0.25); margin-bottom:8px; letter-spacing:0.5px;">AMARI-2026-BF85F4B9</div>
+
+    <!-- Wallet buttons -->
+    <div style="display:flex; gap:10px; margin-bottom:32px; margin-top:16px;">
+      <div style="padding:10px 18px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); font-family:var(--sans); font-size:11px; font-weight:500; color:rgba(255,255,255,0.4); cursor:pointer;">Apple Wallet</div>
+      <div style="padding:10px 18px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); font-family:var(--sans); font-size:11px; font-weight:500; color:rgba(255,255,255,0.4); cursor:pointer;">Google Wallet</div>
+    </div>
+
+    <div style="font-family:var(--sans); font-size:12px; font-weight:400; color:rgba(255,255,255,0.2); cursor:pointer;">Tap anywhere to close</div>
+  </div>
+</div>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tab-bar">
+  <div class="ti on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span class="tl">Pulse</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="tl">Events</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="tl">Aligned</span></div>
+  <div class="ti" style="opacity:0.25;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5Z"/><path d="M7 10v1a5 5 0 0 0 10 0v-1"/><rect x="10" y="15" width="4" height="5" rx="1"/><path d="M8 22h8"/></svg><span class="tl">Corridor</span><span style="font-family:var(--mono); font-size:6px; color:rgba(0,0,0,0.2); letter-spacing:0.5px;">SOON</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="tl">Me</span></div>
+</div>
+
+<script>
+const articles = {
+  zivai: {
+    cat: 'Business & Leadership',
+    title: "Zivai Matipano Named Among 101 Collins Street's Leading Ladies",
+    date: '8 March 2026',
+    body: '<p>Zivai Matipano has been recognised as one of the Leading Ladies of 2026 by 101 Collins Street as part of the building\'s International Women\'s Day programme.</p><p>The programme celebrates women across finance, law, technology, and entrepreneurship who are shaping Australia\'s business landscape.</p><p><strong>"Being recognised alongside these incredible women is humbling,"</strong> Matipano said. "It reflects the growing visibility of the African diaspora in Australia\'s corporate and entrepreneurial spaces."</p><p>Matipano, a founding member of AMARI, has been instrumental in building bridges between Melbourne\'s diaspora community and the broader business ecosystem.</p>',
+    matched: 'Matched to <strong>finance</strong> and <strong>Melbourne</strong> in your profile.'
+  },
+  kalu: {
+    cat: 'Film',
+    title: "Kalu Oji's Pasa Faho Screens at Sydney Opera House",
+    date: '21 January 2026',
+    body: '<p>Filmmaker Kalu Oji\'s documentary <strong>Pasa Faho</strong> premiered at the Sydney Opera House to a standing ovation, marking a milestone for African-Australian cinema.</p><p>The film explores themes of identity, belonging, and the lived experience of first-generation Australians from the African diaspora.</p><p>"This story needed to be told from the inside," Oji said. "Not as an outsider looking in, but as someone who has lived between two worlds."</p><p>The screening was part of the Sydney Film Festival\'s International Documentary Competition.</p>',
+    matched: 'Matched to <strong>film</strong> and <strong>Sydney</strong> in your interests.'
+  },
+  jamal: {
+    cat: 'Business',
+    title: "Jamal Elsheikh Brokers Anti-Racism Partnership Between Melbourne's A-League Rivals",
+    date: '17 December 2025',
+    body: '<p>In a landmark move, AMARI member Jamal Elsheikh has brokered an anti-racism partnership between two of Melbourne\'s biggest A-League rivals.</p><p>The agreement brings together Melbourne Victory and Melbourne City to co-fund community programmes aimed at combating racism in Australian football.</p><p><strong>"Sport has the power to unite,"</strong> Elsheikh said. "This partnership shows that even rivals can stand together on what matters."</p>',
+    matched: 'Matched to <strong>business</strong> and <strong>Melbourne</strong> in your profile.'
+  },
+  mohamed: {
+    cat: 'Policy',
+    title: "Mohamed Semra Elected Mayor of Merri-bek",
+    date: '28 November 2025',
+    body: '<p>AMARI founding member Mohamed Semra has been elected Mayor of Merri-bek, becoming the youngest mayor in the council\'s history.</p><p>Semra, who arrived in Australia as a refugee from North Africa, has been a vocal advocate for multicultural representation in local government.</p><p><strong>"This is for every kid who was told they didn\'t belong,"</strong> Semra said in his inauguration speech. "We belong. We lead. We build."</p>',
+    matched: 'Matched to <strong>policy</strong> and <strong>Melbourne</strong> in your profile.'
+  }
+};
+
+function openArticle(key) {
+  const a = articles[key];
+  if (!a) return;
+  document.getElementById('artCat').textContent = a.cat;
+  document.getElementById('artTitle').textContent = a.title;
+  document.getElementById('artDate').textContent = a.date;
+  document.getElementById('artBody').innerHTML = a.body;
+  document.getElementById('artMatched').innerHTML = a.matched;
+  document.getElementById('articleOverlay').classList.add('open');
+}
+
+function closeArticle() {
+  document.getElementById('articleOverlay').classList.remove('open');
+}
+
+// Close card overlay on tap
+document.getElementById('cardOverlay').addEventListener('click', function(e) {
+  if (e.target === this || e.target.textContent === 'Tap anywhere to close') {
+    this.classList.remove('open');
+  }
+});
+</script>
+
+</body>
+</html>

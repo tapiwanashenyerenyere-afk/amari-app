@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AMARI Profile — Final Render</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0A0A0A;
+    --charcoal: #161616;
+    --dark: #1C1C1C;
+    --graphite: #252525;
+    --slate: #666;
+    --silver: #999;
+    --bone: #F2EDE6;
+    --warm: #EDE7DE;
+    --cream: #FDFCFA;
+    --white: #fff;
+    --gold: #C4A265;
+    --gold-light: #D4B87A;
+    --gold-dark: #A8884F;
+    --serif: 'Playfair Display', serif;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:var(--sans); background:var(--bone); max-width:430px; margin:0 auto; overflow-x:hidden; min-height:100vh; }
+
+  /* ═══════════════════════════════════════════
+     MEMBERSHIP CARD — Dynamic Prismatic
+     ═══════════════════════════════════════════ */
+  .card-section { padding:52px 20px 0; }
+
+  .membership-card {
+    position:relative; width:100%; aspect-ratio:1.6/1; border-radius:16px; overflow:hidden;
+    background:linear-gradient(155deg,#1C1C1C 0%,#0F0F0F 50%,#1A1510 100%);
+    box-shadow:0 2px 8px rgba(0,0,0,0.1),0 12px 32px rgba(0,0,0,0.15),0 0 0 1px rgba(0,0,0,0.05);
+    cursor:pointer;
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .membership-card:active { transform:scale(0.975); }
+
+  .card-grain {
+    position:absolute; inset:0; opacity:0.04; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Prismatic glint — more pronounced, color-shifting ── */
+  .card-prismatic {
+    position:absolute; inset:0; pointer-events:none; z-index:1;
+    background:
+      radial-gradient(ellipse 130% 90% at 25% 50%, rgba(196,162,101,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 130% at 75% 30%, rgba(170,145,210,0.1) 0%, transparent 50%),
+      radial-gradient(ellipse 100% 60% at 50% 80%, rgba(140,180,196,0.08) 0%, transparent 50%);
+    animation:prismatic-drift 5s ease-in-out infinite;
+  }
+
+  @keyframes prismatic-drift {
+    0%   { opacity:0.5; transform:translateX(-20%) rotate(-1.5deg); }
+    25%  { opacity:1;   transform:translateX(0%) rotate(0.5deg); }
+    50%  { opacity:0.9; transform:translateX(20%) rotate(-0.5deg); }
+    75%  { opacity:1;   transform:translateX(5%) rotate(1deg); }
+    100% { opacity:0.5; transform:translateX(-20%) rotate(-1.5deg); }
+  }
+
+  /* ── Moving shimmer band — wider, color-tinted ── */
+  .card-shimmer {
+    position:absolute; inset:0; pointer-events:none; z-index:2;
+    background:linear-gradient(
+      115deg,
+      transparent 15%,
+      rgba(196,162,101,0.04) 25%,
+      rgba(212,184,122,0.1) 35%,
+      rgba(255,255,255,0.08) 45%,
+      rgba(180,160,220,0.06) 55%,
+      rgba(196,162,101,0.08) 65%,
+      transparent 80%
+    );
+    animation:shimmer-sweep 5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    0%,100% { transform:translateX(-80%); }
+    50%     { transform:translateX(80%); }
+  }
+
+  /* ── Ambient color wash — slow hue rotation ── */
+  .card-ambient {
+    position:absolute; inset:0; pointer-events:none; z-index:1; mix-blend-mode:overlay; opacity:0.25;
+    background:conic-gradient(from 0deg at 50% 50%,
+      rgba(196,162,101,0.4),
+      rgba(160,140,200,0.25),
+      rgba(101,170,196,0.2),
+      rgba(196,162,101,0.4)
+    );
+    animation:ambient-rotate 10s linear infinite;
+    filter:blur(25px);
+  }
+
+  @keyframes ambient-rotate { 0%{transform:rotate(0deg) scale(1.5)} 100%{transform:rotate(360deg) scale(1.5)} }
+
+  .card-line { position:absolute; bottom:0; left:22px; right:22px; height:1px; background:linear-gradient(90deg,transparent,rgba(196,162,101,0.25),transparent); z-index:3; }
+  .card-inner { position:relative; z-index:4; height:100%; display:flex; flex-direction:column; justify-content:space-between; padding:20px 22px 18px; }
+  .card-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .card-brand { font-family:var(--sans); font-size:13px; font-weight:700; letter-spacing:5px; color:#fff; opacity:0.85; }
+  .card-tier { font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:2px; color:var(--gold); padding:3px 8px; border:1px solid rgba(196,162,101,0.25); border-radius:3px; }
+  .card-mid { display:flex; align-items:center; gap:14px; }
+  .card-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#A8884F,#C4A265); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:19px; font-weight:500; color:#0A0A0A; box-shadow:0 0 0 1.5px rgba(196,162,101,0.2); }
+  .card-name { font-family:var(--serif); font-size:21px; font-weight:500; color:#fff; line-height:1.15; }
+  .card-loc { font-family:var(--sans); font-size:11px; color:rgba(255,255,255,0.4); margin-top:1px; }
+  .card-bot { display:flex; justify-content:space-between; align-items:flex-end; }
+  .card-id { font-family:var(--mono); font-size:9px; color:rgba(255,255,255,0.25); letter-spacing:1.5px; }
+  .card-hint { font-family:var(--sans); font-size:9px; color:rgba(255,255,255,0.2); letter-spacing:0.5px; }
+  .card-hint span { display:inline-block; animation:pulse-hint 2s ease-in-out infinite; }
+  @keyframes pulse-hint { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+  /* ── Emblem watermark on card ── */
+  .card-emblem {
+    position:absolute; z-index:3; pointer-events:none;
+    bottom:14px; right:18px;
+    width:52px; height:52px; opacity:0.045;
+    filter:brightness(10);
+  }
+
+  .popup-card .card-emblem {
+    width:64px; height:64px; opacity:0.05;
+    bottom:16px; right:20px;
+  }
+
+  /* ═══════════════════════════════════════════
+     FULLSCREEN CARD POPUP (tap to scan)
+     ═══════════════════════════════════════════ */
+  .card-overlay {
+    position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999;
+    background:rgba(5,5,5,0);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    pointer-events:none; opacity:0;
+    transition:background 0.4s ease, opacity 0.3s ease;
+    padding-bottom:40px;
+  }
+
+  .card-overlay.open {
+    background:rgba(5,5,5,0.97);
+    pointer-events:auto; opacity:1;
+  }
+
+  .card-overlay .popup-card {
+    width:88%; max-width:380px; aspect-ratio:1.6/1;
+    border-radius:20px; overflow:hidden; position:relative;
+    background:linear-gradient(155deg,#1C1C1C 0%,#0F0F0F 50%,#1A1510 100%);
+    box-shadow:0 4px 20px rgba(196,162,101,0.2), 0 30px 60px rgba(0,0,0,0.6), 0 0 80px rgba(196,162,101,0.06);
+    transform:scale(0.8);
+    opacity:0;
+    transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+  }
+
+  .card-overlay.open .popup-card {
+    transform:scale(1);
+    opacity:1;
+  }
+
+  .popup-card .card-grain,
+  .popup-card .card-prismatic,
+  .popup-card .card-shimmer,
+  .popup-card .card-ambient,
+  .popup-card .card-line,
+  .popup-card .card-inner { /* inherit all card styles */ }
+
+  /* QR Code area */
+  .popup-qr-section {
+    margin-top:24px;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    transform:scale(0.9); opacity:0;
+    transition:transform 0.5s 0.2s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s 0.2s;
+  }
+
+  .card-overlay.open .popup-qr-section {
+    transform:scale(1); opacity:1;
+  }
+
+  .qr-container {
+    background:#fff; border-radius:12px; padding:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .qr-container canvas {
+    width:140px; height:140px;
+    border-radius:4px;
+  }
+
+  .qr-id {
+    font-family:var(--mono); font-size:10px; letter-spacing:2.5px;
+    color:rgba(255,255,255,0.3);
+  }
+
+  /* Wallet buttons */
+  .wallet-buttons {
+    display:flex; gap:10px; margin-top:4px;
+    transform:translateY(10px); opacity:0;
+    transition:transform 0.4s 0.3s, opacity 0.4s 0.3s;
+  }
+
+  .card-overlay.open .wallet-buttons {
+    transform:translateY(0); opacity:1;
+  }
+
+  .wallet-btn {
+    display:flex; align-items:center; gap:7px;
+    padding:10px 16px; border-radius:10px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.06);
+    cursor:pointer; transition:all 0.2s;
+    backdrop-filter:blur(10px);
+  }
+
+  .wallet-btn:active {
+    background:rgba(255,255,255,0.12);
+    border-color:rgba(196,162,101,0.3);
+    transform:scale(0.97);
+  }
+
+  .wallet-btn svg { width:18px; height:18px; flex-shrink:0; }
+  .wallet-btn-text {
+    font-family:var(--sans); font-size:11px; font-weight:600;
+    color:rgba(255,255,255,0.7); white-space:nowrap;
+  }
+
+  .popup-dismiss {
+    margin-top:20px; font-family:var(--sans); font-size:11px; font-weight:500;
+    color:rgba(255,255,255,0.2); letter-spacing:1px;
+    transform:translateY(10px); opacity:0;
+    transition:transform 0.4s 0.4s, opacity 0.4s 0.4s;
+  }
+
+  .card-overlay.open .popup-dismiss { transform:translateY(0); opacity:1; }
+
+  /* ═══════════════════════════════════════════
+     SWIPEABLE TABS
+     ═══════════════════════════════════════════ */
+  .tab-switch {
+    display:flex; gap:0; margin:20px 20px 0;
+    border-bottom:1px solid rgba(0,0,0,0.06);
+    position:relative;
+  }
+
+  .tab-sw-btn {
+    font-family:var(--sans); font-size:12px; font-weight:600;
+    color:rgba(0,0,0,0.22); padding:10px 0; margin-right:24px;
+    background:none; border:none; cursor:pointer; position:relative;
+    transition:color 0.3s;
+  }
+
+  .tab-sw-btn.active { color:var(--black); }
+
+  .tab-indicator {
+    position:absolute; bottom:-1px; height:2px; background:var(--gold);
+    transition:left 0.35s cubic-bezier(0.34,1.56,0.64,1), width 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  /* Swipe container */
+  .swipe-viewport {
+    overflow:hidden; position:relative;
+    touch-action:pan-y;
+  }
+
+  .swipe-track {
+    display:flex; width:300%;
+    transition:transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+
+  .swipe-track.dragging { transition:none; }
+
+  .swipe-panel {
+    width:calc(100% / 3); flex-shrink:0;
+    min-height:calc(100vh - 320px);
+  }
+
+  /* ═══════════════════════════════════════════
+     PROJECT COUNTER
+     ═══════════════════════════════════════════ */
+  .proj-counter { display:flex; justify-content:flex-end; padding:10px 20px 0; }
+  .proj-counter span { font-family:var(--mono); font-size:9px; color:rgba(0,0,0,0.15); letter-spacing:0.5px; }
+
+  /* ═══════════════════════════════════════════
+     PINBOARD CANVAS TILES — Varied Palettes
+     ═══════════════════════════════════════════ */
+  .pinboard {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:12px; padding:8px 20px 0;
+  }
+
+  .canvas {
+    position:relative; cursor:pointer;
+    transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .canvas:active { transform:scale(0.97); }
+
+  .canvas.hero { grid-column:1/-1; transform:rotate(-0.5deg); }
+  .canvas.hero:active { transform:rotate(-0.5deg) scale(0.975); }
+  .canvas.sec-left { transform:rotate(0.8deg); }
+  .canvas.sec-left:active { transform:rotate(0.8deg) scale(0.97); }
+  .canvas.sec-right { transform:rotate(-0.6deg); }
+  .canvas.sec-right:active { transform:rotate(-0.6deg) scale(0.97); }
+
+  .canvas-surface {
+    border-radius:3px; padding:20px 18px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; overflow:hidden;
+    box-shadow:
+      0 1px 1px rgba(0,0,0,0.08),
+      0 2px 4px rgba(0,0,0,0.06),
+      0 6px 12px rgba(0,0,0,0.05),
+      0 12px 28px rgba(0,0,0,0.04);
+  }
+
+  /* ── Tile Color Palettes ── */
+
+  /* Hero — Deep charcoal with warm gold undertone */
+  .canvas.hero .canvas-surface {
+    min-height:175px;
+    background:linear-gradient(155deg, #1A1917 0%, #141210 60%, #1C1812 100%);
+  }
+  .canvas.hero .canvas-stroke {
+    background:linear-gradient(90deg,
+      transparent 0%, rgba(196,162,101,0.12) 8%,
+      rgba(196,162,101,0.4) 25%, rgba(196,162,101,0.55) 42%,
+      rgba(196,162,101,0.4) 55%, rgba(196,162,101,0.2) 75%,
+      transparent 100%
+    );
+  }
+
+  /* Secondary Left — Deep navy with cool steel */
+  .canvas.sec-left .canvas-surface {
+    min-height:135px;
+    background:linear-gradient(155deg, #141822 0%, #0E1218 60%, #171D26 100%);
+  }
+  .canvas.sec-left .canvas-stroke {
+    background:linear-gradient(90deg,
+      transparent 0%, rgba(120,150,196,0.1) 8%,
+      rgba(120,150,196,0.35) 30%, rgba(140,170,210,0.45) 50%,
+      rgba(120,150,196,0.25) 70%, transparent 100%
+    );
+  }
+  .canvas.sec-left .canvas-cat { color:rgba(140,170,210,0.7); }
+  .canvas.sec-left .status-dot { background:rgba(140,170,210,0.8); }
+
+  /* Secondary Right (Add) — stays neutral */
+  .canvas.sec-right .canvas-surface { min-height:135px; }
+
+  /* ── Canvas Textures ── */
+  .canvas-weave {
+    position:absolute; inset:0; opacity:0.055; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 3px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 3px);
+    background-size:4px 4px;
+  }
+
+  .canvas-stroke {
+    position:absolute; top:0; left:10px; right:10px; height:3px;
+    border-radius:0 0 2px 2px; filter:blur(0.3px);
+  }
+
+  /* Default stroke for tiles without override */
+  .canvas-stroke {
+    background:linear-gradient(90deg,
+      transparent 0%, rgba(196,162,101,0.12) 8%,
+      rgba(196,162,101,0.35) 25%, rgba(196,162,101,0.5) 42%,
+      rgba(196,162,101,0.4) 55%, rgba(196,162,101,0.2) 75%,
+      rgba(196,162,101,0.1) 90%, transparent 100%
+    );
+  }
+
+  .canvas-pin {
+    position:absolute; z-index:5;
+    width:20px; height:8px;
+    background:rgba(196,162,101,0.25);
+    border-radius:1px; top:-3px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .canvas.hero .canvas-pin { left:50%; transform:translateX(-50%); width:28px; }
+  .canvas.sec-left .canvas-pin { left:16px; transform:rotate(3deg); background:rgba(120,150,196,0.25); }
+  .canvas.sec-right .canvas-pin { right:16px; transform:rotate(-2deg); }
+
+  .canvas-curl {
+    position:absolute; bottom:0; right:0;
+    width:16px; height:16px;
+    background:linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.03) 50%);
+    pointer-events:none;
+  }
+
+  .canvas-cat {
+    font-family:var(--mono); font-size:8px; letter-spacing:2.5px;
+    text-transform:uppercase; color:var(--gold); opacity:0.6;
+    position:relative; z-index:1;
+  }
+
+  .canvas-title {
+    font-family:var(--serif); font-weight:600; color:#fff;
+    line-height:1.2; letter-spacing:-0.2px;
+    position:relative; z-index:1; margin-top:auto;
+  }
+
+  .canvas.hero .canvas-title { font-size:24px; }
+  .canvas:not(.hero) .canvas-title { font-size:16px; }
+
+  .canvas-desc {
+    font-family:var(--sans); font-size:11px; color:rgba(255,255,255,0.28);
+    line-height:1.5; margin-top:8px; position:relative; z-index:1;
+  }
+
+  .canvas-status {
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:var(--mono); font-size:7px; letter-spacing:1.5px;
+    text-transform:uppercase; color:rgba(255,255,255,0.2);
+    margin-top:10px; position:relative; z-index:1;
+  }
+
+  .status-dot {
+    width:4px; height:4px; border-radius:50%;
+    background:var(--gold); opacity:0.5;
+    animation:pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:0.3; transform:scale(1); }
+    50% { opacity:0.7; transform:scale(1.3); }
+  }
+
+  .canvas-rank {
+    position:absolute; top:14px; right:14px;
+    font-family:var(--serif); font-size:36px; font-weight:300;
+    color:rgba(255,255,255,0.025); line-height:1; z-index:1;
+  }
+
+  .canvas.hero .canvas-rank { font-size:52px; }
+
+  /* Add slot */
+  .canvas-add { transform:rotate(0.4deg); }
+  .canvas-add:active { transform:rotate(0.4deg) scale(0.97); }
+
+  .canvas-add .canvas-surface {
+    background:transparent;
+    border:1.5px dashed rgba(0,0,0,0.1);
+    box-shadow:none;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:8px; min-height:135px;
+  }
+
+  .add-mark {
+    width:32px; height:32px; border-radius:50%;
+    border:1.5px solid rgba(0,0,0,0.08);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:20px; font-weight:300;
+    color:rgba(0,0,0,0.12); transition:all 0.2s;
+  }
+
+  .canvas-add:hover .add-mark { border-color:var(--gold); color:var(--gold); }
+  .add-label { font-family:var(--sans); font-size:10px; color:rgba(0,0,0,0.12); }
+
+  /* ═══════════════════════════════════════════
+     INTERESTED IN
+     ═══════════════════════════════════════════ */
+  .interested-section { padding:16px 20px 0; }
+  .interested-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .interested-icon { width:14px; height:18px; color:var(--gold-dark); opacity:0.5; }
+  .interested-title { font-family:var(--sans); font-size:12px; font-weight:600; color:rgba(0,0,0,0.35); }
+  .interested-list { display:flex; flex-direction:column; gap:6px; }
+
+  .interested-card {
+    background:var(--cream); border:1px solid rgba(0,0,0,0.04);
+    border-radius:10px; padding:14px 16px;
+    cursor:pointer; transition:all 0.2s; position:relative;
+    box-shadow:0 1px 3px rgba(0,0,0,0.03);
+    display:flex; align-items:center; gap:12px;
+  }
+
+  .interested-card:active { background:var(--warm); border-color:rgba(196,162,101,0.12); }
+  .interested-bookmark { width:18px; height:22px; flex-shrink:0; color:var(--gold); opacity:0.35; }
+  .interested-content { flex:1; min-width:0; }
+  .interested-card-cat { font-family:var(--mono); font-size:7px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dark); opacity:0.4; margin-bottom:2px; }
+  .interested-card-title { font-family:var(--serif); font-size:14px; font-weight:500; color:var(--black); line-height:1.3; }
+  .interested-author { font-family:var(--sans); font-size:10px; color:rgba(0,0,0,0.25); margin-top:3px; }
+  .interested-notify { font-family:var(--mono); font-size:7px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); opacity:0.35; margin-top:2px; }
+
+  /* ═══════════════════════════════════════════
+     ACCOUNT
+     ═══════════════════════════════════════════ */
+  .section-label-sm { font-family:var(--mono); font-size:8px; letter-spacing:2.5px; text-transform:uppercase; color:rgba(0,0,0,0.15); padding:0 20px; margin-bottom:10px; }
+
+  .details-card, .settings-card {
+    background:var(--cream); border-radius:14px; overflow:hidden;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03),0 0 0 1px rgba(0,0,0,0.03);
+    margin:0 20px;
+  }
+
+  .detail-row, .settings-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; cursor:pointer; transition:background 0.15s;
+  }
+
+  .detail-row:active, .settings-row:active { background:var(--warm); }
+  .detail-row + .detail-row, .settings-row + .settings-row { border-top:1px solid rgba(0,0,0,0.04); }
+
+  .detail-label { font-family:var(--mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(0,0,0,0.18); }
+  .detail-val { font-family:var(--sans); font-size:14px; color:var(--black); margin-top:2px; }
+  .detail-val.empty { color:rgba(0,0,0,0.18); font-style:italic; font-size:12px; }
+  .detail-chev { width:14px; height:14px; color:rgba(0,0,0,0.1); flex-shrink:0; }
+  .settings-label { font-family:var(--sans); font-size:14px; color:rgba(0,0,0,0.45); }
+  .settings-label.danger { color:rgba(180,68,68,0.55); }
+
+  .sp { height:24px; }
+
+  /* ═══════════════════════════════════════════
+     EMBLEM FOOTER
+     ═══════════════════════════════════════════ */
+  .emblem-footer {
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 20px 24px;
+  }
+
+  .emblem-svg {
+    width:42px; height:42px; opacity:0.18;
+    color:var(--black);
+  }
+
+  .emblem-img {
+    width:42px; height:42px; opacity:0.12;
+    border-radius:6px;
+  }
+
+  .emblem-wordmark {
+    font-family:var(--sans);
+    font-size:9px; font-weight:600; letter-spacing:4px;
+    text-transform:uppercase;
+    color:rgba(0,0,0,0.06); margin-top:8px;
+  }
+
+  /* ═══════════════════════════════════════════
+     TAB BAR
+     ═══════════════════════════════════════════ */
+  .tab-bar {
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px; background:var(--cream);
+    border-top:1px solid rgba(0,0,0,0.06);
+    display:flex; justify-content:space-around; align-items:center;
+    padding:8px 0 28px; z-index:100;
+  }
+
+  .tab-item { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; opacity:0.4; transition:opacity 0.2s; }
+  .tab-item.active { opacity:1; }
+  .tab-item svg { width:22px; height:22px; color:#555; }
+  .tab-item.active svg { color:var(--black); }
+  .tab-lbl { font-family:var(--sans); font-size:10px; font-weight:500; color:#555; }
+  .tab-item.active .tab-lbl { color:var(--black); }
+  .tab-item.active::after { content:''; width:4px; height:4px; background:var(--gold); border-radius:50%; margin-top:1px; }
+
+  .bottom-spacer { height:110px; }
+
+  /* ═══════════════════════════════════════════
+     SWIPE DOTS (optional visual feedback)
+     ═══════════════════════════════════════════ */
+  .swipe-dots {
+    display:flex; justify-content:center; gap:6px;
+    padding:8px 0 0;
+  }
+
+  .swipe-dot {
+    width:5px; height:5px; border-radius:50%;
+    background:rgba(0,0,0,0.08);
+    transition:all 0.3s;
+  }
+
+  .swipe-dot.active {
+    width:16px; border-radius:3px;
+    background:var(--gold); opacity:0.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ CARD ═══ -->
+<div class="card-section">
+  <div class="membership-card" id="mainCard" onclick="openCardPopup()">
+    <div class="card-grain"></div>
+    <div class="card-ambient"></div>
+    <div class="card-prismatic"></div>
+    <div class="card-shimmer"></div>
+    <div class="card-line"></div>
+    <img class="card-emblem" src="http://localhost:8765/amari-emblem.png" alt="">
+    <div class="card-inner">
+      <div class="card-top">
+        <span class="card-brand">AMARI</span>
+        <span class="card-tier">LAUREATE</span>
+      </div>
+      <div class="card-mid">
+        <div class="card-avatar">JN</div>
+        <div>
+          <div class="card-name">Jeremy Nyerenyere</div>
+          <div class="card-loc">Melbourne, AU</div>
+        </div>
+      </div>
+      <div class="card-bot">
+        <span class="card-id">AMARI-2026-BF85F4B9</span>
+        <span class="card-hint"><span>Tap for pass</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FULLSCREEN CARD POPUP ═══ -->
+<div class="card-overlay" id="cardOverlay" onclick="closeCardPopup(event)">
+  <div class="popup-card" onclick="event.stopPropagation()">
+    <div class="card-grain"></div>
+    <div class="card-ambient"></div>
+    <div class="card-prismatic"></div>
+    <div class="card-shimmer"></div>
+    <div class="card-line"></div>
+    <img class="card-emblem" src="http://localhost:8765/amari-emblem.png" alt="">
+    <div class="card-inner">
+      <div class="card-top">
+        <span class="card-brand">AMARI</span>
+        <span class="card-tier">LAUREATE</span>
+      </div>
+      <div class="card-mid">
+        <div class="card-avatar">JN</div>
+        <div>
+          <div class="card-name">Jeremy Nyerenyere</div>
+          <div class="card-loc">Melbourne, AU</div>
+        </div>
+      </div>
+      <div class="card-bot">
+        <span class="card-id">AMARI-2026-BF85F4B9</span>
+      </div>
+    </div>
+  </div>
+  <div class="popup-qr-section">
+    <div class="qr-container">
+      <canvas id="qrCanvas" width="140" height="140"></canvas>
+    </div>
+    <div class="qr-id">AMARI-2026-BF85F4B9</div>
+  </div>
+  <div class="wallet-buttons">
+    <div class="wallet-btn" onclick="event.stopPropagation()">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.32 2.32-2.14 4.52-3.74 4.25z" fill="rgba(255,255,255,0.8)"/>
+      </svg>
+      <span class="wallet-btn-text">Apple Wallet</span>
+    </div>
+    <div class="wallet-btn" onclick="event.stopPropagation()">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M21 8v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8m18 0V6a2 2 0 00-2-2H5a2 2 0 00-2 2v2m18 0H3" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="14" y="11" width="4" height="3" rx="0.5" fill="rgba(196,162,101,0.6)"/>
+      </svg>
+      <span class="wallet-btn-text">Google Wallet</span>
+    </div>
+  </div>
+  <div class="popup-dismiss">Tap anywhere to close</div>
+</div>
+
+<!-- ═══ TABS (swipeable) ═══ -->
+<div class="tab-switch" id="tabSwitch">
+  <button class="tab-sw-btn active" data-tab="0" onclick="goToTab(0)">My Projects</button>
+  <button class="tab-sw-btn" data-tab="1" onclick="goToTab(1)">Interested In</button>
+  <button class="tab-sw-btn" data-tab="2" onclick="goToTab(2)">Account</button>
+  <div class="tab-indicator" id="tabIndicator"></div>
+</div>
+
+<!-- Swipe dots -->
+<div class="swipe-dots">
+  <div class="swipe-dot active" data-dot="0"></div>
+  <div class="swipe-dot" data-dot="1"></div>
+  <div class="swipe-dot" data-dot="2"></div>
+</div>
+
+<!-- ═══ SWIPEABLE PANELS ═══ -->
+<div class="swipe-viewport" id="swipeViewport">
+  <div class="swipe-track" id="swipeTrack">
+
+    <!-- PANEL 0: MY PROJECTS -->
+    <div class="swipe-panel">
+      <div class="proj-counter"><span>2 of 3 slots</span></div>
+      <div class="pinboard">
+        <!-- Hero — warm charcoal + gold accent -->
+        <div class="canvas hero">
+          <div class="canvas-pin"></div>
+          <div class="canvas-surface">
+            <div class="canvas-weave"></div>
+            <div class="canvas-stroke"></div>
+            <div class="canvas-curl"></div>
+            <span class="canvas-rank">01</span>
+            <span class="canvas-cat">Venture</span>
+            <div>
+              <div class="canvas-title">Diaspora Capital Fund</div>
+              <div class="canvas-desc">Early-stage fund investing in Australia's Black diaspora founders</div>
+              <div class="canvas-status"><span class="status-dot"></span> Active</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Left — deep navy + steel accent -->
+        <div class="canvas sec-left">
+          <div class="canvas-pin"></div>
+          <div class="canvas-surface">
+            <div class="canvas-weave"></div>
+            <div class="canvas-stroke"></div>
+            <div class="canvas-curl"></div>
+            <span class="canvas-rank">02</span>
+            <span class="canvas-cat">Community</span>
+            <div>
+              <div class="canvas-title">Melbourne Black Founders</div>
+              <div class="canvas-status"><span class="status-dot"></span> Building</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add slot — dashed -->
+        <div class="canvas canvas-add sec-right">
+          <div class="canvas-surface">
+            <div class="add-mark">+</div>
+            <div class="add-label">Add project</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="emblem-footer">
+        <img class="emblem-img" src="http://localhost:8765/amari-emblem.png" alt="AMARI" onerror="this.style.display='none'">
+        <div class="emblem-wordmark">AMARI</div>
+      </div>
+    </div>
+
+    <!-- PANEL 1: INTERESTED IN -->
+    <div class="swipe-panel">
+      <div class="interested-section">
+        <div class="interested-header">
+          <svg class="interested-icon" viewBox="0 0 14 18" fill="none"><path d="M1 1h12v16l-6-3.5L1 17V1z" stroke="currentColor" stroke-width="1.2" fill="rgba(196,162,101,0.1)"/></svg>
+          <span class="interested-title">Projects I'm interested in</span>
+        </div>
+        <div class="interested-list">
+          <div class="interested-card">
+            <svg class="interested-bookmark" viewBox="0 0 18 22" fill="none"><path d="M1 1h16v20l-8-4.5L1 21V1z" stroke="currentColor" stroke-width="1.2" fill="rgba(196,162,101,0.1)"/></svg>
+            <div class="interested-content">
+              <div class="interested-card-cat">Events</div>
+              <div class="interested-card-title">Pan-African Tech Summit 2026</div>
+              <div class="interested-author">Amara K.</div>
+              <div class="interested-notify">Notifications on</div>
+            </div>
+          </div>
+          <div class="interested-card">
+            <svg class="interested-bookmark" viewBox="0 0 18 22" fill="none"><path d="M1 1h16v20l-8-4.5L1 21V1z" stroke="currentColor" stroke-width="1.2" fill="rgba(196,162,101,0.1)"/></svg>
+            <div class="interested-content">
+              <div class="interested-card-cat">Research</div>
+              <div class="interested-card-title">Cultural IP Framework</div>
+              <div class="interested-author">David M.</div>
+              <div class="interested-notify">Notifications on</div>
+            </div>
+          </div>
+          <div class="interested-card">
+            <svg class="interested-bookmark" viewBox="0 0 18 22" fill="none"><path d="M1 1h16v20l-8-4.5L1 21V1z" stroke="currentColor" stroke-width="1.2" fill="rgba(196,162,101,0.1)"/></svg>
+            <div class="interested-content">
+              <div class="interested-card-cat">Community</div>
+              <div class="interested-card-title">Collective Housing Model</div>
+              <div class="interested-author">Tina O.</div>
+              <div class="interested-notify">Notifications on</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="emblem-footer">
+        <img class="emblem-img" src="http://localhost:8765/amari-emblem.png" alt="AMARI" onerror="this.style.display='none'">
+        <div class="emblem-wordmark">AMARI</div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: ACCOUNT -->
+    <div class="swipe-panel">
+      <div class="sp"></div>
+      <div class="section-label-sm">Details</div>
+      <div class="details-card">
+        <div class="detail-row"><div><div class="detail-label">City</div><div class="detail-val">Melbourne</div></div><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="detail-row"><div><div class="detail-label">Company</div><div class="detail-val empty">Add company</div></div><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="detail-row"><div><div class="detail-label">Sector</div><div class="detail-val">Finance</div></div><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="detail-row"><div><div class="detail-label">Open to</div><div class="detail-val empty">Add interests</div></div><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="detail-row"><div><div class="detail-label">Current project</div><div class="detail-val">Diaspora Capital Fund</div></div><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+
+      <div class="sp"></div>
+      <div class="section-label-sm">Settings</div>
+      <div class="settings-card">
+        <div class="settings-row"><span class="settings-label">Edit profile</span><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="settings-row"><span class="settings-label">Notifications</span><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="settings-row"><span class="settings-label">Privacy</span><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="settings-row"><span class="settings-label">Help</span><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="settings-row"><span class="settings-label danger">Sign out</span><svg class="detail-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:rgba(180,68,68,0.2)"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+
+      <div class="emblem-footer">
+        <img class="emblem-img" src="http://localhost:8765/amari-emblem.png" alt="AMARI" onerror="this.style.display='none'">
+        <div class="emblem-wordmark">AMARI</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="bottom-spacer"></div>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tab-bar">
+  <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span class="tab-lbl">Pulse</span></div>
+  <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="tab-lbl">Events</span></div>
+  <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="tab-lbl">Aligned</span></div>
+  <div class="tab-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5Z"/><path d="M7 10v1a5 5 0 0 0 10 0v-1"/><rect x="10" y="15" width="4" height="5" rx="1"/><path d="M8 22h8"/></svg><span class="tab-lbl">Corridor</span></div>
+  <div class="tab-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="tab-lbl">Me</span></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// QR CODE GENERATOR (pure canvas, no library)
+// ═══════════════════════════════════════════
+(function generateQR() {
+  const canvas = document.getElementById('qrCanvas');
+  const ctx = canvas.getContext('2d');
+  const memberId = 'AMARI-2026-BF85F4B9';
+  const size = 140;
+  const modules = 25; // QR grid size
+  const cellSize = size / modules;
+
+  // Generate deterministic pattern from member ID
+  function hash(str, seed) {
+    let h = seed;
+    for (let i = 0; i < str.length; i++) {
+      h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return h;
+  }
+
+  // Create QR-like matrix from member ID
+  const matrix = [];
+  for (let y = 0; y < modules; y++) {
+    matrix[y] = [];
+    for (let x = 0; x < modules; x++) {
+      matrix[y][x] = 0;
+    }
+  }
+
+  // Finder patterns (3 corners)
+  function drawFinder(ox, oy) {
+    for (let y = 0; y < 7; y++) {
+      for (let x = 0; x < 7; x++) {
+        if (y === 0 || y === 6 || x === 0 || x === 6 ||
+            (y >= 2 && y <= 4 && x >= 2 && x <= 4)) {
+          matrix[oy + y][ox + x] = 1;
+        }
+      }
+    }
+  }
+
+  drawFinder(0, 0);
+  drawFinder(modules - 7, 0);
+  drawFinder(0, modules - 7);
+
+  // Timing patterns
+  for (let i = 8; i < modules - 8; i++) {
+    matrix[6][i] = i % 2 === 0 ? 1 : 0;
+    matrix[i][6] = i % 2 === 0 ? 1 : 0;
+  }
+
+  // Alignment pattern
+  const ap = 18;
+  for (let y = -2; y <= 2; y++) {
+    for (let x = -2; x <= 2; x++) {
+      if (Math.abs(y) === 2 || Math.abs(x) === 2 || (y === 0 && x === 0)) {
+        matrix[ap + y][ap + x] = 1;
+      }
+    }
+  }
+
+  // Data area — fill with hash of member ID
+  for (let y = 0; y < modules; y++) {
+    for (let x = 0; x < modules; x++) {
+      // Skip finder, timing, alignment areas
+      if ((x < 9 && y < 9) || (x >= modules - 8 && y < 9) || (x < 9 && y >= modules - 8)) continue;
+      if (x === 6 || y === 6) continue;
+      if (x >= ap - 2 && x <= ap + 2 && y >= ap - 2 && y <= ap + 2) continue;
+
+      const h = hash(memberId, y * modules + x);
+      matrix[y][x] = (h & 1) ^ ((x + y) % 2 === 0 ? 1 : 0);
+    }
+  }
+
+  // Render
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.fillStyle = '#0A0A0A';
+  for (let y = 0; y < modules; y++) {
+    for (let x = 0; x < modules; x++) {
+      if (matrix[y][x]) {
+        // Rounded modules for premium feel
+        const cx = x * cellSize;
+        const cy = y * cellSize;
+        const r = cellSize * 0.15;
+        const s = cellSize * 0.9;
+        const off = cellSize * 0.05;
+        ctx.beginPath();
+        ctx.roundRect(cx + off, cy + off, s, s, r);
+        ctx.fill();
+      }
+    }
+  }
+
+  // AMARI emblem in center of QR
+  const emblemSize = cellSize * 5;
+  const emblemX = (size - emblemSize) / 2;
+  const emblemY = (size - emblemSize) / 2;
+  // White background for emblem
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.roundRect(emblemX - 2, emblemY - 2, emblemSize + 4, emblemSize + 4, 4);
+  ctx.fill();
+  // Draw "A" as emblem placeholder (real app uses actual image)
+  ctx.fillStyle = '#0A0A0A';
+  ctx.beginPath();
+  ctx.roundRect(emblemX, emblemY, emblemSize, emblemSize, 3);
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `bold ${emblemSize * 0.55}px 'Plus Jakarta Sans', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', size / 2, size / 2 + 1);
+})();
+
+// ═══════════════════════════════════════════
+// CARD POPUP
+// ═══════════════════════════════════════════
+function openCardPopup() {
+  document.getElementById('cardOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCardPopup(e) {
+  if (e.target.closest('.popup-card') || e.target.closest('.popup-qr-section') || e.target.closest('.wallet-buttons')) return;
+  document.getElementById('cardOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════
+// SWIPEABLE TABS
+// ═══════════════════════════════════════════
+const track = document.getElementById('swipeTrack');
+const viewport = document.getElementById('swipeViewport');
+const tabBtns = document.querySelectorAll('.tab-sw-btn');
+const indicator = document.getElementById('tabIndicator');
+const dots = document.querySelectorAll('.swipe-dot');
+
+let currentTab = 0;
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
+const THRESHOLD = 50;
+
+function updateIndicator() {
+  const btn = tabBtns[currentTab];
+  indicator.style.left = btn.offsetLeft + 'px';
+  indicator.style.width = btn.offsetWidth + 'px';
+}
+
+function updateDots() {
+  dots.forEach((d, i) => d.classList.toggle('active', i === currentTab));
+}
+
+function goToTab(index) {
+  currentTab = Math.max(0, Math.min(2, index));
+  track.classList.remove('dragging');
+  track.style.transform = `translateX(-${currentTab * 33.333}%)`;
+  tabBtns.forEach((b, i) => b.classList.toggle('active', i === currentTab));
+  updateIndicator();
+  updateDots();
+}
+
+// Touch events
+viewport.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+  isDragging = true;
+  track.classList.add('dragging');
+}, { passive: true });
+
+viewport.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  currentX = e.touches[0].clientX;
+  const diff = currentX - startX;
+  const base = -currentTab * 33.333;
+  const pct = (diff / viewport.offsetWidth) * 33.333;
+  track.style.transform = `translateX(${base + pct}%)`;
+}, { passive: true });
+
+viewport.addEventListener('touchend', () => {
+  if (!isDragging) return;
+  isDragging = false;
+  const diff = currentX - startX;
+  if (diff < -THRESHOLD && currentTab < 2) goToTab(currentTab + 1);
+  else if (diff > THRESHOLD && currentTab > 0) goToTab(currentTab - 1);
+  else goToTab(currentTab);
+});
+
+// Mouse events (for desktop testing)
+viewport.addEventListener('mousedown', (e) => {
+  startX = e.clientX;
+  isDragging = true;
+  track.classList.add('dragging');
+  e.preventDefault();
+});
+
+viewport.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  currentX = e.clientX;
+  const diff = currentX - startX;
+  const base = -currentTab * 33.333;
+  const pct = (diff / viewport.offsetWidth) * 33.333;
+  track.style.transform = `translateX(${base + pct}%)`;
+});
+
+viewport.addEventListener('mouseup', () => {
+  if (!isDragging) return;
+  isDragging = false;
+  const diff = currentX - startX;
+  if (diff < -THRESHOLD && currentTab < 2) goToTab(currentTab + 1);
+  else if (diff > THRESHOLD && currentTab > 0) goToTab(currentTab - 1);
+  else goToTab(currentTab);
+});
+
+viewport.addEventListener('mouseleave', () => {
+  if (isDragging) {
+    isDragging = false;
+    goToTab(currentTab);
+  }
+});
+
+// Init
+requestAnimationFrame(() => {
+  updateIndicator();
+  goToTab(0);
+});
+</script>
+
+</body>
+</html>

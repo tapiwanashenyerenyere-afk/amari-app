@@ -1,471 +1,393 @@
-import { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
+  Alert,
+  Linking,
+  Modal,
   Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { C, T, S, R, TIER_DISPLAY_NAMES } from '../../lib/constants';
+import { Lock } from 'lucide-react-native';
+import { EventCard } from '../../components/events/EventCard';
+import { FeaturedEventCard } from '../../components/events/FeaturedEventCard';
+import { PastEventCard } from '../../components/events/PastEventCard';
+import {
+  EVENT_FILTER_OPTIONS,
+  EVENT_TIER_COPY,
+  EVENT_TYPE_GRADIENTS,
+  getEventRegistrationUrl,
+  getEventTypeLabel,
+  getTierRequirementLabel,
+  matchesEventFilter,
+  type EventFilter,
+} from '../../lib/events';
+import { colors, typography, spacing, radius, TIER_LEVELS } from '../../lib/theme';
 import { useAuth } from '../../providers/AuthProvider';
-import { useEvents, useRsvpToEvent } from '../../queries/events';
-import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
-import { GrainOverlay } from '../../components/ui/GrainOverlay';
+import { useEvents, useMyRsvps } from '../../queries/events';
+import { FilterPills } from '../../components/v2';
+import type { Event, MembershipTier } from '../../types/database';
 
-type EventMode = 'vibes' | 'dinners' | 'talks';
-
-const MODE_CONFIG: Record<
-  EventMode,
-  { label: string; sub: string; color: string; dbType: string }
-> = {
-  vibes: { label: 'Vibes', sub: 'Cultural', color: C.burgundy, dbType: 'vibes' },
-  dinners: { label: 'Dinners', sub: 'Intimate', color: C.gold, dbType: 'dinner' },
-  talks: { label: 'Talks', sub: 'Intellectual', color: C.olive, dbType: 'talk' },
-};
-
-function formatDay(dateStr: string) {
-  return new Date(dateStr).getDate().toString();
+function hasTierAccess(userTier: MembershipTier, minTier: MembershipTier) {
+  return TIER_LEVELS[userTier] >= TIER_LEVELS[minTier];
 }
 
-function formatMonth(dateStr: string) {
-  return new Date(dateStr)
-    .toLocaleDateString('en-US', { month: 'short' })
-    .toUpperCase();
-}
+function TierRequirementSheet({
+  event,
+  onClose,
+}: {
+  event: Event | null;
+  onClose: () => void;
+}) {
+  if (!event) {
+    return null;
+  }
 
-function formatFullDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-  });
+  const tierLabel = getTierRequirementLabel(event.min_tier);
+
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose} visible>
+      <Pressable onPress={onClose} style={styles.sheetBackdrop}>
+        <View />
+      </Pressable>
+
+      <View style={styles.sheetWrap}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+
+          <View style={styles.sheetBadge}>
+            <Lock color={colors.gold} size={14} strokeWidth={1.9} />
+            <Text style={styles.sheetBadgeText}>{tierLabel}</Text>
+          </View>
+
+          <Text style={styles.sheetTitle}>This event requires {tierLabel} membership</Text>
+          <Text style={styles.sheetEventTitle}>{event.title}</Text>
+          <Text style={styles.sheetBody}>{EVENT_TIER_COPY[event.min_tier]}</Text>
+          <Text style={styles.sheetFootnote}>
+            AMARI shows the room to everyone, but registration opens when your membership tier reaches the required level.
+          </Text>
+
+          <Pressable onPress={onClose} style={styles.sheetButton}>
+            <Text style={styles.sheetButtonText}>Dismiss</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 export default function EventsScreen() {
+  const insets = useSafeAreaInsets();
   const { tier } = useAuth();
-  const [mode, setMode] = useState<EventMode>('vibes');
-  const dbType = MODE_CONFIG[mode].dbType;
-  const { data: events, isLoading, refetch, isRefetching } = useEvents(dbType);
-  const rsvpMutation = useRsvpToEvent();
+  const [filter, setFilter] = useState<EventFilter>('all');
+  const [lockedEvent, setLockedEvent] = useState<Event | null>(null);
+  const { data: upcomingData } = useEvents({ scope: 'upcoming' });
+  const { data: pastData } = useEvents({ scope: 'past' });
+  const { data: myRsvps } = useMyRsvps();
 
-  // Also fetch gala events for vibes tab
-  const { data: galas } = useEvents('gala');
-  const gala = galas?.[0];
+  const upcomingEvents = useMemo(
+    () => (upcomingData ?? []).filter((event) => matchesEventFilter(event, filter)),
+    [filter, upcomingData],
+  );
+
+  const pastEvents = useMemo(
+    () => (pastData ?? []).filter((event) => matchesEventFilter(event, filter)),
+    [filter, pastData],
+  );
+
+  const featuredEvent = useMemo(
+    () => upcomingEvents.find((event) => event.is_featured) ?? upcomingEvents[0] ?? null,
+    [upcomingEvents],
+  );
+
+  const listEvents = useMemo(
+    () => upcomingEvents.filter((event) => event.id !== featuredEvent?.id),
+    [featuredEvent, upcomingEvents],
+  );
+
+  const attendedEventIds = useMemo(
+    () =>
+      new Set<number>(
+        (myRsvps ?? [])
+          .filter((rsvp: any) => rsvp.status === 'confirmed')
+          .map((rsvp: any) => rsvp.event_id),
+      ),
+    [myRsvps],
+  );
+
+  const selectedFilterLabel = useMemo(
+    () => EVENT_FILTER_OPTIONS.find((option) => option.value === filter)?.label ?? 'All',
+    [filter],
+  );
+
+  const handleRegister = async (event: Event) => {
+    if (!hasTierAccess(tier, event.min_tier)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setLockedEvent(event);
+      return;
+    }
+
+    const registrationUrl = getEventRegistrationUrl(event);
+    if (!registrationUrl) {
+      Alert.alert(
+        'Registration unavailable',
+        'This event does not have a registration link yet.',
+      );
+      return;
+    }
+
+    const canOpen = await Linking.canOpenURL(registrationUrl);
+    if (!canOpen) {
+      Alert.alert('Invalid link', 'This registration link could not be opened.');
+      return;
+    }
+
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await Linking.openURL(registrationUrl);
+    } catch {
+      Alert.alert('Registration unavailable', 'This registration link could not be opened right now.');
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Aurora background blobs */}
-      <View style={StyleSheet.absoluteFill}>
-        <View style={[styles.blob, { backgroundColor: 'rgba(201,169,98,0.07)', top: -40, right: -60, width: 260, height: 260 }]} />
-        <View style={[styles.blob, { backgroundColor: 'rgba(114,47,55,0.05)', bottom: 100, left: -40, width: 220, height: 220 }]} />
-        <View style={[styles.blob, { backgroundColor: 'rgba(107,107,71,0.04)', top: '45%', left: '25%', width: 180, height: 180 }]} />
-      </View>
-      <GrainOverlay opacity={0.03} />
-
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={C.lightPrimary}
-          />
-        }
       >
-        {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 500 }}
-          style={styles.header}
-        >
-          <Text style={styles.heroText}>Events</Text>
-        </MotiView>
+        <View style={styles.header}>
+          <Text style={styles.title}>Events</Text>
+          <Text style={styles.count}>{upcomingEvents.length} upcoming</Text>
+        </View>
 
-        {/* Mode Tabs — Three Worlds */}
-        <MotiView
-          from={{ opacity: 0, translateY: 8 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 400, delay: 100 }}
-          style={styles.modeTabs}
-        >
-          {(Object.keys(MODE_CONFIG) as EventMode[]).map((m) => {
-            const active = mode === m;
-            const cfg = MODE_CONFIG[m];
-            return (
-              <Pressable
-                key={m}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setMode(m);
-                }}
-                style={[
-                  styles.modeTab,
-                  active && {
-                    backgroundColor: cfg.color + '15',
-                    borderTopColor: cfg.color,
-                    borderTopWidth: 2,
-                  },
-                ]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Text
-                  style={[
-                    styles.modeLabel,
-                    active && styles.modeLabelActive,
-                  ]}
-                >
-                  {cfg.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.modeSub,
-                    active ? { color: cfg.color } : { color: C.lightFaint },
-                  ]}
-                >
-                  {cfg.sub}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </MotiView>
+        <FilterPills
+          options={EVENT_FILTER_OPTIONS.map((option) => option.label)}
+          selected={selectedFilterLabel}
+          onSelect={(label) => {
+            const nextFilter = EVENT_FILTER_OPTIONS.find((option) => option.label === label)?.value ?? 'all';
+            setFilter(nextFilter);
+          }}
+        />
 
-        {/* Events List */}
-        <View style={styles.eventList}>
-          {/* Gala Card — only on vibes tab */}
-          {mode === 'vibes' && gala && (
-            <MotiView
-              from={{ opacity: 0, translateY: 16 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 400 }}
-            >
-              <LiquidGlassCard variant="dark" noPadding>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.galaCard,
-                    pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    rsvpMutation.mutate(gala.id);
-                  }}
-                  accessibilityLabel="AMARI Gala 2026"
-                >
-                  <View style={styles.galaGradientLine} />
+        {featuredEvent ? (
+          <FeaturedEventCard
+            event={featuredEvent}
+            gradientColors={EVENT_TYPE_GRADIENTS[featuredEvent.type]}
+            locked={!hasTierAccess(tier, featuredEvent.min_tier)}
+            onPress={() => handleRegister(featuredEvent)}
+            typeLabel={getEventTypeLabel(featuredEvent.type)}
+          />
+        ) : (
+          <View style={styles.emptyHero}>
+            <Text style={styles.emptyHeroTitle}>Nothing upcoming in this filter yet.</Text>
+            <Text style={styles.emptyHeroText}>
+              New AMARI events will appear here as they are announced.
+            </Text>
+          </View>
+        )}
 
-                  {/* The Event badge */}
-                  <View style={styles.galaBadge}>
-                    <View style={styles.galaPulseDot} />
-                    <Text style={{ ...T.label, color: C.goldOnDark }}>The Event</Text>
-                  </View>
-
-                  <Text style={{ ...T.title, color: C.lightPrimary }}>AMARI</Text>
-                  <Text style={styles.galaTitle}>Gala 2026</Text>
-                  <Text
-                    style={{
-                      ...T.bodyItalic,
-                      color: C.lightSecondary,
-                      marginTop: S._8,
-                    }}
-                  >
-                    Black Tie · November · Melbourne
-                  </Text>
-
-                  <Pressable style={styles.galaBtn}>
-                    <Text style={styles.galaBtnText}>Register Interest</Text>
-                  </Pressable>
-                </Pressable>
-              </LiquidGlassCard>
-            </MotiView>
-          )}
-
-          {/* Regular events */}
-          {isLoading ? (
-            <View style={styles.emptyBox}>
-              <Text style={{ ...T.body, color: C.lightTertiary }}>Loading events...</Text>
-            </View>
-          ) : !events?.length && !(mode === 'vibes' && gala) ? (
-            <View style={styles.emptyBox}>
-              <Text style={{ ...T.body, color: C.lightTertiary }}>
-                No upcoming {MODE_CONFIG[mode].label.toLowerCase()} events.
-              </Text>
-            </View>
-          ) : (
-            events?.map((event: any, i: number) => (
-              <MotiView
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>UPCOMING</Text>
+          {listEvents.length ? (
+            listEvents.map((event) => (
+              <EventCard
+                actionLabel={
+                  !hasTierAccess(tier, event.min_tier)
+                    ? 'Locked'
+                    : getEventRegistrationUrl(event)
+                      ? 'Register'
+                      : 'Soon'
+                }
+                event={event}
+                gradientColors={EVENT_TYPE_GRADIENTS[event.type]}
                 key={event.id}
-                from={{ opacity: 0, translateY: 16 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'timing', duration: 400, delay: i * 80 }}
-              >
-                {mode === 'dinners' ? (
-                  /* Dinner layout — date block + info */
-                  <LiquidGlassCard variant="dark" noPadding>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.dinnerCard,
-                        pressed && styles.cardPressed,
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        rsvpMutation.mutate(event.id);
-                      }}
-                      accessibilityLabel={event.title}
-                    >
-                      <View style={styles.dateBlock}>
-                        <Text style={{ ...T.stat, color: C.lightPrimary }}>
-                          {formatDay(event.starts_at)}
-                        </Text>
-                        <Text style={{ ...T.label, fontSize: 11, color: C.goldOnDark }}>
-                          {formatMonth(event.starts_at)}
-                        </Text>
-                      </View>
-                      <View style={styles.dinnerInfo}>
-                        <View style={{ flex: 1 }}>
-                          <Text
-                            style={{
-                              ...T.cardTitleSm,
-                              color: C.lightPrimary,
-                              marginBottom: S._4,
-                            }}
-                          >
-                            {event.title}
-                          </Text>
-                          <Text
-                            style={{
-                              ...T.bodyItalic,
-                              fontSize: 13,
-                              color: C.lightSecondary,
-                            }}
-                          >
-                            {event.venue_name || 'TBA'} ·{' '}
-                            {event.capacity
-                              ? `${event.capacity} seats`
-                              : 'Open'}
-                          </Text>
-                        </View>
-                        {event.min_tier && event.min_tier !== 'member' && (
-                          <View style={styles.eventTierPill}>
-                            <Text style={{ ...T.meta, color: C.lightTertiary }}>
-                              {TIER_DISPLAY_NAMES[event.min_tier]}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </Pressable>
-                  </LiquidGlassCard>
-                ) : mode === 'talks' ? (
-                  /* Talks layout — date label + title + speaker */
-                  <LiquidGlassCard variant="dark" noPadding>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.talkCard,
-                        pressed && styles.cardPressed,
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        rsvpMutation.mutate(event.id);
-                      }}
-                      accessibilityLabel={event.title}
-                    >
-                      <Text style={{ ...T.label, color: C.oliveOnDark, marginBottom: S._8 }}>
-                        {formatFullDate(event.starts_at)}
-                      </Text>
-                      <Text
-                        style={{
-                          ...T.cardTitle,
-                          color: C.lightPrimary,
-                          marginBottom: S._4,
-                        }}
-                      >
-                        {event.title}
-                      </Text>
-                      <Text style={{ ...T.bodyItalic, color: C.lightSecondary }}>
-                        {event.description}
-                      </Text>
-                    </Pressable>
-                  </LiquidGlassCard>
-                ) : (
-                  /* Vibes layout — simple cards */
-                  <LiquidGlassCard variant="dark" noPadding>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.vibesCard,
-                        pressed && styles.cardPressed,
-                      ]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        rsvpMutation.mutate(event.id);
-                      }}
-                      accessibilityLabel={event.title}
-                    >
-                      <Text
-                        style={{
-                          ...T.cardTitle,
-                          fontSize: 15,
-                          color: C.lightPrimary,
-                          marginBottom: S._4,
-                        }}
-                      >
-                        {event.title}
-                      </Text>
-                      <Text style={{ ...T.bodyItalic, color: C.lightSecondary }}>
-                        {formatFullDate(event.starts_at)} · {event.venue_name || 'Culture'}
-                      </Text>
-                    </Pressable>
-                  </LiquidGlassCard>
-                )}
-              </MotiView>
+                locked={!hasTierAccess(tier, event.min_tier)}
+                onPress={() => handleRegister(event)}
+                typeLabel={getEventTypeLabel(event.type)}
+              />
             ))
+          ) : (
+            <Text style={styles.sectionHint}>
+              {featuredEvent
+                ? 'The featured card is the only upcoming event in this category right now.'
+                : 'No upcoming events match this filter yet.'}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PAST</Text>
+          {pastEvents.length ? (
+            pastEvents.map((event) => (
+              <PastEventCard
+                attended={attendedEventIds.has(event.id)}
+                event={event}
+                key={event.id}
+                typeLabel={getEventTypeLabel(event.type)}
+              />
+            ))
+          ) : (
+            <Text style={styles.sectionHint}>Past events will collect here as the calendar builds out.</Text>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      <TierRequirementSheet event={lockedEvent} onClose={() => setLockedEvent(null)} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.charcoal },
+  container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 + 84 },
-  blob: { position: 'absolute', borderRadius: 999 },
-
-  // Header
-  header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  heroText: { ...T.hero, color: C.lightPrimary },
-
-  // Mode tabs
-  modeTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: S._12,
-    paddingTop: S._16,
-    gap: S._8,
-  },
-  modeTab: {
-    flex: 1,
-    paddingVertical: S._12,
-    minHeight: 48,
-    alignItems: 'center',
-    borderTopWidth: 2,
-    borderTopColor: 'transparent',
-  },
-  modeLabel: {
-    ...T.cardTitleSm,
-    fontSize: 13,
-    color: C.lightTertiary,
-  },
-  modeLabelActive: { color: C.lightPrimary },
-  modeSub: { ...T.label, fontSize: 11, marginTop: S._2 },
-
-  // Event list
-  eventList: {
-    paddingHorizontal: S._12,
-    paddingTop: S._12,
-    gap: S._8,
-  },
-
-  // Gala card
-  galaCard: {
-    padding: S._24,
-    paddingHorizontal: S._20,
-    minHeight: 232,
-    justifyContent: 'flex-end',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  galaGradientLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: C.gold,
-  },
-  galaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S._8,
-    paddingVertical: S._6,
-    paddingHorizontal: S._12,
-    backgroundColor: C.gold + '12',
-    borderWidth: 1,
-    borderColor: C.gold + '18',
-    borderRadius: R.lg,
-    alignSelf: 'flex-start',
-    marginBottom: S._16,
-  },
-  galaPulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.goldOnDark,
-  },
-  galaTitle: {
-    ...T.title,
-    color: C.goldOnDark,
-  },
-  galaBtn: {
-    marginTop: S._16,
-    alignSelf: 'flex-start',
-    paddingVertical: S._16,
-    paddingHorizontal: S._24,
-    minHeight: 48,
-    borderRadius: R.pill,
-    backgroundColor: 'rgba(114,47,55,0.3)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(114,47,55,0.4)',
-  },
-  galaBtnText: { ...T.btn, color: C.lightPrimary },
-
-  // Dinner cards
-  dinnerCard: {
-    flexDirection: 'row',
-    overflow: 'hidden',
-  },
-  dateBlock: {
-    width: 64,
-    backgroundColor: 'rgba(248,246,243,0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(248,246,243,0.08)',
-    paddingVertical: S._12,
-  },
-  dinnerInfo: {
-    flex: 1,
-    padding: S._16,
+  content: { padding: spacing.xl, paddingBottom: 116 },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    marginBottom: 12,
   },
-  eventTierPill: {
-    paddingVertical: S._4,
-    paddingHorizontal: S._12,
+  title: {
+    fontFamily: typography.body.bold,
+    fontSize: 26,
+    color: colors.black,
+    letterSpacing: -0.5,
+  },
+  count: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    color: colors.gold,
+  },
+  emptyHero: {
+    minHeight: 220,
+    borderRadius: radius.xl,
+    backgroundColor: colors.cream,
     borderWidth: 1,
-    borderColor: C.darkBorder,
-    borderRadius: R.lg,
+    borderColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    marginTop: 8,
   },
-
-  // Talk cards
-  talkCard: {
-    padding: S._20,
-    borderLeftWidth: 3,
-    borderLeftColor: C.olive + '30',
+  emptyHeroTitle: {
+    fontFamily: typography.body.bold,
+    fontSize: 19,
+    lineHeight: 24,
+    color: colors.black,
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
-
-  // Vibes cards
-  vibesCard: {
-    padding: S._16,
-    borderLeftWidth: 3,
-    borderLeftColor: C.burgundy + '25',
+  emptyHeroText: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
+    textAlign: 'center',
+    marginTop: 8,
   },
-
-  cardPressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-  emptyBox: { padding: S._24, alignItems: 'center' },
+  section: {
+    marginTop: 22,
+  },
+  sectionLabel: {
+    fontFamily: typography.mono.medium,
+    fontSize: 9,
+    color: 'rgba(0,0,0,0.42)',
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  sectionHint: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
+    paddingVertical: 8,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  sheetWrap: {
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.cream,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    paddingHorizontal: 24,
+    paddingTop: 14,
+    paddingBottom: 30,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(10,10,10,0.12)',
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  sheetBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(196,162,101,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(196,162,101,0.16)',
+  },
+  sheetBadgeText: {
+    fontFamily: typography.mono.medium,
+    fontSize: 9,
+    color: colors.goldDark,
+    letterSpacing: 1.4,
+  },
+  sheetTitle: {
+    fontFamily: typography.body.bold,
+    fontSize: 22,
+    lineHeight: 27,
+    color: colors.black,
+    letterSpacing: -0.45,
+    marginTop: 16,
+  },
+  sheetEventTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 14,
+    lineHeight: 19,
+    color: colors.black,
+    marginTop: 8,
+  },
+  sheetBody: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.gray,
+    marginTop: 12,
+  },
+  sheetFootnote: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.gray,
+    marginTop: 10,
+  },
+  sheetButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    backgroundColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  sheetButtonText: {
+    fontFamily: typography.body.bold,
+    fontSize: 14,
+    color: colors.white,
+  },
 });

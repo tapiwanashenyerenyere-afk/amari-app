@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AMARI Events — V9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0A0A0A;
+    --bone: #F2EDE6;
+    --warm: #EDE7DE;
+    --cream: #FDFCFA;
+    --white: #fff;
+    --gold: #C9A962;
+    --gold-dark: #A8884F;
+    --burgundy: #722F37;
+    --charcoal: #1C1C1C;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:var(--sans); background:var(--bone); max-width:430px; margin:0 auto; overflow-x:hidden; min-height:100vh; }
+
+  /* ═══ HEADER ═══ */
+  .header { padding:52px 20px 10px; display:flex; justify-content:space-between; align-items:baseline; }
+  .h-title { font-family:var(--sans); font-size:26px; font-weight:700; color:var(--black); letter-spacing:-0.5px; }
+  .h-count { font-family:var(--mono); font-size:11px; font-weight:400; color:var(--gold); }
+
+  /* ═══ FILTER CHIPS ═══ */
+  .filter-row { display:flex; gap:7px; padding:12px 20px; overflow-x:auto; scrollbar-width:none; }
+  .filter-row::-webkit-scrollbar { display:none; }
+  .chip {
+    flex-shrink:0; padding:8px 16px; border-radius:20px;
+    border:1px solid rgba(0,0,0,0.08); background:var(--cream);
+    font-family:var(--sans); font-size:12px; font-weight:500;
+    color:rgba(0,0,0,0.5); cursor:pointer; transition:all 0.2s;
+    white-space:nowrap; user-select:none;
+  }
+  .chip:active { transform:scale(0.96); }
+  .chip.on { background:var(--black); border-color:var(--black); color:var(--white); }
+
+  /* ═══ FEATURED EVENT CARD ═══ */
+  .featured-wrap { padding:8px 20px 0; }
+  .featured {
+    position:relative; border-radius:20px; overflow:hidden;
+    min-height:320px; cursor:pointer;
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .featured:active { transform:scale(0.975); }
+
+  .feat-bg {
+    position:absolute; inset:0;
+    background:linear-gradient(155deg, #1A1510 0%, #0A0A0A 40%, #14100C 100%);
+  }
+  .feat-grain { position:absolute; inset:0; pointer-events:none; opacity:0.04; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .feat-glow { position:absolute; width:250px; height:250px; border-radius:50%; top:-60px; right:-40px; background:radial-gradient(circle, rgba(201,169,98,0.1) 0%, transparent 70%); pointer-events:none; }
+  .feat-glow2 { position:absolute; width:200px; height:200px; border-radius:50%; bottom:-30px; left:-30px; background:radial-gradient(circle, rgba(114,47,55,0.08) 0%, transparent 70%); pointer-events:none; }
+
+  .feat-content { position:relative; z-index:2; padding:28px 24px; display:flex; flex-direction:column; min-height:320px; }
+
+  .feat-badge-row { display:flex; gap:8px; margin-bottom:auto; }
+  .feat-badge {
+    font-family:var(--mono); font-size:8px; font-weight:500;
+    letter-spacing:1.5px; text-transform:uppercase;
+    padding:5px 10px; border-radius:6px;
+  }
+  .feat-badge.featured-tag { color:var(--gold); background:rgba(201,169,98,0.1); border:1px solid rgba(201,169,98,0.15); }
+  .feat-badge.type-tag { color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); }
+
+  .feat-date-block { display:flex; align-items:flex-end; gap:16px; margin-bottom:14px; }
+  .feat-day { font-family:var(--sans); font-size:56px; font-weight:700; color:var(--white); line-height:1; letter-spacing:-2px; }
+  .feat-month-year { display:flex; flex-direction:column; }
+  .feat-month { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--gold); letter-spacing:2px; text-transform:uppercase; }
+  .feat-year { font-family:var(--mono); font-size:11px; font-weight:400; color:rgba(255,255,255,0.25); }
+
+  .feat-title { font-family:var(--sans); font-size:24px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:12px; }
+
+  .feat-details { display:flex; flex-direction:column; gap:6px; margin-bottom:18px; }
+  .feat-detail { display:flex; align-items:center; gap:8px; }
+  .feat-detail-icon { width:14px; height:14px; color:rgba(255,255,255,0.35); flex-shrink:0; }
+  .feat-detail-text { font-family:var(--sans); font-size:12px; font-weight:400; color:rgba(255,255,255,0.5); }
+
+  .feat-register {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:14px 0; border-radius:12px;
+    background:var(--white); color:var(--black);
+    font-family:var(--sans); font-size:14px; font-weight:700;
+    transition:transform 0.2s; text-decoration:none;
+  }
+  .feat-register:active { transform:scale(0.97); }
+  .feat-register svg { width:16px; height:16px; }
+
+  .feat-line { position:absolute; bottom:0; left:24px; right:24px; height:1px; background:linear-gradient(90deg, transparent, rgba(201,169,98,0.15), transparent); }
+
+  /* ═══ EVENT LIST ═══ */
+  .events-section { padding:20px 20px 0; }
+  .events-section-label { font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color:rgba(0,0,0,0.35); margin-bottom:12px; }
+
+  .event-card {
+    position:relative; border-radius:16px; overflow:hidden;
+    margin-bottom:12px; cursor:pointer;
+    transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .event-card:active { transform:scale(0.975); }
+
+  .ev-bg { position:absolute; inset:0; }
+  .ev-bg.dark { background:linear-gradient(160deg, #1C1C1C 0%, #111 50%, #1A1510 100%); }
+  .ev-bg.navy { background:linear-gradient(160deg, #14182A 0%, #0E1220 50%, #181E30 100%); }
+  .ev-bg.wine { background:linear-gradient(160deg, #1F1418 0%, #180E12 50%, #221418 100%); }
+  .ev-bg.forest { background:linear-gradient(160deg, #141F17 0%, #0E1810 50%, #172014 100%); }
+  .ev-grain { position:absolute; inset:0; pointer-events:none; opacity:0.04; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  .ev-content { position:relative; z-index:2; padding:20px 20px; display:flex; gap:16px; align-items:center; }
+
+  .ev-date { flex-shrink:0; text-align:center; min-width:52px; }
+  .ev-day { font-family:var(--sans); font-size:32px; font-weight:700; color:var(--white); line-height:1; letter-spacing:-1px; }
+  .ev-month { font-family:var(--mono); font-size:10px; font-weight:500; color:var(--gold); letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+
+  .ev-info { flex:1; min-width:0; }
+  .ev-type { font-family:var(--mono); font-size:8px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:4px; }
+  .ev-title { font-family:var(--sans); font-size:17px; font-weight:700; color:var(--white); line-height:1.2; margin-bottom:6px; }
+  .ev-meta { display:flex; flex-direction:column; gap:3px; }
+  .ev-meta-item { display:flex; align-items:center; gap:6px; font-family:var(--sans); font-size:11px; font-weight:400; color:rgba(255,255,255,0.4); }
+  .ev-meta-icon { width:12px; height:12px; color:rgba(255,255,255,0.3); flex-shrink:0; }
+
+  .ev-action { flex-shrink:0; }
+  .ev-register {
+    display:flex; align-items:center; justify-content:center;
+    padding:10px 16px; border-radius:10px;
+    background:var(--white); color:var(--black);
+    font-family:var(--sans); font-size:11px; font-weight:700;
+    text-decoration:none; transition:transform 0.2s;
+    white-space:nowrap;
+  }
+  .ev-register:active { transform:scale(0.95); }
+
+  /* Tier lock badge */
+  .ev-tier {
+    display:flex; align-items:center; gap:4px;
+    font-family:var(--mono); font-size:7px; font-weight:500;
+    letter-spacing:1px; text-transform:uppercase;
+    color:var(--gold); opacity:0.6;
+    margin-top:6px;
+  }
+  .ev-tier svg { width:10px; height:10px; }
+
+  /* ═══ PAST EVENTS ═══ */
+  .past-card {
+    display:flex; gap:14px; padding:14px;
+    background:var(--cream); border-radius:14px;
+    border:1px solid rgba(0,0,0,0.04);
+    margin-bottom:10px; cursor:pointer;
+    transition:all 0.2s;
+  }
+  .past-card:active { background:var(--warm); }
+
+  .past-date { flex-shrink:0; text-align:center; min-width:44px; }
+  .past-day { font-family:var(--sans); font-size:22px; font-weight:700; color:var(--black); line-height:1; }
+  .past-month { font-family:var(--mono); font-size:9px; font-weight:500; color:rgba(0,0,0,0.35); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
+
+  .past-info { flex:1; }
+  .past-type { font-family:var(--mono); font-size:7px; font-weight:500; letter-spacing:1.5px; text-transform:uppercase; color:rgba(0,0,0,0.3); margin-bottom:3px; }
+  .past-title { font-family:var(--sans); font-size:14px; font-weight:700; color:var(--black); line-height:1.3; }
+  .past-venue { font-family:var(--sans); font-size:11px; font-weight:400; color:rgba(0,0,0,0.4); margin-top:3px; }
+  .past-attended { font-family:var(--mono); font-size:8px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:rgba(0,0,0,0.2); margin-top:5px; }
+
+  /* ═══ EMPTY / EMBLEM ═══ */
+  .emblem-footer { text-align:center; padding:40px 0 24px; }
+  .emblem-mark { font-family:var(--sans); font-size:9px; font-weight:600; letter-spacing:4px; color:rgba(0,0,0,0.06); text-transform:uppercase; }
+
+  /* ═══ TAB BAR ═══ */
+  .tab-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px; background:var(--cream); border-top:1px solid rgba(0,0,0,0.06); display:flex; justify-content:space-around; align-items:center; padding:8px 0 28px; z-index:100; }
+  .ti { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; opacity:0.4; }
+  .ti.on { opacity:1; }
+  .ti svg { width:22px; height:22px; color:#555; }
+  .ti.on svg { color:var(--black); }
+  .tl { font-family:var(--sans); font-size:10px; font-weight:500; color:#555; }
+  .ti.on .tl { color:var(--black); }
+  .ti.on::after { content:''; width:4px; height:4px; background:var(--gold); border-radius:50%; margin-top:1px; }
+
+  .bottom-spacer { height:90px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <div class="h-title">Events</div>
+  <div class="h-count">4 upcoming</div>
+</div>
+
+<!-- ═══ FILTER CHIPS ═══ -->
+<div class="filter-row" id="eventFilters">
+  <div class="chip on" data-filter="all">All</div>
+  <div class="chip" data-filter="gala">Galas</div>
+  <div class="chip" data-filter="networking">Networking</div>
+  <div class="chip" data-filter="dinner">Dinners</div>
+  <div class="chip" data-filter="lifestyle">Lifestyle</div>
+  <div class="chip" data-filter="collab">Collabs</div>
+</div>
+
+<!-- ═══ FEATURED EVENT ═══ -->
+<div class="featured-wrap">
+  <a href="https://eventbrite.com" class="featured" style="text-decoration:none;">
+    <div class="feat-bg"></div>
+    <div class="feat-grain"></div>
+    <div class="feat-glow"></div>
+    <div class="feat-glow2"></div>
+    <div class="feat-line"></div>
+
+    <div class="feat-content">
+      <div class="feat-badge-row">
+        <span class="feat-badge featured-tag">Featured</span>
+        <span class="feat-badge type-tag">Gala</span>
+      </div>
+
+      <div class="feat-date-block">
+        <span class="feat-day">15</span>
+        <div class="feat-month-year">
+          <span class="feat-month">Nov</span>
+          <span class="feat-year">2026</span>
+        </div>
+      </div>
+
+      <div class="feat-title">AMARI Annual Gala 2026</div>
+
+      <div class="feat-details">
+        <div class="feat-detail">
+          <svg class="feat-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="feat-detail-text">Melbourne Convention Centre</span>
+        </div>
+        <div class="feat-detail">
+          <svg class="feat-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span class="feat-detail-text">6:30 PM — Late</span>
+        </div>
+        <div class="feat-detail">
+          <svg class="feat-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+          <span class="feat-detail-text">Black Tie</span>
+        </div>
+      </div>
+
+      <div class="feat-register">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Register on Eventbrite
+      </div>
+    </div>
+  </a>
+</div>
+
+<!-- ═══ UPCOMING EVENTS ═══ -->
+<div class="events-section">
+  <div class="events-section-label">Upcoming</div>
+
+  <!-- Networking Night -->
+  <a href="https://eventbrite.com" class="event-card" style="text-decoration:none;">
+    <div class="ev-bg navy"></div>
+    <div class="ev-grain"></div>
+    <div class="ev-content">
+      <div class="ev-date">
+        <div class="ev-day">28</div>
+        <div class="ev-month">Nov</div>
+      </div>
+      <div class="ev-info">
+        <div class="ev-type">Networking</div>
+        <div class="ev-title">Founders Connect Melbourne</div>
+        <div class="ev-meta">
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Buro, Flinders Lane
+          </div>
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+            Smart Casual
+          </div>
+        </div>
+      </div>
+      <div class="ev-action">
+        <div class="ev-register">Register</div>
+      </div>
+    </div>
+  </a>
+
+  <!-- Dinner -->
+  <a href="https://eventbrite.com" class="event-card" style="text-decoration:none;">
+    <div class="ev-bg wine"></div>
+    <div class="ev-grain"></div>
+    <div class="ev-content">
+      <div class="ev-date">
+        <div class="ev-day">05</div>
+        <div class="ev-month">Dec</div>
+      </div>
+      <div class="ev-info">
+        <div class="ev-type">Dinner</div>
+        <div class="ev-title">AMARI Supper Club</div>
+        <div class="ev-meta">
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Chin Chin, Melbourne
+          </div>
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+            Cocktail
+          </div>
+        </div>
+        <div class="ev-tier">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Platinum +
+        </div>
+      </div>
+      <div class="ev-action">
+        <div class="ev-register">Register</div>
+      </div>
+    </div>
+  </a>
+
+  <!-- Collab -->
+  <a href="https://eventbrite.com" class="event-card" style="text-decoration:none;">
+    <div class="ev-bg forest"></div>
+    <div class="ev-grain"></div>
+    <div class="ev-content">
+      <div class="ev-date">
+        <div class="ev-day">12</div>
+        <div class="ev-month">Dec</div>
+      </div>
+      <div class="ev-info">
+        <div class="ev-type">Collaboration</div>
+        <div class="ev-title">AMARI x Deloitte: Future of Work</div>
+        <div class="ev-meta">
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Deloitte HQ, Collins St
+          </div>
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+            Business Casual
+          </div>
+        </div>
+      </div>
+      <div class="ev-action">
+        <div class="ev-register">Register</div>
+      </div>
+    </div>
+  </a>
+
+  <!-- Lifestyle -->
+  <a href="https://eventbrite.com" class="event-card" style="text-decoration:none;">
+    <div class="ev-bg dark"></div>
+    <div class="ev-grain"></div>
+    <div class="ev-content">
+      <div class="ev-date">
+        <div class="ev-day">20</div>
+        <div class="ev-month">Dec</div>
+      </div>
+      <div class="ev-info">
+        <div class="ev-type">Lifestyle</div>
+        <div class="ev-title">End of Year Yacht Day</div>
+        <div class="ev-meta">
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Docklands Marina
+          </div>
+          <div class="ev-meta-item">
+            <svg class="ev-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+            Resort Casual
+          </div>
+        </div>
+        <div class="ev-tier">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Laureate only
+        </div>
+      </div>
+      <div class="ev-action">
+        <div class="ev-register">Register</div>
+      </div>
+    </div>
+  </a>
+</div>
+
+<!-- ═══ PAST EVENTS ═══ -->
+<div class="events-section">
+  <div class="events-section-label">Past</div>
+
+  <div class="past-card">
+    <div class="past-date"><div class="past-day">02</div><div class="past-month">May</div></div>
+    <div class="past-info">
+      <div class="past-type">Gala</div>
+      <div class="past-title">AMARI Gala 2026</div>
+      <div class="past-venue">Plaza Ballroom, 191 Collins St</div>
+      <div class="past-attended">Attended</div>
+    </div>
+  </div>
+
+  <div class="past-card">
+    <div class="past-date"><div class="past-day">18</div><div class="past-month">Apr</div></div>
+    <div class="past-info">
+      <div class="past-type">Networking</div>
+      <div class="past-title">Women in Business Breakfast</div>
+      <div class="past-venue">QT Melbourne</div>
+      <div class="past-attended">Attended</div>
+    </div>
+  </div>
+
+  <div class="past-card">
+    <div class="past-date"><div class="past-day">25</div><div class="past-month">Mar</div></div>
+    <div class="past-info">
+      <div class="past-type">Collaboration</div>
+      <div class="past-title">AMARI x PwC: Impact Investing</div>
+      <div class="past-venue">PwC Tower, Southbank</div>
+      <div class="past-attended">Attended</div>
+    </div>
+  </div>
+</div>
+
+<div class="emblem-footer"><div class="emblem-mark">AMARI</div></div>
+<div class="bottom-spacer"></div>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tab-bar">
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span class="tl">Pulse</span></div>
+  <div class="ti on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="tl">Events</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span class="tl">Aligned</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5Z"/><path d="M7 10v1a5 5 0 0 0 10 0v-1"/><rect x="10" y="15" width="4" height="5" rx="1"/><path d="M8 22h8"/></svg><span class="tl">Corridor</span></div>
+  <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="tl">Me</span></div>
+</div>
+
+<script>
+document.querySelectorAll('#eventFilters .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#eventFilters .chip').forEach(c => c.classList.remove('on'));
+    chip.classList.add('on');
+  });
+});
+</script>
+
+</body>
+</html>

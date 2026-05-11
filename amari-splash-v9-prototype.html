@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AMARI Splash — Minimal + Emblem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0A0A0A;
+    --bone: #F2EDE6;
+    --gold: #C9A962;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:var(--sans); background:#111; max-width:430px; margin:0 auto; overflow-x:hidden; }
+
+  /* Version selector */
+  .selector {
+    position:fixed; top:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px; z-index:200;
+    display:flex; gap:4px; padding:50px 16px 12px;
+    background:rgba(0,0,0,0.85); backdrop-filter:blur(12px);
+  }
+  .sel-btn {
+    flex:1; padding:10px 0; border-radius:10px; text-align:center;
+    font-family:var(--sans); font-size:10px; font-weight:600;
+    color:rgba(255,255,255,0.4); cursor:pointer;
+    border:1px solid rgba(255,255,255,0.08); transition:all 0.2s;
+  }
+  .sel-btn.on { background:var(--gold); color:var(--black); border-color:var(--gold); }
+  .sel-label {
+    text-align:center; padding:4px 16px 8px;
+    font-family:var(--mono); font-size:8px; font-weight:400;
+    color:rgba(255,255,255,0.25); letter-spacing:1px;
+    position:fixed; top:92px; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px; z-index:200;
+    background:rgba(0,0,0,0.85); backdrop-filter:blur(12px);
+  }
+
+  .splash { display:none; width:100%; min-height:100vh; position:relative; overflow:hidden; }
+  .splash.active { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+
+  /* Shared elements */
+  .grain { position:absolute; inset:0; pointer-events:none; opacity:0.03; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  /* AMARI Emblem SVG — approximation of the geometric A mark */
+  .emblem-svg { position:relative; z-index:2; }
+
+  /* Breathing orbs */
+  .orb { position:absolute; border-radius:50%; pointer-events:none; }
+  .orb-gold { background:radial-gradient(circle, rgba(201,169,98,0.07) 0%, transparent 60%); }
+  .orb-burg { background:radial-gradient(circle, rgba(114,47,55,0.04) 0%, transparent 60%); }
+  .orb-teal { background:radial-gradient(circle, rgba(80,160,140,0.03) 0%, transparent 60%); }
+  @keyframes breathe { 0%,100% { transform:translate(-50%,-50%) scale(1); opacity:0.7; } 50% { transform:translate(-50%,-50%) scale(1.15); opacity:1; } }
+  @keyframes drift1 { 0%,100% { transform:translate(0,0); } 50% { transform:translate(20px,15px); } }
+  @keyframes drift2 { 0%,100% { transform:translate(0,0); } 50% { transform:translate(-15px,-20px); } }
+
+  /* Dynamic ambient mesh */
+  .ambient-mesh {
+    position:absolute; inset:0; pointer-events:none; opacity:0.4;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 30%, rgba(201,169,98,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 80% 70%, rgba(114,47,55,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 70% 40% at 50% 90%, rgba(80,160,140,0.03) 0%, transparent 70%);
+    animation:mesh-shift 12s ease-in-out infinite;
+  }
+  @keyframes mesh-shift {
+    0%,100% { transform:rotate(0deg) scale(1); }
+    33% { transform:rotate(2deg) scale(1.05); }
+    66% { transform:rotate(-1deg) scale(0.98); }
+  }
+
+  /* Subtle particle lines */
+  .particle-lines {
+    position:absolute; inset:0; pointer-events:none; overflow:hidden;
+  }
+  .p-line {
+    position:absolute; width:1px; background:linear-gradient(180deg, transparent, rgba(201,169,98,0.06), transparent);
+    animation:p-float linear infinite;
+  }
+  @keyframes p-float { 0% { transform:translateY(100vh); opacity:0; } 10% { opacity:1; } 90% { opacity:1; } 100% { transform:translateY(-100vh); opacity:0; } }
+
+  /* Footer */
+  .splash-footer {
+    position:absolute; bottom:48px; left:50%; transform:translateX(-50%);
+    font-family:var(--mono); font-size:8px; font-weight:400; letter-spacing:3px;
+    color:rgba(255,255,255,0.08); text-transform:uppercase;
+  }
+
+  /* Animation keyframes */
+  @keyframes emblem-in { 0% { opacity:0; transform:scale(0.85); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes text-in { 0% { opacity:0; transform:translateY(10px); } 100% { opacity:1; transform:translateY(0); } }
+  @keyframes line-grow { 0% { opacity:0; height:0; } 100% { opacity:1; height:40px; } }
+  @keyframes line-grow-h { 0% { opacity:0; width:0; } 100% { opacity:1; width:32px; } }
+  @keyframes letters-in { 0% { opacity:0; letter-spacing:20px; } 100% { opacity:1; letter-spacing:12px; } }
+
+  /* ═══ VERSION 1 — Emblem centered, wordmark below, breathing orbs ═══ */
+  .splash-1 { background:var(--black); }
+  .s1-orb1 { width:400px; height:400px; top:50%; left:50%; animation:breathe 4s ease-in-out infinite; }
+  .s1-orb2 { width:300px; height:300px; top:50%; left:50%; animation:breathe 5s ease-in-out 1s infinite; }
+
+  .s1-emblem {
+    width:90px; height:90px; border-radius:20px; overflow:hidden;
+    margin-bottom:24px; position:relative; z-index:2;
+    animation:emblem-in 1.2s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow:0 0 50px rgba(201,169,98,0.06);
+  }
+
+  .s1-wordmark {
+    font-family:var(--sans); font-size:18px; font-weight:700; letter-spacing:12px;
+    color:rgba(255,255,255,0.8); text-transform:uppercase;
+    position:relative; z-index:2;
+    animation:letters-in 1.5s ease 0.5s both;
+  }
+  .s1-line {
+    width:1px; height:40px; background:linear-gradient(180deg, transparent, var(--gold), transparent);
+    margin:24px 0; position:relative; z-index:2;
+    animation:line-grow 0.8s ease 1s both;
+  }
+  .s1-tagline { position:relative; z-index:2; animation:text-in 0.8s ease 1.4s both; }
+  .s1-tagline-for { font-family:var(--sans); font-size:16px; font-weight:300; color:rgba(255,255,255,0.35); }
+  .s1-tagline-word { font-family:var(--sans); font-size:16px; font-weight:300; font-style:italic; color:var(--gold); }
+  .s1-footer { animation:text-in 0.6s ease 2s both; }
+
+  /* ═══ VERSION 2 — Large emblem hero, subtle wordmark, minimal ═══ */
+  .splash-2 { background:var(--black); }
+  .s2-orb1 { width:500px; height:500px; top:40%; left:50%; animation:breathe 5s ease-in-out infinite; }
+
+  .s2-emblem {
+    width:120px; height:120px; border-radius:28px; overflow:hidden;
+    margin-bottom:32px; position:relative; z-index:2;
+    animation:emblem-in 1.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    box-shadow:0 0 60px rgba(201,169,98,0.08), 0 0 120px rgba(201,169,98,0.03);
+  }
+
+  .s2-tagline { position:relative; z-index:2; animation:text-in 0.8s ease 0.8s both; }
+  .s2-tagline-for { font-family:var(--sans); font-size:18px; font-weight:300; color:rgba(255,255,255,0.35); }
+  .s2-tagline-word { font-family:var(--sans); font-size:18px; font-weight:300; font-style:italic; color:var(--gold); }
+  .s2-footer { animation:text-in 0.6s ease 1.5s both; }
+
+  /* ═══ VERSION 3 — Emblem + wordmark side by side, centered ═══ */
+  .splash-3 { background:var(--black); }
+  .s3-orb1 { width:350px; height:350px; top:45%; left:40%; animation:breathe 4.5s ease-in-out infinite; }
+  .s3-orb2 { width:250px; height:250px; top:50%; left:60%; animation:breathe 5.5s ease-in-out 1.5s infinite; }
+
+  .s3-lockup {
+    display:flex; align-items:center; gap:18px;
+    position:relative; z-index:2;
+    animation:emblem-in 1.2s cubic-bezier(0.34,1.56,0.64,1) both;
+    margin-bottom:28px;
+  }
+  .s3-emblem { width:64px; height:64px; border-radius:16px; overflow:hidden; box-shadow:0 0 40px rgba(201,169,98,0.06); }
+  .s3-text { display:flex; flex-direction:column; }
+  .s3-name { font-family:var(--sans); font-size:32px; font-weight:700; color:var(--white); letter-spacing:2px; line-height:1; }
+  .s3-sub { font-family:var(--mono); font-size:8px; font-weight:400; letter-spacing:3px; color:rgba(255,255,255,0.2); text-transform:uppercase; margin-top:6px; }
+
+  .s3-line { width:32px; height:2px; background:var(--gold); border-radius:1px; position:relative; z-index:2; animation:line-grow-h 0.6s ease 0.7s both; margin-bottom:24px; }
+  .s3-tagline { position:relative; z-index:2; animation:text-in 0.8s ease 1s both; }
+  .s3-tagline-for { font-family:var(--sans); font-size:16px; font-weight:300; color:rgba(255,255,255,0.35); }
+  .s3-tagline-word { font-family:var(--sans); font-size:16px; font-weight:300; font-style:italic; color:var(--gold); }
+  .s3-footer { animation:text-in 0.6s ease 1.6s both; }
+
+  /* Replay */
+  .replay {
+    position:fixed; bottom:16px; right:16px; z-index:200;
+    width:40px; height:40px; border-radius:10px;
+    background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:rgba(255,255,255,0.4); font-size:16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="selector" id="selector">
+  <div class="sel-btn on" data-v="1">1: Emblem + Orbs</div>
+  <div class="sel-btn" data-v="2">2: Large Emblem</div>
+  <div class="sel-btn" data-v="3">3: Lockup</div>
+</div>
+<div class="sel-label" id="selLabel">Emblem centered with breathing orbs + vertical gold line</div>
+
+<div class="replay" onclick="replayAnimation()">&#x21bb;</div>
+
+<!-- AMARI emblem as inline SVG — geometric A mark -->
+<svg style="display:none;">
+  <defs>
+    <symbol id="amari-emblem" viewBox="0 0 200 200">
+      <rect width="200" height="200" rx="8" fill="#000"/>
+      <!-- White geometric A shape -->
+      <path d="M40,180 L40,45 Q40,25 60,25 L100,25 Q140,25 155,60 L155,60 Q165,80 160,100 L160,100 Q155,120 140,135 L90,180 Z" fill="#fff"/>
+      <!-- Curved cut-through line -->
+      <path d="M30,160 Q80,100 120,40 Q140,10 160,30" fill="none" stroke="#000" stroke-width="4"/>
+      <!-- Second arc -->
+      <path d="M85,180 Q100,120 130,80 Q145,60 160,55" fill="none" stroke="#000" stroke-width="3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ═══ VERSION 1 — Dynamic emblem + orbs ═══ -->
+<div class="splash splash-1 active" id="splash-1">
+  <div class="grain"></div>
+  <div class="ambient-mesh"></div>
+
+  <!-- Particle lines -->
+  <div class="particle-lines">
+    <div class="p-line" style="left:15%; height:120px; animation-duration:8s; animation-delay:0s;"></div>
+    <div class="p-line" style="left:35%; height:80px; animation-duration:10s; animation-delay:2s;"></div>
+    <div class="p-line" style="left:55%; height:100px; animation-duration:7s; animation-delay:1s;"></div>
+    <div class="p-line" style="left:75%; height:90px; animation-duration:9s; animation-delay:3s;"></div>
+    <div class="p-line" style="left:90%; height:70px; animation-duration:11s; animation-delay:4s;"></div>
+  </div>
+
+  <!-- Breathing orbs — more of them, different sizes -->
+  <div class="orb orb-gold s1-orb1"></div>
+  <div class="orb orb-burg s1-orb2"></div>
+  <div class="orb orb-teal" style="width:200px; height:200px; top:60%; left:30%; animation:breathe 6s ease-in-out 2s infinite;"></div>
+  <div class="orb orb-gold" style="width:150px; height:150px; top:25%; left:65%; animation:breathe 7s ease-in-out 0.5s infinite;"></div>
+
+  <div class="s1-emblem">
+    <img src="amari-emblem.png" width="100%" height="100%" style="display:block; border-radius:20px;" alt="AMARI">
+  </div>
+  <div class="s1-wordmark">AMARI</div>
+  <div class="s1-line"></div>
+  <div class="s1-tagline">
+    <span class="s1-tagline-for">For the </span><span class="s1-tagline-word">Alchemists</span>
+  </div>
+
+  <!-- Small emblem watermark below tagline -->
+  <div style="margin-top:32px; position:relative; z-index:2; animation:text-in 0.8s ease 1.8s both;">
+    <img src="amari-emblem.png" width="32" height="32" style="display:block; border-radius:8px; opacity:0.12;" alt="">
+  </div>
+</div>
+
+<!-- ═══ VERSION 2 — Large emblem hero, ultra minimal ═══ -->
+<div class="splash splash-2" id="splash-2">
+  <div class="grain"></div>
+  <div class="orb orb-gold s2-orb1"></div>
+
+  <div class="s2-emblem">
+    <svg width="100%" height="100%" viewBox="0 0 200 200"><use href="#amari-emblem"/></svg>
+  </div>
+  <div class="s2-tagline">
+    <span class="s2-tagline-for">For the </span><span class="s2-tagline-word">Alchemists</span>
+  </div>
+  <div class="splash-footer s2-footer">Australia's Black Diaspora</div>
+</div>
+
+<!-- ═══ VERSION 3 — Emblem + name lockup ═══ -->
+<div class="splash splash-3" id="splash-3">
+  <div class="grain"></div>
+  <div class="orb orb-gold s3-orb1"></div>
+  <div class="orb orb-burg s3-orb2"></div>
+
+  <div class="s3-lockup">
+    <div class="s3-emblem">
+      <svg width="100%" height="100%" viewBox="0 0 200 200"><use href="#amari-emblem"/></svg>
+    </div>
+    <div class="s3-text">
+      <div class="s3-name">AMARI</div>
+      <div class="s3-sub">Australia's Black Diaspora</div>
+    </div>
+  </div>
+  <div class="s3-line"></div>
+  <div class="s3-tagline">
+    <span class="s3-tagline-for">For the </span><span class="s3-tagline-word">Alchemists</span>
+  </div>
+  <div class="splash-footer s3-footer"></div>
+</div>
+
+<script>
+const labels = {
+  '1': 'Emblem centered with breathing orbs + vertical gold line',
+  '2': 'Large emblem hero — ultra minimal, just emblem + tagline',
+  '3': 'Emblem + name lockup side by side — brand identity'
+};
+
+document.querySelectorAll('.sel-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    const v = btn.dataset.v;
+    document.querySelectorAll('.splash').forEach(s => s.classList.remove('active'));
+    document.getElementById('splash-' + v).classList.add('active');
+    document.getElementById('selLabel').textContent = labels[v];
+    replayAnimation();
+  });
+});
+
+function replayAnimation() {
+  const active = document.querySelector('.splash.active');
+  if (!active) return;
+  active.querySelectorAll('*').forEach(el => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = '';
+  });
+}
+</script>
+
+</body>
+</html>
