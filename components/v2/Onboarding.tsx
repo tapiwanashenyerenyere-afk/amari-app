@@ -250,7 +250,7 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
       }
 
       if (!data?.valid) {
-        setError('Invalid or expired invitation code');
+        setError('Invalid, expired, or already used. Existing members can sign in below.');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         return;
       }
@@ -263,7 +263,7 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
       }, 600);
     } catch (err) {
       console.error('Validation failed:', err);
-      setError('Something went wrong. Please try again.');
+      setError('AMARI could not verify the code. Check your connection and try again.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsValidating(false);

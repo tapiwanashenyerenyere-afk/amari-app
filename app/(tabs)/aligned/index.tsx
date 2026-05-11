@@ -300,7 +300,7 @@ function InterestDetailCard({
             strokeWidth={1.7}
           />
           <Text style={[styles.interestPrimaryButtonText, saved ? styles.interestPrimaryButtonTextSaved : null]}>
-            {saved ? 'Saved' : 'Save to Interested In'}
+            {saved ? 'Updates on' : 'Keep me updated'}
           </Text>
         </Pressable>
       </View>
@@ -454,6 +454,52 @@ function SearchOverlay({
   );
 }
 
+function ProjectDetailModal({
+  onClose,
+  onContact,
+  onOpenLink,
+  onToggleBookmark,
+  project,
+  saved,
+}: {
+  onClose: () => void;
+  onContact: (project: DirectoryProject) => void;
+  onOpenLink: (url: string) => void;
+  onToggleBookmark: (projectId: string) => void;
+  project: DirectoryProject | null;
+  saved: boolean;
+}) {
+  if (!project) return null;
+
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} transparent visible>
+      <View style={styles.projectDetailBackdrop}>
+        <Pressable onPress={onClose} style={StyleSheet.absoluteFillObject} />
+        <View style={styles.projectDetailShell}>
+          <ScrollView
+            contentContainerStyle={styles.projectDetailScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.projectDetailEyebrow}>Project detail</Text>
+            <InterestDetailCard
+              onClear={onClose}
+              onContact={onContact}
+              onOpenLink={onOpenLink}
+              onToggleBookmark={onToggleBookmark}
+              project={project}
+              saved={saved}
+            />
+            <Text style={styles.projectDetailHint}>
+              Keep me updated bookmarks this project so it remains in your AMARI board.
+            </Text>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function AlignedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -472,6 +518,7 @@ export default function AlignedScreen() {
   const [showPassPopup, setShowPassPopup] = useState(false);
   const [connectProject, setConnectProject] = useState<MapResultsProject | null>(null);
   const [connectMessage, setConnectMessage] = useState('');
+  const [detailProject, setDetailProject] = useState<DirectoryProject | null>(null);
 
   const contentWidth = Math.min(Math.max(width - spacing.xl * 2, 300), 760);
   const connectMessageReady = connectMessage.trim().length >= MIN_CONNECT_MESSAGE_LENGTH;
@@ -668,6 +715,27 @@ export default function AlignedScreen() {
     setConnectMessage('');
   }, []);
 
+  const openProjectDetail = useCallback((project: DirectoryProject) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedProjectId(project.project_id);
+    setDetailProject(project);
+  }, []);
+
+  const openProjectDetailById = useCallback(
+    (projectId: string) => {
+      const project =
+        directoryProjectMap.get(projectId) ||
+        visibleProjects.find((visibleProject) => visibleProject.project_id === projectId) ||
+        null;
+
+      setSelectedProjectId(projectId);
+      if (project) {
+        openProjectDetail(project);
+      }
+    },
+    [directoryProjectMap, openProjectDetail, visibleProjects],
+  );
+
   const closeConnectRequest = useCallback(() => {
     setConnectProject(null);
     setConnectMessage('');
@@ -793,7 +861,7 @@ export default function AlignedScreen() {
         expanded={showFullscreenMap}
         onCollapse={closeFullscreenMap}
         onExpand={() => setShowFullscreenMap(true)}
-        onProjectSelect={(project) => setSelectedProjectId(project.project_id)}
+        onProjectSelect={(project) => openProjectDetailById(project.project_id)}
         onRegionChange={setActiveRegion}
         onRequestCreate={() => router.push('/(tabs)/aligned/create')}
         onViewportChange={({ bounds }) => setMapBounds(bounds)}
@@ -801,7 +869,7 @@ export default function AlignedScreen() {
 
       <MapResultsSheet
         onContact={openConnectRequest}
-        onProjectSelect={setSelectedProjectId}
+        onProjectSelect={openProjectDetailById}
         onToggleBookmark={handleToggleBookmark}
         onVisitLink={handleVisitLink}
         projectCount={visibleProjects.length}
@@ -902,7 +970,7 @@ export default function AlignedScreen() {
                       <InterestRow
                         active={project.project_id === selectedInterestProject?.project_id}
                         key={project.project_id}
-                        onPress={() => setSelectedProjectId(project.project_id)}
+                        onPress={() => openProjectDetail(project)}
                         onToggleBookmark={handleToggleBookmark}
                         project={project}
                         saved={bookmarkedProjectIds.has(project.project_id)}
@@ -996,6 +1064,15 @@ export default function AlignedScreen() {
           </Modal>
         ) : null}
 
+        <ProjectDetailModal
+          onClose={() => setDetailProject(null)}
+          onContact={openConnectRequest}
+          onOpenLink={handleVisitLink}
+          onToggleBookmark={handleToggleBookmark}
+          project={detailProject}
+          saved={detailProject ? bookmarkedProjectIds.has(detailProject.project_id) : false}
+        />
+
         <CardPopupModal
           visible={showPassPopup}
           onClose={() => setShowPassPopup(false)}
@@ -1010,7 +1087,7 @@ export default function AlignedScreen() {
           <SearchOverlay
             onClose={() => setSearchOpen(false)}
             onSelect={(projectId) => {
-              setSelectedProjectId(projectId);
+              openProjectDetailById(projectId);
               setSearchOpen(false);
               switchView('list');
             }}
@@ -1773,6 +1850,38 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     fontFamily: typography.body.regular,
     fontSize: 13,
+    color: colors.gray,
+  },
+  projectDetailBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.46)',
+  },
+  projectDetailShell: {
+    maxHeight: '86%',
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    backgroundColor: colors.bone,
+    overflow: 'hidden',
+  },
+  projectDetailScroll: {
+    padding: 18,
+    paddingBottom: 34,
+  },
+  projectDetailEyebrow: {
+    marginBottom: 10,
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.gray,
+  },
+  projectDetailHint: {
+    marginTop: 10,
+    paddingHorizontal: 2,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    lineHeight: 17,
     color: colors.gray,
   },
 });
