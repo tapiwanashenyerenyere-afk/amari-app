@@ -1,6 +1,6 @@
 # AMARI Working Memory
 
-Last updated: 2026-04-29
+Last updated: 2026-05-11
 
 This file preserves the shared working context for AMARI Mobile so future Codex,
 Claude, or other agent sessions can resume without relying on chat history.
@@ -41,6 +41,19 @@ Release branch: `release/v2-redesign-signed`.
 
 Recently merged PRs:
 
+- PR #34: `fix: restore mobile sign-in and project detail flow`
+  - Existing members/testers who already redeemed an invite can sign in with
+    email OTP instead of being blocked by invite-code validation.
+  - Project rows, map results, markers, and search results open a project detail
+    view with creator contact, external link, save, and "keep me updated"
+    wording.
+  - Added `scripts/verify-mobile-flows.mjs` with iOS and Android manual tester
+    scripts.
+- PR #35: `chore: bump store release to 1.1.2`
+  - Bumped `expo.version`, package version, and lockfile version to `1.1.2`
+    after App Store Connect rejected additional `1.1.1` uploads because the
+    approved `1.1.1` train was closed.
+
 - PR #19: `fix: refine onboarding signal and gala nominee story`
   - White transparent AMARI A in onboarding.
   - Six-axis onboarding graph supports independent axis/corner movement.
@@ -59,13 +72,25 @@ Recently merged PRs:
 
 Store artifacts:
 
-- iOS version `1.1.1`, build `13`, uploaded to App Store Connect/TestFlight.
-- Android version `1.1.1`, versionCode `46`, submitted successfully to Google
-  Play Alpha/closed testing.
+- iOS version `1.1.2`, build `19`, uploaded to App Store Connect/TestFlight on
+  2026-05-11:
+  `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1068ab4f-9661-4d43-befc-123245697b10`
+- Android version `1.1.2`, versionCode `52`, submitted successfully to Google
+  Play Alpha/closed testing on 2026-05-11:
+  `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/da672749-4490-48ac-b63e-ea65bed15bbc`
+- Android production remains blocked by Google Play Console state. Direct
+  Android Publisher API tests accepted AAB uploads for versionCodes `51` and
+  `52`, then failed updating the `production` track with
+  `FAILED_PRECONDITION`. The production track currently has no active release
+  and `countryAvailability/production` returns HTTP `204`; Alpha has completed
+  release `1.1.2` / versionCode `52`.
+- To release Android publicly, first configure/activate production countries or
+  first-production-release state in Play Console, then retry production track
+  submission for build `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72`.
 - Accepted Android AAB archive:
-  `C:\Users\tapiw\amari-build\amari-mobile-1.1.1-v46-play-alpha-2026-04-29.aab`
+  `C:\Users\tapiw\amari-build\amari-mobile-1.1.2-v52-play-2026-05-11\amari-production-1.1.2-v52.aab`
 - AAB SHA256:
-  `4b26ccc766fa9ba56beccbeeefa76d695499547dcbb08c16dd18055721814e4c`
+  `3f1eef7075e23209c2ee9df95e19cb6e4f1b2c5f843c631aa7f00ff8cf02755f`
 
 Important release gotcha:
 
