@@ -86,12 +86,24 @@ export function CardPopupModal({
 
     const canOpen = await Linking.canOpenURL(emailUrl);
     if (!canOpen) {
-      Alert.alert('Email unavailable', 'No mail app is available on this device.');
+      try {
+        await Share.share({
+          title: `AMARI pass — ${fullName}`,
+          message: shareMessage,
+        });
+      } catch {
+        Alert.alert('Share unavailable', 'No email or share app is available on this device.');
+      }
       return;
     }
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Linking.openURL(emailUrl);
+    await Linking.openURL(emailUrl).catch(async () => {
+      await Share.share({
+        title: `AMARI pass — ${fullName}`,
+        message: shareMessage,
+      });
+    });
   };
 
   const handleSharePress = async () => {
