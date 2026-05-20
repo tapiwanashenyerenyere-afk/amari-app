@@ -12,10 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { C, T, S, R } from '../../lib/constants';
+import { colors, typography, spacing, radius } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
-import { GrainOverlay } from '../../components/ui/GrainOverlay';
 
 export default function InviteScreen() {
   const router = useRouter();
@@ -73,38 +73,15 @@ export default function InviteScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Aurora background blobs */}
-      <View style={styles.auroraContainer}>
-        <View
-          style={[
-            styles.auroraBlob,
-            {
-              backgroundColor: 'rgba(201,169,98,0.12)',
-              top: '15%',
-              left: -60,
-              width: 280,
-              height: 280,
-              borderRadius: 140,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.auroraBlob,
-            {
-              backgroundColor: 'rgba(114,47,55,0.08)',
-              bottom: '20%',
-              right: -40,
-              width: 260,
-              height: 260,
-              borderRadius: 130,
-            },
-          ]}
+      {/* Ambient gradient */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient
+          colors={['rgba(160,133,107,0.07)', 'transparent']}
+          start={{ x: 0.3, y: 0.15 }}
+          end={{ x: 0.7, y: 0.85 }}
+          style={StyleSheet.absoluteFill}
         />
       </View>
-
-      {/* Grain texture */}
-      <GrainOverlay opacity={0.03} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -114,9 +91,10 @@ export default function InviteScreen() {
         <Pressable
           style={styles.backBtn}
           onPress={() => router.back()}
+          accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={{ ...T.nav, color: C.lightTertiary }}>← Back</Text>
+          <Text style={styles.backText}>← Back</Text>
         </Pressable>
 
         <View style={styles.content}>
@@ -151,7 +129,7 @@ export default function InviteScreen() {
                 setIsValid(false);
               }}
               placeholder="AMARI-XXXX-XXX"
-              placeholderTextColor={C.lightFaint}
+              placeholderTextColor="rgba(255,255,255,0.15)"
               autoCapitalize="characters"
               autoCorrect={false}
               autoFocus
@@ -179,10 +157,11 @@ export default function InviteScreen() {
             ]}
             onPress={handleValidate}
             disabled={isValidating || isValid || code.length < 4}
+            accessibilityRole="button"
             accessibilityLabel="Validate invitation code"
           >
             {isValidating ? (
-              <ActivityIndicator size="small" color={C.lightPrimary} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={styles.validateBtnText}>
                 {isValid ? 'Verified' : 'Validate'}
@@ -196,69 +175,88 @@ export default function InviteScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.charcoal },
+  container: { flex: 1, backgroundColor: colors.onboard },
   keyboardView: { flex: 1 },
-
-  // Aurora
-  auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  auroraBlob: { position: 'absolute', opacity: 1 },
-
   backBtn: {
-    paddingHorizontal: S._20,
-    paddingVertical: S._12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     alignSelf: 'flex-start',
     minHeight: 48,
     justifyContent: 'center',
   },
+  backText: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: S._24,
+    paddingHorizontal: spacing.xxl,
   },
-  title: { ...T.title, color: C.lightPrimary, marginBottom: S._8 },
-  subtitle: { ...T.body, color: C.lightSecondary },
-  inputSection: { marginTop: S._32 },
+  title: {
+    fontFamily: typography.serif.medium,
+    fontSize: 28,
+    fontWeight: '500',
+    color: '#fff',
+    marginBottom: spacing.sm,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+  },
+  inputSection: { marginTop: spacing.xxxl },
   input: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: typography.body.medium,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
     letterSpacing: 4,
-    color: C.lightPrimary,
-    backgroundColor: 'rgba(248,246,243,0.06)',
+    color: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1.5,
-    borderColor: 'rgba(248,246,243,0.12)',
-    borderRadius: 14,
-    padding: S._20,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: radius.md,
+    padding: spacing.xl,
     textAlign: 'center',
   },
-  inputValid: { borderColor: C.oliveOnDark },
-  inputError: { borderColor: C.error },
+  inputValid: { borderColor: colors.sand },
+  inputError: { borderColor: colors.error },
   errorText: {
-    ...T.meta,
-    color: C.error,
-    marginTop: S._8,
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.error,
+    marginTop: spacing.sm,
     textAlign: 'center',
   },
   successText: {
-    ...T.meta,
-    color: C.oliveOnDark,
-    marginTop: S._8,
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    letterSpacing: 1,
+    color: colors.success,
+    marginTop: spacing.sm,
     textAlign: 'center',
   },
   bottom: {
-    paddingHorizontal: S._24,
-    paddingBottom: S._32,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   validateBtn: {
-    backgroundColor: 'rgba(114,47,55,0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(196,112,122,0.2)',
-    borderRadius: 14,
-    paddingVertical: S._16,
+    backgroundColor: colors.sand,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
   validateBtnDisabled: { opacity: 0.6 },
-  validateBtnText: { ...T.btn, color: C.lightPrimary },
+  validateBtnText: {
+    fontFamily: typography.body.medium,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MotiView } from 'moti';
-import { C, T, S, R } from '../../lib/constants';
+import { C, T, S } from '../../lib/constants';
 import { useAuth } from '../../providers/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
@@ -28,21 +28,22 @@ export default function AdminScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
-    const [members, codes, events, rsvps] = await Promise.all([
+    const [members, activeMembers, codes, events, rsvps] = await Promise.all([
       supabase.from('members').select('id, status', { count: 'exact', head: true }),
-      supabase.from('invitation_codes').select('id, used_by', { count: 'exact' }),
+      supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('invitation_codes').select('id, used_by, invite_source'),
       supabase.from('events').select('id', { count: 'exact' }).gte('ends_at', new Date().toISOString()),
       supabase.from('event_rsvps').select('id', { count: 'exact' }).eq('status', 'confirmed'),
     ]);
 
-    const allCodes = codes.data || [];
-    const used = allCodes.filter((c: any) => c.used_by !== null).length;
+    const bootstrapCodes = (codes.data || []).filter((c: any) => c.invite_source !== 'monthly_member');
+    const used = bootstrapCodes.filter((c: any) => c.used_by !== null).length;
 
     setStats({
       totalMembers: members.count || 0,
-      activeMembers: members.count || 0,
+      activeMembers: activeMembers.count || 0,
       codesUsed: used,
-      codesRemaining: (codes.count || 0) - used,
+      codesRemaining: bootstrapCodes.length - used,
       activeEvents: events.count || 0,
       totalRsvps: rsvps.count || 0,
     });
@@ -84,6 +85,12 @@ export default function AdminScreen() {
       subtitle: `${stats.codesUsed} used · ${stats.codesRemaining} remaining`,
       icon: '◇',
       route: '/admin/codes' as const,
+    },
+    {
+      title: 'Aligned Queue',
+      subtitle: 'Approve Silver submissions',
+      icon: '◎',
+      route: '/admin/aligned' as const,
     },
     {
       title: 'Pulse',

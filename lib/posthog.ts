@@ -6,12 +6,18 @@ let posthog: any = null;
 try {
   // Only load if the module is available
   const PostHog = require('posthog-react-native').default;
-  posthog = new PostHog(
-    process.env.EXPO_PUBLIC_POSTHOG_KEY || 'phk_placeholder',
-    { host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com' }
-  );
+  if (process.env.EXPO_PUBLIC_POSTHOG_KEY) {
+    posthog = new PostHog(
+      process.env.EXPO_PUBLIC_POSTHOG_KEY,
+      { host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com' }
+    );
+  }
 } catch {
-  // Module not installed — use no-op
+  posthog = null;
+}
+
+if (!posthog) {
+  // Module not installed or key missing — use no-op
   posthog = {
     capture: () => {},
     identify: () => {},

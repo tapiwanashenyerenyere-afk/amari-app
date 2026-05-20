@@ -15,7 +15,7 @@ export const TAB_VISIBILITY: Record<string, number> = {
   pulse: 1,
   events: 1,
   corridor: 2,
-  aligned: 3,
+  aligned: 1,
   profile: 1,
 };
 
@@ -76,24 +76,24 @@ export const C = {
 // Typography — minimum 11px, no exceptions
 export const T = {
   // Display
-  hero: { fontFamily: 'Syne_800ExtraBold', fontSize: 40, fontWeight: '800' as const, lineHeight: 36, letterSpacing: -2 },
-  title: { fontFamily: 'Syne_800ExtraBold', fontSize: 28, fontWeight: '800' as const, lineHeight: 28, letterSpacing: -1 },
-  subtitle: { fontFamily: 'Syne_700Bold', fontSize: 20, fontWeight: '700' as const, lineHeight: 23, letterSpacing: -0.5 },
-  cardTitle: { fontFamily: 'Syne_700Bold', fontSize: 16, fontWeight: '700' as const, lineHeight: 19.2 },
-  cardTitleSm: { fontFamily: 'Syne_700Bold', fontSize: 14, fontWeight: '700' as const, lineHeight: 17.5 },
+  hero: { fontFamily: 'Syne-ExtraBold', fontSize: 40, fontWeight: '800' as const, lineHeight: 36, letterSpacing: -2 },
+  title: { fontFamily: 'Syne-ExtraBold', fontSize: 28, fontWeight: '800' as const, lineHeight: 28, letterSpacing: -1 },
+  subtitle: { fontFamily: 'Syne-Bold', fontSize: 20, fontWeight: '700' as const, lineHeight: 23, letterSpacing: -0.5 },
+  cardTitle: { fontFamily: 'Syne-Bold', fontSize: 16, fontWeight: '700' as const, lineHeight: 19.2 },
+  cardTitleSm: { fontFamily: 'Syne-Bold', fontSize: 14, fontWeight: '700' as const, lineHeight: 17.5 },
   // Body
-  body: { fontFamily: 'EBGaramond_400Regular', fontSize: 15, lineHeight: 23 },
-  bodySmall: { fontFamily: 'EBGaramond_400Regular', fontSize: 14, lineHeight: 21 },
-  bodyItalic: { fontFamily: 'EBGaramond_400Regular_Italic', fontSize: 14, fontStyle: 'italic' as const, lineHeight: 21 },
+  body: { fontFamily: 'EBGaramond-Regular', fontSize: 15, lineHeight: 23 },
+  bodySmall: { fontFamily: 'EBGaramond-Regular', fontSize: 14, lineHeight: 21 },
+  bodyItalic: { fontFamily: 'EBGaramond-Italic', fontSize: 14, fontStyle: 'italic' as const, lineHeight: 21 },
   // UI
-  label: { fontFamily: 'DMSans_600SemiBold', fontSize: 11, fontWeight: '600' as const, letterSpacing: 2, textTransform: 'uppercase' as const },
-  labelLg: { fontFamily: 'DMSans_600SemiBold', fontSize: 12, fontWeight: '600' as const, letterSpacing: 1.5, textTransform: 'uppercase' as const },
-  meta: { fontFamily: 'DMSans_500Medium', fontSize: 11, letterSpacing: 1, fontWeight: '500' as const },
-  stat: { fontFamily: 'Syne_800ExtraBold', fontSize: 22, fontWeight: '800' as const },
-  statSm: { fontFamily: 'Syne_700Bold', fontSize: 14, fontWeight: '700' as const },
+  label: { fontFamily: 'DMSans-SemiBold', fontSize: 11, fontWeight: '600' as const, letterSpacing: 2, textTransform: 'uppercase' as const },
+  labelLg: { fontFamily: 'DMSans-SemiBold', fontSize: 12, fontWeight: '600' as const, letterSpacing: 1.5, textTransform: 'uppercase' as const },
+  meta: { fontFamily: 'DMSans-Medium', fontSize: 11, letterSpacing: 1, fontWeight: '500' as const },
+  stat: { fontFamily: 'Syne-ExtraBold', fontSize: 22, fontWeight: '800' as const },
+  statSm: { fontFamily: 'Syne-Bold', fontSize: 14, fontWeight: '700' as const },
   // Navigation
-  nav: { fontFamily: 'DMSans_600SemiBold', fontSize: 11, fontWeight: '600' as const, letterSpacing: 1.5, textTransform: 'uppercase' as const },
-  btn: { fontFamily: 'Syne_700Bold', fontSize: 12, fontWeight: '700' as const, letterSpacing: 2, textTransform: 'uppercase' as const },
+  nav: { fontFamily: 'DMSans-SemiBold', fontSize: 11, fontWeight: '600' as const, letterSpacing: 1.5, textTransform: 'uppercase' as const },
+  btn: { fontFamily: 'Syne-Bold', fontSize: 12, fontWeight: '700' as const, letterSpacing: 2, textTransform: 'uppercase' as const },
 } as const;
 
 // Spacing — 4px base grid

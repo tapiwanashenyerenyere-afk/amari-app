@@ -1,445 +1,454 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { MotiView } from 'moti';
-import { C, T, S, R, TIER_LEVELS } from '../../lib/constants';
-import { useAuth } from '../../providers/AuthProvider';
-import { useLatestPulse } from '../../queries/pulse';
-import { LiquidGlassCard } from '../../components/ui/LiquidGlassCard';
-import { GrainOverlay } from '../../components/ui/GrainOverlay';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, Linking, Alert, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { getEditorialStories } from '../../data/editorialStories';
+import { getRecommendedEditorialLead, rankEditorialStories } from '../../lib/editorialRecommendations';
+import { useEventDetail, useEvents, useRsvpToEvent } from '../../queries/events';
+import { useMyProfile } from '../../queries/members';
+import { useAlignedConnections } from '../../queries/aligned';
+import { useCorridorOpportunities } from '../../hooks/useCorridorInterest';
+import { colors, typography, spacing, radius } from '../../lib/theme';
+import {
+  WhiteCard,
+  SectionLabel,
+  EventRow,
+  ProgressBar,
+  StaggerReveal,
+} from '../../components/v2';
+import { BreathingDot } from '../../components/v2/BreathingDot';
+import { ExploreCarousel, QuickActions } from '../../components/pulse';
+import { useExploreFeed } from '../../hooks/useExploreFeed';
+import { EventDetailSheet } from '../../components/EventDetailSheet';
+import type { ExploreTile } from '../../types/explore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const GRID_PAD = S._12;
-const GAP = S._8;
-const HALF_W = (SCREEN_WIDTH - GRID_PAD * 2 - GAP) / 2;
+const GALA_URL = 'https://www.eventbrite.com.au/e/amari-gala-2026-tickets-1981656906151';
 
-// Animated counter
-function Counter({ to, duration = 800 }: { to: number; duration?: number }) {
-  const [value, setValue] = useState(0);
+function parseTileId(id: string, prefix: string) {
+  if (!id.startsWith(prefix)) {
+    return null;
+  }
 
-  useEffect(() => {
-    let n = 0;
-    const step = to / (duration / 16);
-    const interval = setInterval(() => {
-      n += step;
-      if (n >= to) {
-        setValue(to);
-        clearInterval(interval);
-      } else {
-        setValue(Math.floor(n));
-      }
-    }, 16);
-    return () => clearInterval(interval);
-  }, [to, duration]);
+  const value = Number(id.slice(prefix.length));
+  return Number.isFinite(value) ? value : null;
+}
 
-  return <Text style={{ ...T.stat, color: C.lightPrimary }}>{value}</Text>;
+function formatEditorialDate(value: string) {
+  return new Date(value).toLocaleDateString('en-AU', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 export default function PulseScreen() {
-  const { tier } = useAuth();
-  const { data: pulse, isLoading, refetch, isRefetching } = useLatestPulse();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const { data: profile } = useMyProfile();
+  const { data: events } = useEvents('upcoming');
+  const { data: selectedEventDetail } = useEventDetail(selectedEventId ?? 0);
+  const rsvpToEvent = useRsvpToEvent();
+  const { data: alignedConnections = [] } = useAlignedConnections(12);
+  const { data: corridorOpportunities = [] } = useCorridorOpportunities();
+  const explore = useExploreFeed();
+  const editorialRankings = useMemo(
+    () => rankEditorialStories(profile || null, getEditorialStories()),
+    [profile],
+  );
+  const featuredStory = editorialRankings[0]?.story ?? getRecommendedEditorialLead(profile || null)?.story ?? null;
+  const featuredStoryReason = editorialRankings[0]?.reason ?? null;
+  const pulseArchive = editorialRankings
+    .slice(1, 4)
+    .map((item) => item.story);
 
-  const dateStr = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const profileCompletion = useMemo(() => {
+    if (!profile) return 0;
+    let filled = 0;
+    const fields = ['full_name', 'bio', 'company', 'industry', 'city'];
+    fields.forEach((f) => {
+      if (profile[f as keyof typeof profile]) filled++;
+    });
+    return Math.round((filled / fields.length) * 100);
+  }, [profile]);
 
-  const stats = pulse?.stats as any;
+  const upcomingEvents = events?.slice(0, 3) || [];
+  const selectedEvent =
+    (selectedEventDetail ?? upcomingEvents.find((event: any) => event.id === selectedEventId)) || null;
+
+  const handleExploreTilePress = (tile: ExploreTile) => {
+    if (tile.type === 'editorial') {
+      const pulseId = parseTileId(tile.id, 'pulse-');
+      if (pulseId != null) {
+        router.push({ pathname: '/pulse/[id]', params: { id: String(pulseId) } });
+      } else if (tile.id.startsWith('pulse-')) {
+        router.push({ pathname: '/pulse/[id]', params: { id: tile.id.slice('pulse-'.length) } });
+      }
+      return;
+    }
+
+    if (tile.type === 'event_preview') {
+      const eventId = parseTileId(tile.id, 'event-');
+      if (eventId != null) {
+        setSelectedEventId(eventId);
+      } else {
+        router.push('/(tabs)/events');
+      }
+      return;
+    }
+
+    if (tile.type === 'member_project') {
+      router.push('/(tabs)/aligned/projects');
+      return;
+    }
+
+    if (tile.type === 'member_interest') {
+      router.push('/(tabs)/aligned/interests');
+      return;
+    }
+  };
+
+  const handleRsvp = () => {
+    if (!selectedEventId) {
+      return;
+    }
+
+    rsvpToEvent.mutate(selectedEventId, {
+      onSuccess: () => setSelectedEventId(null),
+      onError: (error: Error) => Alert.alert('Could not RSVP', error.message),
+    });
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Aurora background blobs */}
-      <View style={styles.auroraContainer}>
-        <View
-          style={[
-            styles.auroraBlob,
-            {
-              backgroundColor: 'rgba(201,169,98,0.15)',
-              top: '10%',
-              left: -40,
-              width: 300,
-              height: 300,
-              borderRadius: 150,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.auroraBlob,
-            {
-              backgroundColor: 'rgba(114,47,55,0.10)',
-              bottom: '15%',
-              right: -30,
-              width: 280,
-              height: 280,
-              borderRadius: 140,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.auroraBlob,
-            {
-              backgroundColor: 'rgba(107,107,71,0.06)',
-              top: '50%',
-              left: '30%',
-              width: 200,
-              height: 200,
-              borderRadius: 100,
-            },
-          ]}
-        />
-      </View>
-
-      {/* Grain texture */}
-      <GrainOverlay opacity={0.03} />
-
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={C.lightPrimary}
-          />
-        }
       >
-        {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: -12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 500 }}
-          style={styles.header}
-        >
-          <Text style={styles.dateLabel}>{dateStr}</Text>
-          <Text style={styles.heroThe}>The</Text>
-          <Text style={styles.heroPulse}>Pulse</Text>
-          <View style={styles.taglineRow}>
-            <View style={styles.skewBar} />
-            <Text style={styles.tagline}>Dispatches from the Convergence</Text>
+        <StaggerReveal>
+          {/* Greeting + Explore */}
+          <View>
+            <Text style={styles.timeLabel}>{getGreeting()}</Text>
+            <Text style={styles.exploreTitle} accessibilityRole="header">Explore</Text>
           </View>
-        </MotiView>
+        </StaggerReveal>
 
-        {/* Bento Grid */}
-        <View style={styles.bentoGrid}>
-          {/* ── HERO CARD ── Full Width, Dark Glass */}
-          <MotiView
-            from={{ opacity: 0, translateY: 16 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 500, delay: 100 }}
-          >
-            <LiquidGlassCard variant="dark" noPadding>
-              <View style={styles.topGradientLine} />
-              <View style={styles.heroCardInner}>
-                {/* Featured badge */}
-                <View style={styles.featuredBadge}>
-                  <View style={styles.pulseDot} />
-                  <Text style={{ ...T.label, color: C.goldOnDark }}>Featured</Text>
-                </View>
+        {/* Explore Carousel — outside StaggerReveal for full-bleed scroll */}
+        <ExploreCarousel
+          tiles={explore.tiles}
+          isLoading={explore.isLoading}
+          onTilePress={handleExploreTilePress}
+        />
+        {!explore.isLoading && explore.tiles.length === 0 ? (
+          <View style={{ paddingHorizontal: spacing.xl }}>
+            <WhiteCard static>
+              <Text style={styles.emptyText}>
+                The next curated drop is being assembled. New introductions and invitations will land here first.
+              </Text>
+            </WhiteCard>
+          </View>
+        ) : null}
 
-                <Text style={styles.heroHeadline}>
-                  {pulse?.headline || 'The 2026 Laureate Class Revealed'}
-                </Text>
-                <Text style={styles.heroSubline}>
-                  Seven alchemists. Seven paradigm shifts.
-                </Text>
-
-                {/* Avatar row */}
-                <View style={styles.avatarRow}>
-                  {[
-                    { initials: 'KK', bg: C.burgundy },
-                    { initials: 'ZO', bg: C.gold },
-                    { initials: 'JE', bg: C.olive },
-                    { initials: '+4', bg: '#5a4a5a' },
-                  ].map((a, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.avatar,
-                        { backgroundColor: a.bg, marginLeft: i > 0 ? -8 : 0, zIndex: 4 - i },
-                      ]}
-                    >
-                      <Text style={styles.avatarText}>{a.initials}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </LiquidGlassCard>
-          </MotiView>
-
-          {/* ── ROW 2: Recognition + Right Column ── */}
-          <View style={styles.row2}>
-            {/* Recognition — Light Glass */}
-            <MotiView
-              from={{ opacity: 0, translateY: 16 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 500, delay: 200 }}
-              style={{ width: HALF_W }}
-            >
-              <LiquidGlassCard variant="light" style={styles.recognitionGlass}>
-                <View style={styles.goldTopBorder} />
-                <Text style={{ ...T.label, color: C.brass, marginBottom: S._8 }}>
-                  Recognition
-                </Text>
-                <Text style={{ ...T.cardTitleSm, color: C.textPrimary, marginBottom: S._4 }}>
-                  Prof. Kudzai Kanhutu
-                </Text>
-                <Text style={{ ...T.bodyItalic, fontSize: 13, color: C.textSecondary }}>
-                  WHO Advisory Board
-                </Text>
-                <View style={styles.recognitionBottom}>
-                  <Text style={{ ...T.stat, color: C.gWarm, fontSize: 36, opacity: 0.15 }}>
-                    98
-                  </Text>
-                </View>
-              </LiquidGlassCard>
-            </MotiView>
-
-            {/* Right Column: Investment + Movement */}
-            <MotiView
-              from={{ opacity: 0, translateY: 16 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 500, delay: 250 }}
-              style={styles.rightCol}
-            >
-              {/* Investment — Dark Glass */}
-              <LiquidGlassCard variant="dark" style={{ flex: 1 }}>
-                <Text style={{ ...T.label, color: C.burgundyOnDark, marginBottom: S._8 }}>
-                  Investment
-                </Text>
-                <Text style={{ ...T.cardTitleSm, color: C.lightPrimary }}>KPMG Accelerator</Text>
-                <Text
-                  style={{
-                    ...T.bodyItalic,
-                    fontSize: 12,
-                    color: C.lightSecondary,
-                    marginTop: S._4,
-                  }}
-                >
-                  12-week programme
-                </Text>
-                <View
-                  style={{ flexDirection: 'row', alignItems: 'baseline', gap: S._2, marginTop: S._8 }}
-                >
-                  <Text style={{ ...T.stat, color: C.goldOnDark }}>50</Text>
-                  <Text style={{ ...T.meta, color: C.lightTertiary }}>K</Text>
-                </View>
-              </LiquidGlassCard>
-
-              {/* Movement — Light Glass */}
-              <LiquidGlassCard variant="light" style={{ flex: 1 }}>
-                <Text style={{ ...T.label, color: C.olive, marginBottom: S._8 }}>Movement</Text>
-                <Text style={{ ...T.cardTitleSm, color: C.textPrimary }}>Brisbane Launches</Text>
-                <Text
-                  style={{ ...T.stat, fontSize: 28, color: C.olive, opacity: 0.2, marginTop: S._4 }}
-                >
-                  84
-                </Text>
-              </LiquidGlassCard>
-            </MotiView>
+        <StaggerReveal>
+          {/* Quick Actions */}
+          <View style={{ paddingHorizontal: spacing.xl, marginTop: 20 }}>
+            <QuickActions
+              matchCount={alignedConnections.length}
+              opportunityCount={corridorOpportunities.length}
+              eventCount={upcomingEvents.length}
+            />
           </View>
 
-          {/* ── CULTURE CARD ── Full Width, Dark Glass */}
-          <MotiView
-            from={{ opacity: 0, translateY: 16 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 500, delay: 350 }}
-          >
-            <LiquidGlassCard variant="dark" noPadding>
-              <View style={styles.cultureCardInner}>
-                <View style={styles.cultureLeftBar} />
-                <View style={styles.culturePattern} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ ...T.label, color: C.oliveOnDark, marginBottom: S._4 }}>
-                    Culture · SecondzAU
-                  </Text>
-                  <Text style={{ ...T.cardTitleSm, color: C.lightPrimary }}>
-                    The Archive Collection
-                  </Text>
-                  <Text
-                    style={{ ...T.bodyItalic, fontSize: 13, color: C.lightSecondary, marginTop: S._2 }}
-                  >
-                    Vintage African textiles reimagined
-                  </Text>
-                </View>
-              </View>
-            </LiquidGlassCard>
-          </MotiView>
+          {/* Divider */}
+          <View style={styles.rule} />
 
-          {/* ── STATS ROW ── Dark Glass */}
-          <MotiView
-            from={{ opacity: 0, translateY: 16 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 500, delay: 420 }}
-            style={styles.statsRow}
-          >
-            {[
-              { n: stats?.alchemists || 527, label: 'Alchemists', color: C.burgundyOnDark },
-              { n: stats?.this_week || 84, label: 'This Week', color: C.goldOnDark },
-              { n: stats?.cities || 12, label: 'Cities', color: C.oliveOnDark },
-            ].map((s, i) => (
-              <LiquidGlassCard
-                key={i}
-                variant="dark"
-                style={[styles.statCard, { borderTopColor: s.color + '30' }]}
+          {/* The Pulse — Editorial Hero */}
+          <View style={styles.sectionHeaderRow}>
+            <SectionLabel>The Pulse</SectionLabel>
+            <Pressable
+              onPress={() => router.push('/pulse' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Browse all Pulse stories"
+            >
+              <Text style={styles.sectionLink}>Archive →</Text>
+            </Pressable>
+          </View>
+          {featuredStory ? (
+            <>
+              <Pressable
+                style={styles.editorialLeadCard}
+                onPress={() => router.push({ pathname: '/pulse/[id]', params: { id: featuredStory.slug } })}
+                accessibilityRole="button"
+                accessibilityLabel={`Open Pulse story: ${featuredStory.headline}`}
               >
-                <Counter to={s.n} duration={1000 + i * 200} />
-                <Text
-                  style={{
-                    ...T.label,
-                    fontSize: 11,
-                    color: C.lightTertiary,
-                    marginTop: S._2,
-                  }}
-                >
-                  {s.label}
-                </Text>
-              </LiquidGlassCard>
-            ))}
-          </MotiView>
-        </View>
+                {featuredStory.image ? (
+                  <Image source={featuredStory.image} style={StyleSheet.absoluteFillObject} contentFit="cover" transition={300} />
+                ) : (
+                  <LinearGradient
+                    colors={['#1C1815', '#111111', '#14120F']}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                )}
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+                  locations={[0, 0.5, 1]}
+                  style={StyleSheet.absoluteFillObject}
+                />
+                <View style={styles.editorialLeadContent}>
+                  <View style={styles.pulseIndicator}>
+                    <BreathingDot size={5} />
+                    <Text style={styles.pulseLabel}>RECOMMENDED FOR YOU</Text>
+                  </View>
+                  <Text style={styles.editorialLeadCategory}>{featuredStory.category}</Text>
+                  <Text style={styles.pulseHeadline}>{featuredStory.headline}</Text>
+                  <Text style={styles.pulseDesc}>{featuredStory.summary}</Text>
+                  {featuredStoryReason ? (
+                    <Text style={styles.editorialReason}>{featuredStoryReason}</Text>
+                  ) : null}
+                  {featuredStory.amariConnection ? (
+                    <Text style={styles.editorialConnection}>{featuredStory.amariConnection}</Text>
+                  ) : null}
+                  <View style={styles.pulseFooter}>
+                    <Text style={styles.pulseRead}>{formatEditorialDate(featuredStory.publishedAt)}</Text>
+                    <Text style={styles.pulseLink}>Read →</Text>
+                  </View>
+                </View>
+              </Pressable>
+
+              <WhiteCard static>
+                {pulseArchive.map((story, index) => (
+                  <Pressable
+                    key={story.id}
+                    style={[styles.archiveRow, index === pulseArchive.length - 1 && styles.archiveRowLast]}
+                    onPress={() => router.push({ pathname: '/pulse/[id]', params: { id: story.slug } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open Pulse story: ${story.headline}`}
+                  >
+                    <View style={styles.archiveMeta}>
+                      <Text style={styles.archiveCategory}>{story.shortLabel}</Text>
+                      <Text style={styles.archiveHeadline}>{story.headline}</Text>
+                      <Text style={styles.archiveDate}>{formatEditorialDate(story.publishedAt)}</Text>
+                    </View>
+                    <Text style={styles.archiveLink}>Open</Text>
+                  </Pressable>
+                ))}
+              </WhiteCard>
+            </>
+          ) : (
+            <WhiteCard static>
+              <Text style={styles.emptyText}>
+                The Pulse archive is being prepared. Check back after the next AMARI release.
+              </Text>
+            </WhiteCard>
+          )}
+
+          {/* Upcoming Events */}
+          <SectionLabel>Upcoming</SectionLabel>
+          {upcomingEvents.length > 0 ? (
+            upcomingEvents.map((event: any, i: number) => {
+              const date = new Date(event.starts_at);
+              return (
+                <EventRow
+                  key={event.id || i}
+                  day={date.getDate().toString().padStart(2, '0')}
+                  month={date.toLocaleString('en-US', { month: 'short' }).toUpperCase()}
+                  title={event.title}
+                  meta={[event.venue_name, event.type].filter(Boolean).join(' · ')}
+                  tier={event.min_tier?.toUpperCase().slice(0, 4)}
+                  dimDate={i > 0}
+                  onPress={() => setSelectedEventId(event.id)}
+                />
+              );
+            })
+          ) : (
+            <WhiteCard static>
+              <Text style={styles.emptyText}>
+                No event dates are live yet. When the next invitation window opens, it will appear here first.
+              </Text>
+            </WhiteCard>
+          )}
+
+          {/* Featured Event — Dark card inside white card */}
+          <WhiteCard onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Linking.openURL(GALA_URL);
+          }}>
+            <View style={styles.featuredInner}>
+              <Text style={styles.featuredLabel}>FEATURED</Text>
+              <Text style={styles.featuredTitle}>AMARI Gala 2026</Text>
+              <Text style={styles.featuredMeta}>May 2 · Plaza Ballroom, 191 Collins St · Black Tie</Text>
+              <View style={styles.featuredFooter}>
+                <Text style={styles.featuredLink}>Details →</Text>
+              </View>
+            </View>
+          </WhiteCard>
+
+          {/* Profile Completion */}
+          <SectionLabel>Profile</SectionLabel>
+          <WhiteCard
+            static
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/(tabs)/profile');
+            }}
+          >
+            <View style={styles.profileNudge}>
+              <View style={styles.profileHeader}>
+                <Text style={styles.profilePercent}>{profileCompletion}% complete</Text>
+                <Text style={styles.profileEdit}>Edit →</Text>
+              </View>
+              <ProgressBar progress={profileCompletion} />
+              <Text style={styles.profileHint}>Complete your profile to get more from Aligned.</Text>
+            </View>
+          </WhiteCard>
+        </StaggerReveal>
       </ScrollView>
-    </SafeAreaView>
+
+      <EventDetailSheet
+        visible={selectedEventId !== null && !!selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onRsvp={handleRsvp}
+        event={
+          selectedEvent && selectedEvent.starts_at
+            ? {
+                id: selectedEvent.id,
+                title: selectedEvent.title,
+                description: selectedEvent.description || undefined,
+                starts_at: selectedEvent.starts_at,
+                venue_name: selectedEvent.venue_name || undefined,
+                capacity: selectedEvent.capacity ?? undefined,
+                rsvp_count: Array.isArray(selectedEvent.event_rsvps)
+                  ? selectedEvent.event_rsvps[0]?.count ?? 0
+                  : undefined,
+                type: selectedEvent.type || undefined,
+                min_tier: selectedEvent.min_tier || undefined,
+              }
+            : null
+        }
+        isRsvping={rsvpToEvent.isPending}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.charcoal },
+  container: { flex: 1, backgroundColor: colors.bone },
   scroll: { flex: 1 },
-  content: { paddingBottom: S._40 + 84 }, // extra padding for absolute tab bar
-
-  // Aurora
-  auroraContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  auroraBlob: { position: 'absolute', opacity: 1 },
-
-  // Header
-  header: { paddingHorizontal: S._20, paddingTop: S._12 },
-  dateLabel: { ...T.label, color: C.lightTertiary, marginBottom: S._8 },
-  heroThe: { ...T.hero, color: C.lightPrimary },
-  heroPulse: { ...T.hero, color: C.lightPrimary },
-  taglineRow: { flexDirection: 'row', alignItems: 'center', gap: S._12, marginTop: S._8 },
-  skewBar: {
-    width: 40,
-    height: 4,
-    backgroundColor: C.burgundyOnDark,
-    transform: [{ skewX: '-20deg' }],
-    opacity: 0.5,
-  },
-  tagline: { ...T.bodyItalic, color: C.lightTertiary },
-
-  // Bento grid
-  bentoGrid: { paddingHorizontal: GRID_PAD, marginTop: S._20, gap: GAP },
-
-  // Hero card
-  topGradientLine: { height: 3, backgroundColor: C.burgundy },
-  heroCardInner: { padding: S._20 },
-  featuredBadge: {
+  content: { padding: spacing.xl, paddingBottom: 88 },
+  date: { fontFamily: typography.mono.regular, fontSize: 11, color: colors.sand, letterSpacing: 1.5, marginBottom: 3 },
+  timeLabel: { fontFamily: typography.body.regular, fontSize: 12, color: colors.sand, marginBottom: 4 },
+  exploreTitle: { fontFamily: typography.serif.medium, fontSize: 30, color: colors.black, letterSpacing: -0.3, marginBottom: 16 },
+  greeting: { fontFamily: typography.serif.medium, fontSize: 26, fontWeight: '500', color: colors.black, lineHeight: 30, letterSpacing: -0.3 },
+  rule: { height: 1, backgroundColor: colors.rule, marginVertical: 14 },
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S._8,
-    paddingVertical: S._6,
-    paddingHorizontal: S._12,
-    backgroundColor: 'rgba(248,246,243,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,246,243,0.1)',
-    borderRadius: R.lg,
-    alignSelf: 'flex-start',
-    marginBottom: S._16,
-  },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.goldOnDark,
-  },
-  heroHeadline: {
-    ...T.subtitle,
-    color: C.lightPrimary,
-    maxWidth: '78%',
-    marginBottom: S._8,
-  },
-  heroSubline: { ...T.bodyItalic, color: C.lightSecondary },
-  avatarRow: { flexDirection: 'row', marginTop: S._16 },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(26,26,26,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontFamily: 'DMSans-SemiBold',
-    fontSize: 11,
-    color: C.lightPrimary,
-    fontWeight: '600',
-  },
-
-  // Row 2
-  row2: { flexDirection: 'row', gap: GAP },
-
-  // Recognition
-  recognitionGlass: {
-    minHeight: 192,
     justifyContent: 'space-between',
   },
-  goldTopBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: C.gold,
-    opacity: 0.3,
+  sectionLink: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sand,
   },
-  recognitionBottom: {
-    alignItems: 'flex-end',
-    marginTop: S._8,
+  editorialLeadCard: {
+    minHeight: 320,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: 10,
   },
-
-  // Right column
-  rightCol: { width: HALF_W, gap: GAP },
-
-  // Culture
-  cultureCardInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S._16,
-    padding: S._16,
-    position: 'relative',
-  },
-  cultureLeftBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 4,
-    backgroundColor: C.goldOnDark,
-    opacity: 0.4,
-  },
-  culturePattern: {
-    width: 52,
-    height: 52,
-    backgroundColor: 'rgba(201,169,98,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    marginLeft: S._8,
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: GAP,
-    marginBottom: S._24,
-  },
-  statCard: {
+  editorialLeadContent: {
     flex: 1,
-    alignItems: 'center',
-    borderTopWidth: 2,
+    justifyContent: 'flex-end',
+    padding: 20,
   },
+  pulseIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  pulseDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.sand },
+  pulseLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 1.5 },
+  editorialLeadCategory: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.72)',
+    letterSpacing: 1.6,
+    marginBottom: 8,
+  },
+  pulseHeadline: { fontFamily: typography.serif.medium, fontSize: 21, fontWeight: '500', color: colors.white, lineHeight: 26, marginBottom: 8, letterSpacing: -0.3 },
+  pulseDesc: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 19, marginBottom: 12 },
+  editorialReason: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.76)',
+    marginBottom: 10,
+  },
+  editorialConnection: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sandOnDark,
+    marginBottom: 10,
+  },
+  pulseFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pulseRead: { fontFamily: typography.mono.regular, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
+  pulseLink: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.sandOnDark },
+  archiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  archiveRowLast: {
+    borderBottomWidth: 0,
+  },
+  archiveMeta: {
+    flex: 1,
+  },
+  archiveCategory: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    color: colors.sand,
+    letterSpacing: 1.3,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  archiveHeadline: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 14,
+    color: colors.black,
+    lineHeight: 19,
+    marginBottom: 4,
+  },
+  archiveDate: {
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: colors.gray,
+  },
+  archiveLink: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.sand,
+  },
+  featuredInner: { backgroundColor: colors.black, borderRadius: radius.md, padding: 18 },
+  featuredLabel: { fontFamily: typography.mono.regular, fontSize: 10, color: colors.sandOnDark, letterSpacing: 2, marginBottom: 8 },
+  featuredTitle: { fontFamily: typography.serif.medium, fontSize: 19, fontWeight: '500', color: colors.white, marginBottom: 4, letterSpacing: -0.3 },
+  featuredMeta: { fontFamily: typography.body.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  featuredFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  featuredLink: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sandOnDark },
+  profileNudge: { padding: 14, paddingHorizontal: 16 },
+  profileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  profilePercent: { fontFamily: typography.body.medium, fontSize: 12, fontWeight: '500', color: colors.black },
+  profileEdit: { fontFamily: typography.body.medium, fontSize: 11, fontWeight: '500', color: colors.sand },
+  profileHint: { fontFamily: typography.body.regular, fontSize: 11, fontStyle: 'italic', color: colors.gray, marginTop: 6 },
+  emptyText: { fontFamily: typography.body.regular, fontSize: 13, color: colors.gray, textAlign: 'center', paddingVertical: 16 },
 });

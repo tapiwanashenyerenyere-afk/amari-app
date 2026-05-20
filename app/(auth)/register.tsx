@@ -16,8 +16,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
-import { C, T, S, R } from '../../lib/constants';
+import { colors, typography, spacing, radius } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
+import { signInWithGoogle } from '../../lib/googleAuth';
+
+const SKILL_OPTIONS = ['AI/ML', 'Capital', 'Operations', 'Design', 'Engineering', 'Finance', 'Policy', 'Community'];
+const INTEREST_OPTIONS = ['Community', 'Investors', 'Collaborators', 'Mentors', 'Events', 'Diaspora', 'Health', 'Culture'];
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -27,14 +31,51 @@ export default function RegisterScreen() {
   const [fullName, setFullName] = useState('');
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
+  const [currentProject, setCurrentProject] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'email' | 'google' | 'apple' | null>(null);
+  const [authMethod, setAuthMethod] = useState<'email' | 'google' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
+  const getEmailRedirectUrl = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return `${window.location.origin}/auth-callback`;
+    }
+
+    return 'amari://auth-callback';
+  };
+
   const storePendingCode = async () => {
-    await SecureStore.setItemAsync(
-      'pending_invitation_code',
-      JSON.stringify({ code, fullName, city, industry }),
+    const payload = JSON.stringify({
+      code,
+      fullName,
+      city,
+      industry,
+      currentProject,
+      skills: selectedSkills,
+      interests: selectedInterests,
+    });
+
+    if (Platform.OS === 'web') {
+      window.localStorage.setItem('pending_invitation_code', payload);
+      return;
+    }
+
+    await SecureStore.setItemAsync('pending_invitation_code', payload);
+  };
+
+  const toggleSkill = (skill: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((item) => item !== skill) : [...prev, skill]
+    );
+  };
+
+  const toggleInterest = (interest: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedInterests((prev) =>
+      prev.includes(interest) ? prev.filter((item) => item !== interest) : [...prev, interest]
     );
   };
 
@@ -50,10 +91,14 @@ export default function RegisterScreen() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
+          emailRedirectTo: getEmailRedirectUrl(),
           data: {
             full_name: fullName,
             city,
             industry,
+            current_project: currentProject,
+            skills: selectedSkills,
+            interests: selectedInterests,
             invitation_code: code,
           },
         },
@@ -76,33 +121,9 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       await storePendingCode();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: 'amari://auth-callback',
-        },
-      });
-      if (error) throw error;
+      await signInWithGoogle();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Google sign-in failed.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAppleAuth = async () => {
-    setIsSubmitting(true);
-    try {
-      await storePendingCode();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: 'amari://auth-callback',
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Apple sign-in failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +140,7 @@ export default function RegisterScreen() {
           >
             <Text style={styles.checkIcon}>✓</Text>
             <Text style={[styles.title, { textAlign: 'center' }]}>Check Your Email</Text>
-            <Text style={[styles.subtitle, { textAlign: 'center', marginTop: S._8 }]}>
+            <Text style={[styles.subtitle, { textAlign: 'center', marginTop: spacing.sm }]}>
               We sent a magic link to {email}. Tap it to complete your registration.
             </Text>
           </MotiView>
@@ -143,9 +164,10 @@ export default function RegisterScreen() {
           <Pressable
             style={styles.backBtn}
             onPress={() => router.back()}
+            accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={{ ...T.nav, color: C.textSecondary }}>← Back</Text>
+            <Text style={styles.backText}>← Back</Text>
           </Pressable>
 
           <View style={styles.formArea}>
@@ -155,9 +177,7 @@ export default function RegisterScreen() {
               transition={{ type: 'timing', duration: 600 }}
             >
               <Text style={styles.title}>Join the Convergence</Text>
-              <Text style={styles.subtitle}>
-                Code: {code}
-              </Text>
+              <Text style={styles.subtitle}>Code: {code}</Text>
             </MotiView>
 
             {/* Auth method selection */}
@@ -169,22 +189,10 @@ export default function RegisterScreen() {
                 style={styles.methodSection}
               >
                 <Pressable
-                  style={({ pressed }) => [
-                    styles.methodBtn,
-                    styles.methodBtnDark,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                  onPress={handleAppleAuth}
-                >
-                  <Text style={styles.methodBtnTextLight}>Continue with Apple</Text>
-                </Pressable>
-
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.methodBtn,
-                    pressed && { opacity: 0.85 },
-                  ]}
+                  style={({ pressed }) => [styles.methodBtn, pressed && { opacity: 0.85 }]}
                   onPress={handleGoogleAuth}
+                  accessibilityRole="button"
+                  accessibilityLabel="Continue with Google"
                 >
                   <Text style={styles.methodBtnText}>Continue with Google</Text>
                 </Pressable>
@@ -196,11 +204,10 @@ export default function RegisterScreen() {
                 </View>
 
                 <Pressable
-                  style={({ pressed }) => [
-                    styles.methodBtn,
-                    pressed && { opacity: 0.85 },
-                  ]}
+                  style={({ pressed }) => [styles.methodBtn, pressed && { opacity: 0.85 }]}
                   onPress={() => setAuthMethod('email')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign up with email"
                 >
                   <Text style={styles.methodBtnText}>Sign Up with Email</Text>
                 </Pressable>
@@ -216,53 +223,111 @@ export default function RegisterScreen() {
                 style={styles.formSection}
               >
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Full Name</Text>
+                  <Text style={styles.fieldLabel}>FULL NAME</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={fullName}
                     onChangeText={setFullName}
                     placeholder="Your full name"
-                    placeholderTextColor={C.textGhost}
+                    placeholderTextColor={colors.grayLight}
                     autoCapitalize="words"
                     autoFocus
                   />
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Email</Text>
+                  <Text style={styles.fieldLabel}>EMAIL</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={email}
                     onChangeText={setEmail}
                     placeholder="you@example.com"
-                    placeholderTextColor={C.textGhost}
+                    placeholderTextColor={colors.grayLight}
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>City</Text>
+                  <Text style={styles.fieldLabel}>CITY</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={city}
                     onChangeText={setCity}
                     placeholder="Melbourne"
-                    placeholderTextColor={C.textGhost}
+                    placeholderTextColor={colors.grayLight}
                     autoCapitalize="words"
                   />
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Industry</Text>
+                  <Text style={styles.fieldLabel}>INDUSTRY</Text>
                   <TextInput
                     style={styles.fieldInput}
                     value={industry}
                     onChangeText={setIndustry}
                     placeholder="e.g. Technology, Finance"
-                    placeholderTextColor={C.textGhost}
+                    placeholderTextColor={colors.grayLight}
                     autoCapitalize="words"
                   />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>CURRENT PROJECT</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={currentProject}
+                    onChangeText={setCurrentProject}
+                    placeholder="What are you building or exploring?"
+                    placeholderTextColor={colors.grayLight}
+                    autoCapitalize="sentences"
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>SKILLS / WHAT YOU CAN OFFER</Text>
+                  <Text style={styles.fieldHint}>Choose any that apply.</Text>
+                  <View style={styles.chipWrap}>
+                    {SKILL_OPTIONS.map((skill) => {
+                      const active = selectedSkills.includes(skill);
+                      return (
+                        <Pressable
+                          key={skill}
+                          style={[styles.profileChip, active && styles.profileChipActive]}
+                          onPress={() => toggleSkill(skill)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${active ? 'Remove' : 'Add'} ${skill}`}
+                        >
+                          <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>
+                            {skill}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>INTERESTS / WHAT YOU WANT TO FIND</Text>
+                  <Text style={styles.fieldHint}>Select multiple if more than one fits.</Text>
+                  <View style={styles.chipWrap}>
+                    {INTEREST_OPTIONS.map((interest) => {
+                      const active = selectedInterests.includes(interest);
+                      return (
+                        <Pressable
+                          key={interest}
+                          style={[styles.profileChip, active && styles.profileChipActive]}
+                          onPress={() => toggleInterest(interest)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${active ? 'Remove' : 'Add'} ${interest}`}
+                        >
+                          <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>
+                            {interest}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                 </View>
 
                 <Pressable
@@ -273,9 +338,11 @@ export default function RegisterScreen() {
                   ]}
                   onPress={handleEmailAuth}
                   disabled={isSubmitting}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send magic link"
                 >
                   {isSubmitting ? (
-                    <ActivityIndicator size="small" color={C.lightPrimary} />
+                    <ActivityIndicator size="small" color={colors.white} />
                   ) : (
                     <Text style={styles.submitBtnText}>Send Magic Link</Text>
                   )}
@@ -284,10 +351,9 @@ export default function RegisterScreen() {
                 <Pressable
                   style={styles.switchBtn}
                   onPress={() => setAuthMethod(null)}
+                  accessibilityRole="button"
                 >
-                  <Text style={{ ...T.nav, color: C.textSecondary }}>
-                    ← Other sign-in methods
-                  </Text>
+                  <Text style={styles.backText}>← Other sign-in methods</Text>
                 </Pressable>
               </MotiView>
             )}
@@ -299,86 +365,155 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.cream },
-  scrollContent: { flexGrow: 1, paddingBottom: S._40 },
+  container: { flex: 1, backgroundColor: colors.bone },
+  scrollContent: { flexGrow: 1, paddingBottom: spacing.xxxl + 8 },
   centeredContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: S._24,
+    paddingHorizontal: spacing.xxl,
   },
   backBtn: {
-    paddingHorizontal: S._20,
-    paddingVertical: S._12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     alignSelf: 'flex-start',
     minHeight: 48,
     justifyContent: 'center',
   },
+  backText: {
+    fontFamily: typography.body.regular,
+    fontSize: 13,
+    color: colors.gray,
+  },
   formArea: {
     flex: 1,
-    paddingHorizontal: S._24,
-    paddingTop: S._32,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxxl,
   },
-  title: { ...T.title, color: C.textPrimary, marginBottom: S._8 },
-  subtitle: { ...T.body, color: C.textSecondary },
+  title: {
+    fontFamily: typography.serif.medium,
+    fontSize: 28,
+    fontWeight: '500',
+    color: colors.black,
+    marginBottom: spacing.sm,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.gray,
+  },
   checkIcon: {
     fontSize: 48,
     textAlign: 'center',
-    marginBottom: S._16,
-    color: C.olive,
+    marginBottom: spacing.lg,
+    color: colors.success,
   },
 
   // Method selection
-  methodSection: { marginTop: S._32, gap: S._12 },
+  methodSection: { marginTop: spacing.xxxl, gap: spacing.md },
   methodBtn: {
-    backgroundColor: C.creamSoft,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: C.border,
-    paddingVertical: S._16,
+    borderColor: colors.rule,
+    paddingVertical: spacing.lg,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
   },
-  methodBtnDark: {
-    backgroundColor: C.charcoal,
-    borderColor: C.charcoal,
+  methodBtnText: {
+    fontFamily: typography.body.medium,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.black,
+    letterSpacing: 0.3,
   },
-  methodBtnText: { ...T.btn, color: C.textPrimary },
-  methodBtnTextLight: { ...T.btn, color: C.lightPrimary },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S._12,
-    marginVertical: S._4,
+    gap: spacing.md,
+    marginVertical: spacing.xs,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: C.border },
-  dividerText: { ...T.meta, color: C.textTertiary },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.rule },
+  dividerText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    color: colors.gray,
+    letterSpacing: 1,
+  },
 
   // Form
-  formSection: { marginTop: S._32, gap: S._20 },
-  fieldGroup: { gap: S._6 },
-  fieldLabel: { ...T.label, color: C.textTertiary },
+  formSection: { marginTop: spacing.xxxl, gap: spacing.xl },
+  fieldGroup: { gap: spacing.xs + 2 },
+  fieldLabel: {
+    fontFamily: typography.geo.medium,
+    fontSize: 9,
+    fontWeight: '500',
+    color: colors.sand,
+    letterSpacing: 1.5,
+  },
   fieldInput: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: typography.body.regular,
     fontSize: 15,
-    color: C.textPrimary,
-    backgroundColor: C.creamSoft,
+    color: colors.black,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: C.border,
-    padding: S._16,
+    borderColor: colors.rule,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+  },
+  fieldHint: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 17,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  profileChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+  },
+  profileChipActive: {
+    backgroundColor: colors.black,
+    borderColor: colors.black,
+  },
+  profileChipText: {
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    color: colors.gray,
+  },
+  profileChipTextActive: {
+    color: colors.bone,
   },
   submitBtn: {
-    backgroundColor: C.charcoal,
-    paddingVertical: S._16,
+    backgroundColor: colors.black,
+    paddingVertical: spacing.lg,
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: S._8,
+    borderRadius: radius.md,
+    marginTop: spacing.sm,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { ...T.btn, color: C.lightPrimary },
+  submitBtnText: {
+    fontFamily: typography.body.medium,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
   switchBtn: {
-    paddingVertical: S._12,
+    paddingVertical: spacing.md,
     alignItems: 'center',
     minHeight: 48,
     justifyContent: 'center',

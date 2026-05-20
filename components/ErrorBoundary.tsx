@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { C, S } from '@/lib/constants';
+import { colors, typography, spacing, radius } from '@/lib/theme';
 
 interface Props { children: React.ReactNode; screen?: string; }
 interface State { hasError: boolean; error?: Error; }
@@ -27,6 +27,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <Pressable
             onPress={() => this.setState({ hasError: false })}
             style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Try again"
           >
             <Text style={styles.buttonText}>TRY AGAIN</Text>
           </Pressable>
@@ -42,31 +44,34 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: S._32,
-    backgroundColor: C.cream,
+    padding: spacing.xxxl,
+    backgroundColor: colors.bone,
   },
   title: {
-    fontFamily: 'Syne_700Bold',
+    fontFamily: typography.geo.bold,
     fontSize: 20,
-    color: C.textPrimary,
-    marginBottom: S._8,
+    fontWeight: '700',
+    color: colors.black,
+    marginBottom: spacing.sm,
   },
   body: {
-    fontFamily: 'EBGaramond_400Regular',
+    fontFamily: typography.serif.regular,
     fontSize: 15,
-    color: C.textTertiary,
+    color: colors.gray,
     textAlign: 'center',
-    marginBottom: S._24,
+    marginBottom: spacing.xxl,
   },
   button: {
-    paddingHorizontal: S._24,
-    paddingVertical: S._12,
-    backgroundColor: C.burgundy,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.sand,
+    borderRadius: radius.md,
   },
   buttonText: {
-    fontFamily: 'Syne_700Bold',
+    fontFamily: typography.geo.bold,
     fontSize: 12,
-    color: C.cream,
+    fontWeight: '700',
+    color: colors.white,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },

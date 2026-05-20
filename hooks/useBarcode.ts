@@ -7,13 +7,15 @@ export function useBarcode() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: queryKeys.member.barcode,
+    queryKey: [...queryKeys.member.barcode, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('generate_barcode_token', {
-        p_member_id: user!.id,
-      });
+      const { data, error } = await supabase.rpc('generate_barcode_token');
       if (error) throw error;
-      return data as { token: string; expires_at: string };
+      const result = data as { token: string; expires_at: string };
+      if (!result?.token || !result?.expires_at) {
+        throw new Error('Invalid barcode response: missing token or expires_at');
+      }
+      return result;
     },
     enabled: !!user,
     staleTime: staleTimes.barcode,

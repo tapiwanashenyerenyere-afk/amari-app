@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMARI App Store Assets</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root {
+    /* AMARI V7 Design Tokens */
+    --cream: #f8f6f3;
+    --cream-soft: #f2ede6;
+    --stone: #e4dcd2;
+    --stone-deep: #d4c9ba;
+    --charcoal: #1a1a1a;
+    --ink: #2a2a2a;
+    --warm-black: #111110;
+    --burgundy: #722F37;
+    --b-soft: #944050;
+    --gold: #C9A962;
+    --g-warm: #b89048;
+    --g-soft: #d4b876;
+    --olive: #6B6B47;
+    --brass: #8a7540;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4541;
+    --text-tertiary: #6b665f;
+    --text-faint: #8a857e;
+    --light-primary: #f8f6f3;
+    --light-secondary: #c5c0b8;
+    --gold-on-dark: #d4b876;
+    --burgundy-on-dark: #c4707a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-family: 'EB Garamond', serif;
+    font-size: 18px;
+    color: var(--gold-on-dark);
+    font-style: italic;
+    margin-bottom: 48px;
+  }
+
+  .asset-section {
+    margin-bottom: 64px;
+  }
+
+  .asset-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold-on-dark);
+    margin-bottom: 12px;
+  }
+
+  .asset-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .asset-dims {
+    font-size: 13px;
+    color: var(--light-secondary);
+    margin-bottom: 20px;
+  }
+
+  .asset-wrapper {
+    display: inline-block;
+    border: 1px solid rgba(248,246,243,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .download-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: var(--burgundy);
+    color: var(--cream);
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .download-btn:hover { background: var(--b-soft); }
+
+  /* ============================================= */
+  /* AMARI MONOGRAM SVG - MASTER DEFINITION        */
+  /* ============================================= */
+
+  /* ============================================= */
+  /* ASSET 1: APP ICON 512x512                     */
+  /* ============================================= */
+  #app-icon {
+    width: 512px;
+    height: 512px;
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #app-icon::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 25%, rgba(201,169,98,0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 75%, rgba(114,47,55,0.05) 0%, transparent 50%);
+    z-index: 1;
+  }
+
+  /* Grain overlay */
+  #app-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    z-index: 2;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+
+  #app-icon .monogram-wrap {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* ============================================= */
+  /* ASSET 2: FEATURE GRAPHIC 1024x500             */
+  /* ============================================= */
+  #feature-graphic {
+    width: 1024px;
+    height: 500px;
+    background: var(--charcoal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #feature-graphic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(201,169,98,0.1) 0%, transparent 45%),
+      radial-gradient(ellipse at 80% 70%, rgba(114,47,55,0.08) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 50%, rgba(248,246,243,0.02) 0%, transparent 70%);
+    z-index: 1;
+  }
+
+  #feature-graphic::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.3;
+    z-index: 2;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+
+  #feature-graphic .content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 64px;
+    padding: 0 80px;
+  }
+
+  #feature-graphic .text-block {
+    flex: 1;
+  }
+
+  #feature-graphic .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 56px;
+    letter-spacing: -2px;
+    color: var(--cream);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  #feature-graphic .divider {
+    width: 48px;
+    height: 2px;
+    background: var(--burgundy);
+    margin: 16px 0;
+  }
+
+  #feature-graphic .tagline {
+    font-family: 'EB Garamond', serif;
+    font-size: 28px;
+    color: var(--gold-on-dark);
+    font-style: italic;
+    line-height: 1.3;
+  }
+
+  #feature-graphic .invite-badge {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--light-secondary);
+    margin-top: 24px;
+    padding: 8px 16px;
+    border: 1px solid rgba(248,246,243,0.12);
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ============================================= */
+  /* ASSET 3: SPLASH SCREEN                        */
+  /* ============================================= */
+  #splash-screen {
+    width: 390px;
+    height: 844px;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #splash-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(201,169,98,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(114,47,55,0.04) 0%, transparent 50%);
+    z-index: 1;
+  }
+
+  #splash-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.25;
+    z-index: 2;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+
+  #splash-screen .splash-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  #splash-screen .splash-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--charcoal);
+    margin-top: 24px;
+  }
+
+  #splash-screen .splash-divider {
+    width: 32px;
+    height: 2px;
+    background: var(--burgundy);
+    margin: 20px 0;
+  }
+
+  #splash-screen .splash-tagline-prefix {
+    font-family: 'EB Garamond', serif;
+    font-size: 28px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+  }
+
+  #splash-screen .splash-tagline-main {
+    font-family: 'EB Garamond', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--burgundy);
+    line-height: 1.2;
+  }
+
+  #splash-screen .splash-invite {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+  }
+
+  #splash-screen .splash-invite-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  #splash-screen .splash-region {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  /* ============================================= */
+  /* ASSET 4: SCREENSHOT - INVITE GATE             */
+  /* ============================================= */
+  #screenshot-invite {
+    width: 390px;
+    height: 844px;
+    background: var(--charcoal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screenshot-invite::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(201,169,98,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 30% 70%, rgba(114,47,55,0.06) 0%, transparent 50%);
+    z-index: 1;
+  }
+
+  #screenshot-invite::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.3;
+    z-index: 2;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+
+  #screenshot-invite .gate-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 48px;
+  }
+
+  #screenshot-invite .gate-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold-on-dark);
+    margin-bottom: 32px;
+  }
+
+  #screenshot-invite .gate-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    letter-spacing: -1px;
+    color: var(--cream);
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  #screenshot-invite .gate-body {
+    font-family: 'EB Garamond', serif;
+    font-size: 18px;
+    color: var(--light-secondary);
+    line-height: 1.6;
+    margin-bottom: 40px;
+  }
+
+  #screenshot-invite .gate-input-wrap {
+    width: 100%;
+    max-width: 300px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  #screenshot-invite .gate-input {
+    width: 100%;
+    padding: 16px 20px;
+    background: rgba(248,246,243,0.06);
+    border: 1px solid rgba(248,246,243,0.1);
+    border-radius: 12px;
+    font-family: 'EB Garamond', serif;
+    font-size: 16px;
+    color: var(--cream);
+    text-align: center;
+    letter-spacing: 4px;
+  }
+
+  #screenshot-invite .gate-input::placeholder {
+    color: rgba(248,246,243,0.25);
+    letter-spacing: 2px;
+  }
+
+  #screenshot-invite .gate-btn {
+    width: 100%;
+    max-width: 300px;
+    padding: 16px 32px;
+    background: var(--burgundy);
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  #screenshot-invite .gate-footer {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    text-align: center;
+  }
+
+  #screenshot-invite .gate-footer-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: rgba(248,246,243,0.3);
+  }
+
+  /* ============================================= */
+  /* ASSET 5: SCREENSHOT - PULSE DASHBOARD         */
+  /* ============================================= */
+  #screenshot-pulse {
+    width: 390px;
+    height: 844px;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #screenshot-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.2;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 100px 100px;
+  }
+
+  .pulse-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .pulse-time {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--charcoal);
+  }
+
+  .pulse-indicators {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .pulse-header {
+    padding: 16px 24px 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .pulse-greeting-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 4px;
+  }
+
+  .pulse-greeting {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -1px;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+
+  .pulse-tier-badge {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border-radius: 50px;
+    background: var(--burgundy);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cream);
+  }
+
+  .pulse-cards {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .pulse-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow:
+      0 1px 2px rgba(26,26,26,0.04),
+      0 4px 8px rgba(26,26,26,0.02),
+      0 8px 24px rgba(26,26,26,0.02);
+  }
+
+  .pulse-card-dark {
+    background: var(--charcoal);
+    color: var(--cream);
+  }
+
+  .pulse-card-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+
+  .pulse-card-dark .pulse-card-label {
+    color: var(--gold-on-dark);
+  }
+
+  .pulse-card-stat {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+
+  .pulse-card-dark .pulse-card-stat {
+    color: var(--cream);
+  }
+
+  .pulse-card-subtitle {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .pulse-card-dark .pulse-card-subtitle {
+    color: var(--light-secondary);
+  }
+
+  .pulse-mini-graph {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 32px;
+    margin-top: 16px;
+  }
+
+  .pulse-mini-bar {
+    width: 8px;
+    border-radius: 4px 4px 2px 2px;
+    background: var(--burgundy);
+    opacity: 0.7;
+  }
+
+  .pulse-event-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(26,26,26,0.04);
+  }
+
+  .pulse-event-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .pulse-event-text {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .pulse-event-time {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+  }
+
+  /* Tab bar */
+  .pulse-tab-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 12px 0 28px;
+    background: white;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(26,26,26,0.04);
+  }
+
+  .pulse-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pulse-tab-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: transparent;
+  }
+
+  .pulse-tab-dot.active {
+    background: var(--burgundy);
+  }
+
+  .pulse-tab-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .pulse-tab-name.active {
+    color: var(--charcoal);
+  }
+
+  /* ============================================= */
+  /* LAYOUT                                        */
+  /* ============================================= */
+  .row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<h1>AMARI Store Assets</h1>
+<p class="subtitle">For the Alchemists &mdash; invite-only app experience</p>
+
+<!-- =========================================== -->
+<!-- ASSET 1: APP ICON 512x512                   -->
+<!-- =========================================== -->
+<div class="asset-section">
+  <div class="asset-label">Asset 01</div>
+  <div class="asset-title">App Icon</div>
+  <div class="asset-dims">512 &times; 512 PNG</div>
+  <div class="asset-wrapper">
+    <div id="app-icon">
+      <div class="monogram-wrap">
+        <svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Rounded rectangle container -->
+          <rect x="16" y="16" width="288" height="288" rx="40" fill="#f8f6f3"/>
+          <!-- Stylized A monogram -->
+          <g transform="translate(160, 160)">
+            <!-- Left leg of A -->
+            <polygon points="-72,104 -8,-104 12,-104 -42,104" fill="#1a1a1a"/>
+            <!-- Right leg of A -->
+            <polygon points="-4,-104 16,-104 82,104 52,104" fill="#1a1a1a"/>
+            <!-- Thin diagonal slash from upper-left to lower-right -->
+            <line x1="-64" y1="-88" x2="72" y2="96" stroke="#f8f6f3" stroke-width="6" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <br>
+  <button class="download-btn" onclick="downloadAsset('app-icon', 512, 512, 'amari-app-icon.png')">Download PNG</button>
+</div>
+
+<!-- =========================================== -->
+<!-- ASSET 2: FEATURE GRAPHIC 1024x500           -->
+<!-- =========================================== -->
+<div class="asset-section">
+  <div class="asset-label">Asset 02</div>
+  <div class="asset-title">Feature Graphic</div>
+  <div class="asset-dims">1024 &times; 500 PNG</div>
+  <div class="asset-wrapper">
+    <div id="feature-graphic">
+      <div class="content">
+        <div>
+          <svg width="180" height="180" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="16" width="288" height="288" rx="40" fill="rgba(248,246,243,0.08)"/>
+            <rect x="16" y="16" width="288" height="288" rx="40" stroke="rgba(248,246,243,0.1)" stroke-width="1"/>
+            <g transform="translate(160, 160)">
+              <polygon points="-72,104 -8,-104 12,-104 -42,104" fill="#f8f6f3"/>
+              <polygon points="-4,-104 16,-104 82,104 52,104" fill="#f8f6f3"/>
+              <line x1="-64" y1="-88" x2="72" y2="96" stroke="rgba(26,26,26,0.6)" stroke-width="6" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+        <div class="text-block">
+          <div class="brand-name">AMARI</div>
+          <div class="divider"></div>
+          <div class="tagline">For the Alchemists</div>
+          <div class="invite-badge">By Invitation Only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <br>
+  <button class="download-btn" onclick="downloadAsset('feature-graphic', 1024, 500, 'amari-feature-graphic.png')">Download PNG</button>
+</div>
+
+<!-- =========================================== -->
+<!-- SCREENSHOTS                                 -->
+<!-- =========================================== -->
+<div class="asset-section">
+  <div class="asset-label">Assets 03-05</div>
+  <div class="asset-title">Phone Screenshots</div>
+  <div class="asset-dims">390 &times; 844 (renders at 2x for 780 &times; 1688)</div>
+
+  <div class="row">
+
+    <!-- SPLASH SCREEN -->
+    <div>
+      <div class="asset-wrapper">
+        <div id="splash-screen">
+          <div class="splash-content">
+            <svg width="88" height="88" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="16" y="16" width="288" height="288" rx="40" fill="#1a1a1a"/>
+              <g transform="translate(160, 160)">
+                <polygon points="-72,104 -8,-104 12,-104 -42,104" fill="#f8f6f3"/>
+                <polygon points="-4,-104 16,-104 82,104 52,104" fill="#f8f6f3"/>
+                <line x1="-64" y1="-88" x2="72" y2="96" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <div class="splash-brand">AMARI GROUP</div>
+            <div class="splash-divider"></div>
+            <div class="splash-tagline-prefix">For the</div>
+            <div class="splash-tagline-main">Alchemists</div>
+          </div>
+          <div class="splash-invite">
+            <div class="splash-invite-text">By Invitation Only</div>
+            <div class="splash-region">Australia's Black Diaspora</div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <button class="download-btn" onclick="downloadAsset('splash-screen', 780, 1688, 'amari-screenshot-splash.png', 2)">Download 2x PNG</button>
+    </div>
+
+    <!-- INVITE GATE SCREEN -->
+    <div>
+      <div class="asset-wrapper">
+        <div id="screenshot-invite">
+          <div class="gate-content">
+            <div class="gate-label">Members Only</div>
+
+            <svg width="64" height="64" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 32px;">
+              <rect x="16" y="16" width="288" height="288" rx="40" fill="rgba(248,246,243,0.06)" stroke="rgba(248,246,243,0.08)" stroke-width="1"/>
+              <g transform="translate(160, 160)">
+                <polygon points="-72,104 -8,-104 12,-104 -42,104" fill="rgba(248,246,243,0.9)"/>
+                <polygon points="-4,-104 16,-104 82,104 52,104" fill="rgba(248,246,243,0.9)"/>
+                <line x1="-64" y1="-88" x2="72" y2="96" stroke="rgba(26,26,26,0.5)" stroke-width="6" stroke-linecap="round"/>
+              </g>
+            </svg>
+
+            <div class="gate-title">Enter Your<br>Invitation Code</div>
+            <div class="gate-body">AMARI is an exclusive community.<br>Access requires a personal invitation<br>from an existing member.</div>
+
+            <div class="gate-input-wrap">
+              <input class="gate-input" type="text" placeholder="XXXX - XXXX" readonly>
+            </div>
+
+            <button class="gate-btn">Verify Invitation</button>
+          </div>
+
+          <div class="gate-footer">
+            <div class="gate-footer-text">Don't have a code? Ask a member.</div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <button class="download-btn" onclick="downloadAsset('screenshot-invite', 780, 1688, 'amari-screenshot-invite.png', 2)">Download 2x PNG</button>
+    </div>
+
+    <!-- PULSE DASHBOARD SCREEN -->
+    <div>
+      <div class="asset-wrapper">
+        <div id="screenshot-pulse">
+          <!-- Status bar -->
+          <div class="pulse-status-bar">
+            <span class="pulse-time">9:41</span>
+            <div class="pulse-indicators">
+              <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="0" width="3" height="11" rx="1" fill="#1a1a1a" opacity="0.3"/><rect x="4.5" y="2" width="3" height="9" rx="1" fill="#1a1a1a" opacity="0.5"/><rect x="9" y="4" width="3" height="7" rx="1" fill="#1a1a1a" opacity="0.7"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="#1a1a1a"/></svg>
+            </div>
+          </div>
+
+          <!-- Header -->
+          <div class="pulse-header">
+            <div class="pulse-greeting-label">Good Morning</div>
+            <div class="pulse-greeting">Tapiwa</div>
+            <div class="pulse-tier-badge">Member</div>
+          </div>
+
+          <!-- Cards -->
+          <div class="pulse-cards">
+            <!-- Engagement Score Card -->
+            <div class="pulse-card pulse-card-dark">
+              <div class="pulse-card-label">Your Pulse</div>
+              <div class="pulse-card-stat">87</div>
+              <div class="pulse-card-subtitle">Engagement score this month</div>
+              <div class="pulse-mini-graph">
+                <div class="pulse-mini-bar" style="height:12px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:18px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:14px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:22px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:16px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:28px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:24px; background:var(--burgundy-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:32px; background:var(--burgundy-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:26px; background:var(--burgundy-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:20px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:30px; background:var(--gold-on-dark)"></div>
+                <div class="pulse-mini-bar" style="height:24px; background:var(--gold-on-dark)"></div>
+              </div>
+            </div>
+
+            <!-- Upcoming Events -->
+            <div class="pulse-card">
+              <div class="pulse-card-label">Upcoming</div>
+              <div class="pulse-event-row">
+                <div class="pulse-event-dot"></div>
+                <div class="pulse-event-text">Founders Dinner &mdash; Surry Hills</div>
+                <div class="pulse-event-time">MAR 8</div>
+              </div>
+              <div class="pulse-event-row">
+                <div class="pulse-event-dot" style="background:var(--burgundy)"></div>
+                <div class="pulse-event-text">Creative Workshop</div>
+                <div class="pulse-event-time">MAR 15</div>
+              </div>
+              <div class="pulse-event-row" style="border-bottom:none">
+                <div class="pulse-event-dot" style="background:var(--olive)"></div>
+                <div class="pulse-event-text">Quarterly Gathering</div>
+                <div class="pulse-event-time">MAR 22</div>
+              </div>
+            </div>
+
+            <!-- Network Card -->
+            <div class="pulse-card">
+              <div class="pulse-card-label">Your Network</div>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <div class="pulse-card-stat" style="font-size:32px;">24</div>
+                <div class="pulse-card-subtitle">connections</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab bar -->
+          <div class="pulse-tab-bar">
+            <div class="pulse-tab">
+              <div class="pulse-tab-dot active"></div>
+              <div class="pulse-tab-name active">Pulse</div>
+            </div>
+            <div class="pulse-tab">
+              <div class="pulse-tab-dot"></div>
+              <div class="pulse-tab-name">Aligned</div>
+            </div>
+            <div class="pulse-tab">
+              <div class="pulse-tab-dot"></div>
+              <div class="pulse-tab-name">Corridor</div>
+            </div>
+            <div class="pulse-tab">
+              <div class="pulse-tab-dot"></div>
+              <div class="pulse-tab-name">Events</div>
+            </div>
+            <div class="pulse-tab">
+              <div class="pulse-tab-dot"></div>
+              <div class="pulse-tab-name">Me</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <br>
+      <button class="download-btn" onclick="downloadAsset('screenshot-pulse', 780, 1688, 'amari-screenshot-pulse.png', 2)">Download 2x PNG</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+async function downloadAsset(elementId, width, height, filename, scale = 1) {
+  const element = document.getElementById(elementId);
+  const canvas = await html2canvas(element, {
+    width: element.offsetWidth,
+    height: element.offsetHeight,
+    scale: scale,
+    useCORS: true,
+    backgroundColor: null,
+    logging: false,
+  });
+
+  // Create final canvas at exact target dimensions
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = width;
+  finalCanvas.height = height;
+  const ctx = finalCanvas.getContext('2d');
+  ctx.drawImage(canvas, 0, 0, width, height);
+
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = finalCanvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+
+</body>
+</html>

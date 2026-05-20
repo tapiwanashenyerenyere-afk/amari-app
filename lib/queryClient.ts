@@ -33,8 +33,10 @@ export const queryKeys = {
   },
   aligned: {
     all: ['aligned'] as const,
-    current: () => [...queryKeys.aligned.all, 'current'] as const,
-    match: (id: number) => [...queryKeys.aligned.all, id] as const,
+    discovery: (type: 'project' | 'interest', limit?: number) =>
+      [...queryKeys.aligned.all, 'discovery', type, limit] as const,
+    connections: (limit?: number) => [...queryKeys.aligned.all, 'connections', limit] as const,
+    myTiles: () => [...queryKeys.aligned.all, 'my-tiles'] as const,
   },
   cityPresence: {
     all: ['city-presence'] as const,
@@ -43,6 +45,10 @@ export const queryKeys = {
   member: {
     me: ['member', 'me'] as const,
     barcode: ['member', 'barcode'] as const,
+  },
+  invites: {
+    all: ['invites'] as const,
+    status: () => [...queryKeys.invites.all, 'status'] as const,
   },
 };
 
@@ -54,4 +60,5 @@ export const staleTimes = {
   cityPresence: 60 * 1000,
   barcode: 12 * 60 * 60 * 1000,
   member: 5 * 60 * 1000,
+  invites: 60 * 1000,
 };

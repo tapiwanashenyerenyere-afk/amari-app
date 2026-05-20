@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMARI — Aligned Preview (V2 Theme)</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #111111;
+    --white: #FFFFFF;
+    --sand: #8B7355;
+    --sand-on-dark: #C4A882;
+    --bone: #F5F4F0;
+    --gray: #767676;
+    --gray-light: #AAAAAA;
+    --ghost: rgba(0,0,0,0.04);
+    --rule: rgba(0,0,0,0.06);
+    --burgundy: #722F37;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+
+  .page-head { text-align: center; padding: 48px 24px 12px; }
+  .page-head .brand { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.3em; color: var(--sand-on-dark); margin-bottom: 8px; }
+  .page-head h1 { font-family: 'EB Garamond', serif; font-size: 30px; font-weight: 400; color: var(--bone); }
+  .page-head h1 em { font-style: italic; color: var(--sand-on-dark); }
+  .page-head p { font-size: 12px; color: rgba(255,255,255,0.25); max-width: 500px; margin: 8px auto 0; line-height: 1.7; }
+
+  .layout { display: flex; gap: 48px; justify-content: center; align-items: flex-start; padding: 36px 32px 80px; flex-wrap: wrap; }
+
+  /* Phone frame */
+  .phone {
+    width: 375px; min-width: 375px; height: 812px;
+    border-radius: 44px; background: var(--bone);
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 24px 80px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .phone::before {
+    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 28px; background: var(--black); border-radius: 0 0 20px 20px; z-index: 80;
+  }
+  .phone-grain {
+    position: absolute; inset: 0; z-index: 70; pointer-events: none; opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 128px;
+  }
+  .scroll { width: 100%; height: 100%; overflow-y: auto; position: relative; z-index: 5; }
+  .scroll::-webkit-scrollbar { width: 0; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 78px;
+    background: rgba(245,244,240,0.94); backdrop-filter: blur(24px);
+    border-top: 1px solid var(--rule);
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 0 6px 10px; z-index: 75;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; opacity: 0.3; }
+  .tab.active { opacity: 1; }
+  .tab svg { width: 22px; height: 22px; }
+  .tab span { font-size: 10px; font-weight: 500; color: var(--black); }
+  .tab.active::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--sand); margin-top: 1px; }
+
+  /* Views */
+  .view { display: none; padding: 50px 0 100px; }
+  .view.active { display: block; }
+
+  /* ═══ LANDING VIEW ═══ */
+  .al-head { padding: 8px 20px 0; margin-bottom: 4px; }
+  .al-head h1 { font-family: 'EB Garamond', serif; font-size: 32px; font-weight: 500; font-style: italic; color: var(--black); }
+  .al-head p { font-size: 13px; color: var(--gray); line-height: 1.55; margin-top: 4px; }
+
+  .entry-section { padding: 24px 20px 0; }
+  .entry-card {
+    border-radius: 20px; overflow: hidden; position: relative;
+    cursor: pointer; margin-bottom: 14px; height: 200px;
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .entry-card:active { transform: scale(0.97); }
+  .entry-bg { position: absolute; inset: 0; }
+  .entry-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(17,17,17,0.85) 0%, rgba(17,17,17,0.3) 50%, rgba(17,17,17,0.1) 100%);
+  }
+  .entry-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 22px; z-index: 2; }
+  .entry-tag { font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sand-on-dark); margin-bottom: 6px; }
+  .entry-content h2 { font-family: 'EB Garamond', serif; font-size: 26px; font-weight: 500; color: #fff; line-height: 1.15; margin-bottom: 4px; }
+  .entry-content p { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+  .entry-arrow {
+    position: absolute; top: 18px; right: 18px; z-index: 3;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: rgba(255,255,255,0.5);
+  }
+  .e-ring { position: absolute; z-index: 1; pointer-events: none; width: 100px; height: 100px; border: 1px solid rgba(255,255,255,0.04); border-radius: 50%; }
+
+  .bg-projects { background: linear-gradient(150deg, #1C1815, #111111, #14120F); }
+  .bg-projects::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 65% 35%, rgba(196,168,130,0.14) 0%, transparent 50%); }
+  .bg-interests { background: linear-gradient(150deg, #151618, #111111, #111114); }
+  .bg-interests::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 35% 65%, rgba(196,168,130,0.08) 0%, transparent 50%); }
+
+  /* Recent connections */
+  .recent-label { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gray); padding: 24px 20px 10px; }
+  .recent-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--rule); }
+  .recent-av { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--bone); flex-shrink: 0; }
+  .recent-info .ri-name { font-size: 13px; font-weight: 600; color: var(--black); }
+  .recent-info .ri-sub { font-size: 11px; color: var(--gray); margin-top: 1px; }
+  .recent-badge { margin-left: auto; font-size: 9px; font-weight: 600; padding: 3px 10px; border-radius: 6px; background: rgba(92,109,79,0.08); color: #5c6d4f; }
+
+  /* ═══ LIST VIEW ═══ */
+  .list-header { display: flex; align-items: center; gap: 12px; padding: 8px 20px 0; margin-bottom: 16px; }
+  .back-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--ghost); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; color: var(--gray); }
+  .list-header h1 { font-family: 'EB Garamond', serif; font-size: 28px; font-weight: 400; color: var(--black); }
+  .list-count { margin-left: auto; font-size: 12px; color: var(--gray); }
+
+  .list-filters { display: flex; gap: 6px; padding: 0 20px; margin-bottom: 16px; overflow-x: auto; }
+  .list-filters::-webkit-scrollbar { display: none; }
+  .lf-pill { padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; border: 1px solid var(--rule); background: transparent; color: var(--gray); cursor: pointer; }
+  .lf-pill.active { background: var(--black); color: var(--bone); border-color: var(--black); }
+
+  .list-items { padding: 0 20px; }
+  .list-item { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--rule); align-items: flex-start; }
+
+  .li-thumb { width: 90px; height: 90px; border-radius: 14px; overflow: hidden; position: relative; flex-shrink: 0; }
+  .li-thumb-bg { position: absolute; inset: 0; }
+  .li-tier { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); z-index: 2; }
+  .t-laureate { background: var(--sand-on-dark); border-color: var(--sand-on-dark); }
+  .t-platinum { background: var(--burgundy); border-color: rgba(255,255,255,0.15); }
+  .t-silver { background: #9898a0; border-color: rgba(255,255,255,0.15); }
+
+  .li-content { flex: 1; min-width: 0; padding-top: 2px; }
+  .li-desc { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; color: var(--black); line-height: 1.35; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .li-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .li-tag { font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.03); }
+  .li-tag.skill { background: rgba(139,115,85,0.08); color: #8a7340; border-color: rgba(139,115,85,0.1); }
+  .li-tag.ctx { background: rgba(0,0,0,0.03); color: var(--gray); }
+  .li-actions { display: flex; gap: 6px; }
+  .li-btn { padding: 7px 16px; border-radius: 8px; border: none; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .li-skip { background: rgba(0,0,0,0.03); color: var(--gray); border: 1px solid var(--rule); }
+  .li-align { background: var(--black); color: var(--bone); }
+
+  .tb1 { background: linear-gradient(135deg, #2a1a18, #111); }
+  .tb1::after { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 40% 40%, rgba(139,115,85,0.15) 0%, transparent 60%); }
+  .tb2 { background: linear-gradient(135deg, #111128, #111); }
+  .tb2::after { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 60% 50%, rgba(100,80,160,0.12) 0%, transparent 60%); }
+  .tb3 { background: linear-gradient(135deg, #1a221a, #111); }
+  .tb3::after { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 50% 50%, rgba(92,109,79,0.14) 0%, transparent 60%); }
+  .tb4 { background: linear-gradient(135deg, #2a1820, #111); }
+  .tb4::after { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 30% 60%, rgba(114,47,55,0.14) 0%, transparent 60%); }
+
+  /* Label under each phone */
+  .phone-label { text-align: center; margin-top: 16px; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.2); }
+
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; align-items: center; }
+    .phone { width: 340px; min-width: 340px; height: 740px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="brand">AMARI ALIGNED — V2 THEME PREVIEW</div>
+  <h1>Landing + <em>Projects List</em></h1>
+  <p>Two screens side-by-side. The landing (left) shows entry points and recent connections. The list view (right) shows same-size anonymous tiles with Skip/Align actions.</p>
+</div>
+
+<div class="layout">
+
+  <!-- ═══ PHONE 1: LANDING ═══ -->
+  <div>
+    <div class="phone">
+      <div class="phone-grain"></div>
+      <div class="scroll">
+        <div class="view active">
+          <div class="al-head">
+            <h1>Aligned</h1>
+            <p>Connect through work and shared interests. Tap a category to explore.</p>
+          </div>
+
+          <div class="entry-section">
+            <div class="entry-card">
+              <div class="entry-bg bg-projects">
+                <div class="e-ring" style="position:absolute;top:20px;right:24px;"></div>
+              </div>
+              <div class="entry-overlay"></div>
+              <div class="entry-arrow">&rarr;</div>
+              <div class="entry-content">
+                <div class="entry-tag">See what people are building</div>
+                <h2>Projects</h2>
+                <p>Anonymous project tiles ranked by skill alignment</p>
+              </div>
+            </div>
+
+            <div class="entry-card">
+              <div class="entry-bg bg-interests">
+                <div class="e-ring" style="position:absolute;bottom:20px;left:24px;"></div>
+              </div>
+              <div class="entry-overlay"></div>
+              <div class="entry-arrow">&rarr;</div>
+              <div class="entry-content">
+                <div class="entry-tag">Discover shared passions</div>
+                <h2>Interests</h2>
+                <p>People who care about the same things you do</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="recent-label">Recent Connections</div>
+          <div class="recent-item">
+            <div class="recent-av" style="background:#2a1818;">KO</div>
+            <div class="recent-info">
+              <div class="ri-name">Kwame Owusu</div>
+              <div class="ri-sub">Connected 3d ago via Projects</div>
+            </div>
+            <div class="recent-badge">Mutual</div>
+          </div>
+          <div class="recent-item">
+            <div class="recent-av" style="background:#1a221a;">TN</div>
+            <div class="recent-info">
+              <div class="ri-name">Tara Njoku</div>
+              <div class="ri-sub">Connected 1w ago via Interests</div>
+            </div>
+            <div class="recent-badge">Mutual</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg><span>Pulse</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Events</span></div>
+        <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 12L6 4M12 12l6-8M12 12v10"/></svg><span>Aligned</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M12 11v4m-3 3a3 3 0 016 0"/><rect x="5" y="2" width="14" height="20" rx="3"/></svg><span>Corridor</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg><span>Me</span></div>
+      </div>
+    </div>
+    <div class="phone-label">Landing View</div>
+  </div>
+
+  <!-- ═══ PHONE 2: PROJECTS LIST ═══ -->
+  <div>
+    <div class="phone">
+      <div class="phone-grain"></div>
+      <div class="scroll">
+        <div class="view active">
+          <div class="list-header">
+            <button class="back-btn">&lsaquo;</button>
+            <h1>Projects</h1>
+            <span class="list-count">5 aligned</span>
+          </div>
+
+          <div class="list-filters">
+            <div class="lf-pill active">All</div>
+            <div class="lf-pill">Tech</div>
+            <div class="lf-pill">Health</div>
+            <div class="lf-pill">Finance</div>
+            <div class="lf-pill">Culture</div>
+            <div class="lf-pill">Education</div>
+          </div>
+
+          <div class="list-items">
+            <div class="list-item">
+              <div class="li-thumb"><div class="li-thumb-bg tb1"></div><div class="li-tier t-laureate"></div></div>
+              <div class="li-content">
+                <div class="li-desc">AI-powered regulatory compliance tool for healthcare startups</div>
+                <div class="li-tags"><span class="li-tag skill">HealthTech</span><span class="li-tag skill">AI/ML</span></div>
+                <div class="li-actions"><button class="li-btn li-skip">Skip</button><button class="li-btn li-align">Align</button></div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div class="li-thumb"><div class="li-thumb-bg tb2"></div><div class="li-tier t-platinum"></div></div>
+              <div class="li-content">
+                <div class="li-desc">Cross-border payments infrastructure for African diaspora remittances</div>
+                <div class="li-tags"><span class="li-tag skill">Fintech</span><span class="li-tag ctx">Payments</span></div>
+                <div class="li-actions"><button class="li-btn li-skip">Skip</button><button class="li-btn li-align">Align</button></div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div class="li-thumb"><div class="li-thumb-bg tb3"></div><div class="li-tier t-silver"></div></div>
+              <div class="li-content">
+                <div class="li-desc">Community-owned solar microgrid platform for regional communities</div>
+                <div class="li-tags"><span class="li-tag skill">CleanTech</span><span class="li-tag ctx">Community</span></div>
+                <div class="li-actions"><button class="li-btn li-skip">Skip</button><button class="li-btn li-align">Align</button></div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div class="li-thumb"><div class="li-thumb-bg tb4"></div><div class="li-tier t-platinum"></div></div>
+              <div class="li-content">
+                <div class="li-desc">Digital marketplace connecting African artisans with global buyers</div>
+                <div class="li-tags"><span class="li-tag skill">Culture</span><span class="li-tag ctx">E-Commerce</span></div>
+                <div class="li-actions"><button class="li-btn li-skip">Skip</button><button class="li-btn li-align">Align</button></div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div class="li-thumb"><div class="li-thumb-bg tb1"></div><div class="li-tier t-laureate"></div></div>
+              <div class="li-content">
+                <div class="li-desc">EdTech platform bridging skills gaps in emerging tech sectors</div>
+                <div class="li-tags"><span class="li-tag skill">Education</span><span class="li-tag ctx">Tech</span></div>
+                <div class="li-actions"><button class="li-btn li-skip">Skip</button><button class="li-btn li-align">Align</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg><span>Pulse</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Events</span></div>
+        <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 12L6 4M12 12l6-8M12 12v10"/></svg><span>Aligned</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M12 11v4m-3 3a3 3 0 016 0"/><rect x="5" y="2" width="14" height="20" rx="3"/></svg><span>Corridor</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg><span>Me</span></div>
+      </div>
+    </div>
+    <div class="phone-label">Projects List View</div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -16,7 +16,11 @@ port = 54323
 [auth]
 enabled = true
 site_url = "amari://auth-callback"
-additional_redirect_urls = ["amari://auth-callback"]
+additional_redirect_urls = [
+  "amari://auth-callback",
+  "http://127.0.0.1:19006/auth-callback",
+  "http://localhost:19006/auth-callback"
+]
 
 [auth.hook.custom_access_token]
 enabled = true

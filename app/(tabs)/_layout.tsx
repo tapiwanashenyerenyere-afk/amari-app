@@ -1,114 +1,70 @@
-import { Text, StyleSheet } from 'react-native';
-import { Tabs } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, T, S, TAB_VISIBILITY, TIER_LEVELS } from '../../lib/constants';
+import { useEffect, useState } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { useAuth } from '../../providers/AuthProvider';
+import { CustomTabBar } from '../../components/v2/CustomTabBar';
+import { useMyProfile } from '../../queries/members';
+import {
+  useAcknowledgeMonthlyInviteAnnouncement,
+  useMonthlyInviteStatus,
+} from '../../queries/invites';
+import { MonthlyInvitePromptModal } from '../../components/invites/MonthlyInvitePromptModal';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const { tier, isAdmin } = useAuth();
-  const tierLevel = TIER_LEVELS[tier] || 1;
+  const { isAdmin } = useAuth();
+  const router = useRouter();
+  const { data: profile } = useMyProfile();
+  const { data: inviteStatus } = useMonthlyInviteStatus();
+  const acknowledgeInvitePrompt = useAcknowledgeMonthlyInviteAnnouncement();
+  const [isInviteModalHidden, setInviteModalHidden] = useState(false);
+
+  useEffect(() => {
+    setInviteModalHidden(false);
+  }, [inviteStatus?.month_key]);
+
+  const showInviteModal = !!inviteStatus?.eligible
+    && !!inviteStatus?.should_show_announcement
+    && !isInviteModalHidden;
+
+  const dismissInviteModal = () => {
+    setInviteModalHidden(true);
+    acknowledgeInvitePrompt.mutate();
+  };
+
+  const openInviteCenter = () => {
+    setInviteModalHidden(true);
+    acknowledgeInvitePrompt.mutate();
+    router.push('/member-invites' as any);
+  };
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: C.lightPrimary,
-        tabBarInactiveTintColor: C.lightTertiary,
-        tabBarStyle: {
-          backgroundColor: 'rgba(26,26,26,0.92)',
-          borderTopColor: 'rgba(255,255,255,0.06)',
-          borderTopWidth: StyleSheet.hairlineWidth,
-          paddingTop: S._8,
-          paddingBottom: Math.max(insets.bottom, S._20),
-          height: 84 + Math.max(insets.bottom - 20, 0),
-          position: 'absolute',
-          elevation: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'DMSans-SemiBold',
-          fontSize: 11,
-          fontWeight: '600',
-          letterSpacing: 1.5,
-          textTransform: 'uppercase',
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Pulse',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>◈</Text>
-          ),
+    <>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{
+          headerShown: false,
         }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="events" />
+        <Tabs.Screen name="aligned" />
+        <Tabs.Screen name="corridor" />
+        <Tabs.Screen name="profile" />
+        <Tabs.Screen
+          name="admin"
+          options={{ href: isAdmin ? undefined : null }}
+        />
+        {/* Hidden legacy screens */}
+        <Tabs.Screen name="discover" options={{ href: null }} />
+        <Tabs.Screen name="network" options={{ href: null }} />
+      </Tabs>
+
+      <MonthlyInvitePromptModal
+        visible={showInviteModal}
+        fullName={profile?.full_name || 'Member'}
+        remaining={inviteStatus?.remaining ?? 0}
+        onDismiss={dismissInviteModal}
+        onPrimary={openInviteCenter}
       />
-      <Tabs.Screen
-        name="aligned"
-        options={{
-          title: 'Aligned',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>◎</Text>
-          ),
-          href: tierLevel >= TAB_VISIBILITY.aligned ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
-        name="corridor"
-        options={{
-          title: 'Corridor',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>◇</Text>
-          ),
-          href: tierLevel >= TAB_VISIBILITY.corridor ? undefined : null,
-        }}
-      />
-      <Tabs.Screen
-        name="events"
-        options={{
-          title: 'Events',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>◆</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Me',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>○</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: 'Admin',
-          tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>◉</Text>
-          ),
-          href: isAdmin ? undefined : null,
-        }}
-      />
-      {/* Hide legacy screens from tab bar */}
-      <Tabs.Screen name="discover" options={{ href: null }} />
-      <Tabs.Screen name="network" options={{ href: null }} />
-    </Tabs>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  icon: {
-    fontSize: 16,
-    lineHeight: 20,
-    color: C.lightFaint,
-  },
-  iconActive: {
-    color: C.lightPrimary,
-  },
-});

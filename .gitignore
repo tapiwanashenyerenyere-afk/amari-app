@@ -48,6 +48,7 @@ yarn-error.*
 
 # Supabase local
 supabase/.temp/
+supabase/.branches/
 
 # Claude
 .claude/
@@ -63,9 +64,22 @@ SESSION-RESUME.md
 *.b64
 keystore.b64
 SECURE-CODES-DO-NOT-COMMIT.csv
+amari-mobile-*.json
+mari-mobile-*.json
+
+# Build artifacts
+*.aab
+*.apk
 
 # Build docs (generated, not source)
 AMARI-FRESH-BUILD.md
 ARCHITECTURE.md
 BETA_TESTING.md
 BUILD_ANDROID.md
+
+# Design preview (local only)
+preview/
+
+# Local verification artifacts
+.live-checks/
+*.log
