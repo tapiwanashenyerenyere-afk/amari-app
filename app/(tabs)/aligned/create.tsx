@@ -111,7 +111,7 @@ export default function CreateProjectScreen() {
             <Text style={styles.backIcon}>{'\u2039'}</Text>
           </Pressable>
           <Text style={styles.headerTitle}>New Project</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView
@@ -124,6 +124,14 @@ export default function CreateProjectScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
+          <View style={styles.publishNote}>
+            <Text style={styles.publishNoteTitle}>Project publishing is reviewed</Text>
+            <Text style={styles.publishNoteCopy}>
+              AMARI reviews projects before they appear in Aligned. Once approved, members can find it on the map or list,
+              keep updates on, and contact you by email when contact details are available.
+            </Text>
+          </View>
+
           {/* Image upload */}
           <Text style={styles.label}>
             Cover image <Text style={styles.labelHint}>(optional)</Text>
@@ -269,9 +277,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.ghost,
     alignItems: 'center',
     justifyContent: 'center',
@@ -301,6 +309,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textTransform: 'none',
     color: colors.gray,
+  },
+  publishNote: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+    padding: 16,
+    gap: 6,
+  },
+  publishNoteTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 14,
+    color: colors.black,
+    lineHeight: 19,
+  },
+  publishNoteCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 18,
   },
 
   // Image upload

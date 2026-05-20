@@ -99,6 +99,43 @@ function dedupe(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+const ALIGNED_STEPS = [
+  {
+    label: '1',
+    title: 'Browse approved projects',
+    copy: 'Use the list for detail or switch into the map when location matters.',
+  },
+  {
+    label: '2',
+    title: 'Connect with context',
+    copy: 'Project contact opens your email app after you write a short member note.',
+  },
+  {
+    label: '3',
+    title: 'Publish from Platinum',
+    copy: 'Submitted projects are reviewed before they appear in Aligned.',
+  },
+];
+
+function HowAlignedWorks() {
+  return (
+    <View style={styles.howCard}>
+      <Text style={styles.howKicker}>How Aligned works</Text>
+      {ALIGNED_STEPS.map((step) => (
+        <View key={step.label} style={styles.howRow}>
+          <View style={styles.howNumber}>
+            <Text style={styles.howNumberText}>{step.label}</Text>
+          </View>
+          <View style={styles.howCopyWrap}>
+            <Text style={styles.howTitle}>{step.title}</Text>
+            <Text style={styles.howCopy}>{step.copy}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function ProjectEntryCard({
   colors: gradient,
   onPress,
@@ -186,6 +223,8 @@ function BoardView({
 }) {
   return (
     <View style={styles.boardStack}>
+      <HowAlignedWorks />
+
       <ProjectEntryCard
         colors={['#1C1815', '#111111', '#14120F']}
         onPress={onOpenMap}
@@ -1146,6 +1185,57 @@ const styles = StyleSheet.create({
   },
   boardStack: {
     gap: 14,
+  },
+  howCard: {
+    padding: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(10,10,10,0.05)',
+    backgroundColor: colors.cream,
+    gap: 12,
+  },
+  howKicker: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.goldDark,
+  },
+  howRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  howNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(10,10,10,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  howNumberText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    color: colors.goldDark,
+  },
+  howCopyWrap: {
+    flex: 1,
+  },
+  howTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  howCopy: {
+    marginTop: 2,
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.gray,
   },
   entryCard: {
     minHeight: 150,
