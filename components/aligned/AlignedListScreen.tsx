@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Pressable,
   Alert,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,6 +16,7 @@ import * as Linking from 'expo-linking';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeOut } from 'react-native-reanimated';
+import Svg, { Circle, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { colors, typography, spacing, radius } from '../../lib/theme';
 import { useMyProfile } from '../../queries/members';
 import {
@@ -29,10 +31,11 @@ import type { MembershipTier } from '../../types/db-helpers';
 import MutualRevealOverlay from './MutualRevealOverlay';
 
 // ─── Types ──────────────────────────────────────────────
-interface AlignedTileUI extends Pick<AlignedDiscoveryTile, 'id' | 'type' | 'description' | 'tags'> {
+interface AlignedTileUI extends Pick<AlignedDiscoveryTile, 'id' | 'type' | 'description' | 'tags' | 'location'> {
   tier: MembershipTier;
   contactEnabled: boolean;
   gradientKey: string;
+  imageUrl: string | null;
   recommendationScore: number;
 }
 
@@ -54,6 +57,51 @@ const TIER_COLORS: Record<string, string> = {
   silver: colors.tierSilver,
   member: colors.gray,
 };
+
+const LOCATION_PENDING = 'Location pending';
+
+const LOCATION_POINTS: Record<string, { x: number; y: number }> = {
+  melbourne: { x: 230, y: 112 },
+  sydney: { x: 255, y: 86 },
+  brisbane: { x: 265, y: 62 },
+  perth: { x: 72, y: 102 },
+  adelaide: { x: 196, y: 106 },
+  canberra: { x: 246, y: 98 },
+  hobart: { x: 236, y: 132 },
+  darwin: { x: 154, y: 28 },
+  auckland: { x: 292, y: 116 },
+  london: { x: 145, y: 44 },
+  lagos: { x: 156, y: 76 },
+  nairobi: { x: 182, y: 78 },
+  newyork: { x: 86, y: 58 },
+  singapore: { x: 198, y: 72 },
+  remote: { x: 160, y: 74 },
+  global: { x: 160, y: 74 },
+};
+
+const FALLBACK_POINTS = [
+  { x: 138, y: 66 },
+  { x: 176, y: 58 },
+  { x: 204, y: 90 },
+  { x: 118, y: 98 },
+  { x: 236, y: 74 },
+];
+
+function normalizeLocation(location: string | null | undefined) {
+  const value = (location ?? '').trim();
+  return value.length > 0 ? value : LOCATION_PENDING;
+}
+
+function getLocationPoint(label: string, index: number) {
+  const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const matchedKey = Object.keys(LOCATION_POINTS).find((key) => normalized.includes(key));
+
+  if (matchedKey) {
+    return LOCATION_POINTS[matchedKey];
+  }
+
+  return FALLBACK_POINTS[index % FALLBACK_POINTS.length];
+}
 
 function toWords(values: Array<string | null | undefined>): string[] {
   return values
@@ -145,6 +193,7 @@ function TileItem({
 }) {
   const gradient = GRADIENTS[tile.gradientKey] || GRADIENTS.warm;
   const tierColor = TIER_COLORS[tile.tier];
+  const locationLabel = normalizeLocation(tile.location);
 
   return (
     <Animated.View
@@ -153,12 +202,21 @@ function TileItem({
     >
       {/* Thumbnail */}
       <View style={styles.thumb}>
-        <LinearGradient
-          colors={gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        {tile.imageUrl ? (
+          <Image
+            source={{ uri: tile.imageUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        <View style={styles.thumbShade} />
         {/* Tier dot */}
         <View
           style={[
@@ -176,7 +234,7 @@ function TileItem({
 
       {/* Content */}
       <View style={styles.tileContent}>
-        <Text style={styles.tileDesc} numberOfLines={2}>
+        <Text style={styles.tileDesc} numberOfLines={3}>
           {tile.description}
         </Text>
         <View style={styles.tagRow}>
@@ -201,6 +259,15 @@ function TileItem({
             </View>
           ))}
         </View>
+        <View style={styles.locationLine}>
+          <Text style={styles.locationMeta}>{tile.type === 'project' ? 'Location' : 'Signal'}</Text>
+          <Text style={styles.locationValue} numberOfLines={1}>{locationLabel}</Text>
+        </View>
+        {tile.recommendationScore > 0 ? (
+          <View style={styles.matchHint}>
+            <Text style={styles.matchHintText}>Profile signal match</Text>
+          </View>
+        ) : null}
         {tile.type === 'project' && tile.contactEnabled ? (
           <View style={styles.contactHint}>
             <Text style={styles.contactHintText}>Email contact available</Text>
@@ -272,6 +339,97 @@ function FilterPill({
   );
 }
 
+function ProjectLocationAtlas({
+  options,
+  activeLocation,
+  onSelectLocation,
+}: {
+  options: Array<{ label: string; count: number }>;
+  activeLocation: string;
+  onSelectLocation: (location: string) => void;
+}) {
+  if (options.length <= 1) {
+    return null;
+  }
+
+  const clusters = options.filter((option) => option.label !== 'All').slice(0, 8);
+
+  return (
+    <View style={styles.atlasCard}>
+      <View style={styles.atlasHeader}>
+        <View>
+          <Text style={styles.atlasKicker}>Project map</Text>
+          <Text style={styles.atlasTitle}>Where projects are based</Text>
+        </View>
+        <Text style={styles.atlasCount}>{options[0]?.count ?? 0} visible</Text>
+      </View>
+
+      <View style={styles.atlasMap}>
+        <Svg width="100%" height="142" viewBox="0 0 320 142">
+          <Rect x="0" y="0" width="320" height="142" rx="14" fill="#151412" />
+          <Line x1="28" y1="76" x2="292" y2="76" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <Line x1="160" y1="18" x2="160" y2="124" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <Circle cx="160" cy="76" r="48" fill="none" stroke="rgba(196,168,130,0.08)" strokeWidth="1" />
+          <Circle cx="160" cy="76" r="80" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          {clusters.map((cluster, index) => {
+            const point = getLocationPoint(cluster.label, index);
+            const active = activeLocation === cluster.label;
+            const radiusSize = Math.min(18, 8 + cluster.count * 2);
+
+            return (
+              <React.Fragment key={cluster.label}>
+                <Circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={radiusSize}
+                  fill={active ? colors.sandOnDark : 'rgba(196,168,130,0.62)'}
+                  opacity={active ? 1 : 0.76}
+                />
+                <SvgText
+                  x={point.x}
+                  y={point.y + 3}
+                  fill="#111111"
+                  fontSize="10"
+                  fontWeight="700"
+                  textAnchor="middle"
+                >
+                  {cluster.count}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.locationPillRow}
+      >
+        {options.map((option) => {
+          const active = activeLocation === option.label;
+          return (
+            <Pressable
+              key={option.label}
+              style={[styles.locationPill, active && styles.locationPillActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onSelectLocation(option.label);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${option.label} projects`}
+            >
+              <Text style={[styles.locationPillText, active && styles.locationPillTextActive]}>
+                {option.label} · {option.count}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 // ─── Main List Screen ───────────────────────────────────
 export default function AlignedListScreen({
   mode,
@@ -281,6 +439,7 @@ export default function AlignedListScreen({
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
+  const [activeLocation, setActiveLocation] = useState('All');
   const [showReveal, setShowReveal] = useState(false);
   const [revealData, setRevealData] = useState<{ name: string; initials: string; role: string; tier: string } | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -292,31 +451,62 @@ export default function AlignedListScreen({
   const expressInterest = useExpressAlignedInterest();
   const tileContact = useAlignedTileContact();
 
-  const visibleTiles = useMemo(() => {
+  const scoredTiles = useMemo(() => {
     return tiles
       .map((tile) => ({
         id: tile.id,
         type: tile.type,
         description: tile.description,
         tags: tile.tags ?? [],
+        location: tile.location,
         tier: tile.owner_tier,
         contactEnabled: tile.contact_enabled === true,
         gradientKey: pickGradientKey(tile),
+        imageUrl: tile.image_url,
         recommendationScore: computeRecommendationScore(tile, profile),
       }))
-      .filter((tile) => {
-        if (dismissedIds.has(tile.id)) {
+      .sort((a, b) => b.recommendationScore - a.recommendationScore || a.description.localeCompare(b.description));
+  }, [tiles, profile]);
+
+  const availableTiles = useMemo(
+    () => scoredTiles.filter((tile) => !dismissedIds.has(tile.id)),
+    [scoredTiles, dismissedIds]
+  );
+
+  const locationOptions = useMemo(() => {
+    if (mode !== 'projects') {
+      return [];
+    }
+
+    const counts = new Map<string, number>();
+    availableTiles.forEach((tile) => {
+      const label = normalizeLocation(tile.location);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+
+    const orderedLocations = Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+    return [{ label: 'All', count: availableTiles.length }, ...orderedLocations];
+  }, [availableTiles, mode]);
+
+  const visibleTiles = useMemo(() => {
+    return availableTiles.filter((tile) => {
+      if (activeFilter !== 'All') {
+        const hasTag = tile.tags.some((tag) => tag.toLowerCase().includes(activeFilter.toLowerCase()));
+        if (!hasTag) {
           return false;
         }
+      }
 
-        if (activeFilter === 'All') {
-          return true;
-        }
+      if (activeLocation !== 'All' && normalizeLocation(tile.location) !== activeLocation) {
+        return false;
+      }
 
-        return tile.tags.some((tag) => tag.toLowerCase().includes(activeFilter.toLowerCase()));
-      })
-      .sort((a, b) => b.recommendationScore - a.recommendationScore || a.description.localeCompare(b.description));
-  }, [tiles, dismissedIds, activeFilter, profile]);
+      return true;
+    });
+  }, [availableTiles, activeFilter, activeLocation]);
 
   const handleSkip = useCallback(
     (id: string) => {
@@ -402,6 +592,9 @@ export default function AlignedListScreen({
 
   const title = mode === 'projects' ? 'Projects' : 'Interests';
   const count = visibleTiles.length;
+  const listSubtitle = mode === 'projects'
+    ? 'Approved projects with location, tags, and shared profile signals.'
+    : 'Interest tiles from members who care about similar themes.';
 
   const listEmpty = (() => {
     if (isLoading) {
@@ -423,7 +616,11 @@ export default function AlignedListScreen({
 
     return (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyText}>No recommendations yet. Add your own tile or refine your profile.</Text>
+        <Text style={styles.emptyText}>
+          {activeFilter !== 'All' || activeLocation !== 'All'
+            ? 'No tiles match these filters yet. Try All or complete your profile for broader recommendations.'
+            : 'No recommendations yet. Add your own tile or refine your profile signals.'}
+        </Text>
       </View>
     );
   })();
@@ -443,7 +640,10 @@ export default function AlignedListScreen({
         >
           <Text style={styles.backIcon}>{'\u2039'}</Text>
         </Pressable>
-        <Text style={styles.listTitle}>{title}</Text>
+        <View style={styles.listTitleWrap}>
+          <Text style={styles.listTitle}>{title}</Text>
+          <Text style={styles.listSubtitle}>{listSubtitle}</Text>
+        </View>
         <Text style={styles.listCount}>{count} recommended</Text>
       </View>
 
@@ -463,6 +663,14 @@ export default function AlignedListScreen({
           />
         ))}
       </ScrollView>
+
+      {mode === 'projects' ? (
+        <ProjectLocationAtlas
+          options={locationOptions}
+          activeLocation={activeLocation}
+          onSelectLocation={setActiveLocation}
+        />
+      ) : null}
 
       {/* Tile List */}
       <FlatList
@@ -509,16 +717,16 @@ const styles = StyleSheet.create({
   // List header
   listHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     paddingHorizontal: spacing.xl,
     paddingTop: 8,
     paddingBottom: 16,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.ghost,
     alignItems: 'center',
     justifyContent: 'center',
@@ -533,8 +741,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.black,
   },
+  listTitleWrap: {
+    flex: 1,
+  },
+  listSubtitle: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 17,
+    marginTop: 2,
+  },
   listCount: {
     marginLeft: 'auto',
+    marginTop: 8,
     fontFamily: typography.body.regular,
     fontSize: 12,
     color: colors.gray,
@@ -568,6 +787,71 @@ const styles = StyleSheet.create({
     color: colors.bone,
   },
 
+  // Location atlas
+  atlasCard: {
+    marginHorizontal: spacing.xl,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: radius.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
+  atlasHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  atlasKicker: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: colors.sand,
+  },
+  atlasTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.black,
+    marginTop: 2,
+  },
+  atlasCount: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    color: colors.gray,
+    marginTop: 2,
+  },
+  atlasMap: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#151412',
+  },
+  locationPillRow: {
+    gap: 6,
+    paddingTop: 10,
+  },
+  locationPill: {
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.ghost,
+  },
+  locationPillActive: {
+    backgroundColor: colors.black,
+    borderColor: colors.black,
+  },
+  locationPillText: {
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.gray,
+  },
+  locationPillTextActive: {
+    color: colors.bone,
+  },
+
   // List content
   listContent: {
     paddingHorizontal: spacing.xl,
@@ -591,6 +875,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     position: 'relative',
+  },
+  thumbShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.12)',
   },
   tierDot: {
     position: 'absolute',
@@ -620,6 +908,38 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 4,
     marginBottom: 8,
+  },
+  locationLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 7,
+  },
+  locationMeta: {
+    fontFamily: typography.mono.regular,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.grayLight,
+  },
+  locationValue: {
+    flex: 1,
+    fontFamily: typography.body.medium,
+    fontSize: 11,
+    color: colors.gray,
+  },
+  matchHint: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(50,105,85,0.1)',
+    marginBottom: 8,
+  },
+  matchHintText: {
+    fontFamily: typography.body.medium,
+    fontSize: 10,
+    color: colors.success,
   },
   contactHint: {
     alignSelf: 'flex-start',
@@ -665,7 +985,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   btnSkip: {
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.03)',
@@ -678,7 +998,7 @@ const styles = StyleSheet.create({
     color: colors.gray,
   },
   btnAlign: {
-    paddingVertical: 7,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     backgroundColor: colors.black,
@@ -689,7 +1009,7 @@ const styles = StyleSheet.create({
     color: colors.bone,
   },
   btnEmail: {
-    paddingVertical: 7,
+    paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 8,
     backgroundColor: colors.white,

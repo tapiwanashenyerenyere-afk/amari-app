@@ -19,7 +19,7 @@ export default function AlignedLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: 'fade',
       }}
     />
   );

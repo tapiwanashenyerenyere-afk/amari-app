@@ -59,6 +59,46 @@ function formatTimeAgo(timestamp: string) {
   return `${days} days ago`;
 }
 
+const ALIGNED_STEPS = [
+  {
+    label: '1',
+    title: 'Browse approved tiles',
+    copy: 'Projects and interests are shown using profile, skill, location, and activity signals.',
+  },
+  {
+    label: '2',
+    title: 'Tap Align',
+    copy: 'Align is an expression of interest. A mutual align reveals the member connection.',
+  },
+  {
+    label: '3',
+    title: 'Create from Silver',
+    copy: 'Published projects are reviewed before they appear, and email contact is optional.',
+  },
+];
+
+function HowAlignedWorks() {
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(90).duration(520).springify()}
+      style={styles.howCard}
+    >
+      <Text style={styles.howKicker}>How Aligned works</Text>
+      {ALIGNED_STEPS.map((step) => (
+        <View key={step.label} style={styles.howRow}>
+          <View style={styles.howNumber}>
+            <Text style={styles.howNumberText}>{step.label}</Text>
+          </View>
+          <View style={styles.howCopyWrap}>
+            <Text style={styles.howTitle}>{step.title}</Text>
+            <Text style={styles.howCopy}>{step.copy}</Text>
+          </View>
+        </View>
+      ))}
+    </Animated.View>
+  );
+}
+
 // ─── Entry Card Component ───────────────────────────────
 function EntryCard({
   tag,
@@ -199,18 +239,20 @@ export default function AlignedLanding() {
           <View style={styles.header}>
             <Text style={styles.title}>Aligned</Text>
             <Text style={styles.subtitle}>
-              Connect through work and shared interests. Tap a category to
-              explore.
+              Find people through what they are building, where they are based,
+              and what they care about.
             </Text>
           </View>
         </StaggerReveal>
+
+        <HowAlignedWorks />
 
         {/* Entry Cards */}
         <View style={styles.entrySection}>
           <EntryCard
             tag="See what people are building"
             title="Projects"
-            subtitle="Anonymous project tiles ranked by skill alignment"
+            subtitle="Approved project tiles ordered by profile and activity signals"
             gradientColors={['#1C1815', '#111111', '#14120F']}
             glowColor="rgba(196, 168, 130, 0.14)"
             glowPosition={{ x: 130, y: 70 }}
@@ -220,7 +262,7 @@ export default function AlignedLanding() {
           <EntryCard
             tag="Discover shared passions"
             title="Interests"
-            subtitle="People who care about the same things you do"
+            subtitle="Shared interests that improve as your profile gets richer"
             gradientColors={['#151618', '#111111', '#111114']}
             glowColor="rgba(196, 168, 130, 0.08)"
             glowPosition={{ x: 70, y: 100 }}
@@ -306,8 +348,61 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  // Explainer
+  howCard: {
+    marginHorizontal: spacing.xl,
+    marginTop: 18,
+    padding: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+    gap: 12,
+  },
+  howKicker: {
+    fontFamily: typography.geo.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: colors.sand,
+  },
+  howRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  howNumber: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.ghost,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  howNumberText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 11,
+    color: colors.sand,
+  },
+  howCopyWrap: {
+    flex: 1,
+  },
+  howTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  howCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+
   // Entry cards
-  entrySection: { paddingHorizontal: spacing.xl, paddingTop: 24, gap: 14 },
+  entrySection: { paddingHorizontal: spacing.xl, paddingTop: 18, gap: 14 },
   entryCard: {
     height: 200,
     borderRadius: radius.xl,

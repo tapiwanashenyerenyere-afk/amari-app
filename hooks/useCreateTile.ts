@@ -13,6 +13,7 @@ interface CreateTileInput {
   visibilityTiers: Array<'member' | 'silver' | 'platinum' | 'laureate'>;
   contactEnabled?: boolean;
   imageUri?: string | null;
+  location?: string | null;
 }
 
 interface CreateTileResult {
@@ -119,6 +120,7 @@ export function useCreateTile() {
         type: input.type,
         description: input.description.trim(),
         tags: input.tags,
+        location: input.location?.trim() || null,
         visibility_tiers: input.visibilityTiers,
         contact_enabled: input.type === 'project' && input.contactEnabled === true,
         image_url: null,

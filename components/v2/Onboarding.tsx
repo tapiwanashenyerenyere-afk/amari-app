@@ -6,6 +6,9 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -157,14 +160,44 @@ function Step2() {
   );
 }
 
-const FEATURES = [
-  { letter: 'P', name: 'The Pulse', desc: 'Weekly editorial intelligence' },
-  { letter: 'A', name: 'Aligned', desc: 'Where two paths find their intersection' },
-  { letter: 'E', name: 'Events', desc: 'From intimate dinners to the Annual Gala' },
-  { letter: 'C', name: 'The Corridor', desc: 'Where opportunity is exchanged behind closed doors' },
+interface GuideItem {
+  letter: string;
+  name: string;
+  desc: string;
+}
+
+const FEATURE_GUIDES: GuideItem[] = [
+  { letter: 'P', name: 'Pulse', desc: 'Curated intelligence and editorial signals shaped by your profile.' },
+  { letter: 'A', name: 'Aligned', desc: 'Projects and interests from members, ordered by shared profile signals.' },
+  { letter: 'E', name: 'Events', desc: 'Private dinners, salons, and larger gatherings with tier-aware access.' },
+  { letter: 'C', name: 'Corridor', desc: 'A quieter room for opportunities, introductions, and member requests.' },
+  { letter: 'M', name: 'Membership', desc: 'Your card, profile, city, skills, and interests power the network around you.' },
 ];
 
-function Step3() {
+const ALIGNED_GUIDES: GuideItem[] = [
+  { letter: '1', name: 'Browse', desc: 'See approved project and interest tiles from members across the collective.' },
+  { letter: '2', name: 'Align', desc: 'Tap Align to express interest. Mutual alignment reveals the member connection.' },
+  { letter: '3', name: 'Publish', desc: 'Silver and above can create tiles. Projects are reviewed before they appear.' },
+  { letter: '4', name: 'Refine', desc: 'Profile, skills, interests, and activity signals improve recommendations over time.' },
+];
+
+const MEMBER_GUIDES: GuideItem[] = [
+  { letter: 'ID', name: 'Membership card', desc: 'Your card is the member identity surface for event checks and future benefits.' },
+  { letter: 'EV', name: 'Events', desc: 'Event pages show access level, RSVP state, and the gatherings available to you.' },
+  { letter: 'PR', name: 'Profile', desc: 'Complete your city, industry, skills, interests, and current project for better matches.' },
+];
+
+function GuideScreen({
+  eyebrow,
+  title,
+  items,
+  footnote,
+}: {
+  eyebrow: string;
+  title: string;
+  items: GuideItem[];
+  footnote?: string;
+}) {
   return (
     <View style={[stepStyles.topAligned, { backgroundColor: colors.onboard }]}>
       <View style={StyleSheet.absoluteFill}>
@@ -175,15 +208,20 @@ function Step3() {
           style={StyleSheet.absoluteFill}
         />
       </View>
-      <View style={{ width: '100%', paddingHorizontal: 32 }}>
+      <ScrollView
+        style={stepStyles.guideScroll}
+        contentContainerStyle={stepStyles.guideScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <MotiView
           from={{ opacity: 0, translateY: 10 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 500, delay: 100 }}
         >
-          <Text style={stepStyles.whatAwaits}>What awaits</Text>
+          <Text style={stepStyles.guideEyebrow}>{eyebrow}</Text>
+          <Text style={stepStyles.whatAwaits}>{title}</Text>
         </MotiView>
-        {FEATURES.map((f, i) => (
+        {items.map((f, i) => (
           <MotiView
             key={f.letter}
             from={{ opacity: 0, translateY: 10 }}
@@ -200,17 +238,58 @@ function Step3() {
             </View>
           </MotiView>
         ))}
-      </View>
+        {footnote ? (
+          <MotiView
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 400, delay: 760 }}
+          >
+            <Text style={stepStyles.guideFootnote}>{footnote}</Text>
+          </MotiView>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
 
-interface Step4Props {
+function Step3() {
+  return (
+    <GuideScreen
+      eyebrow="Your AMARI map"
+      title="Five spaces, one member graph"
+      items={FEATURE_GUIDES}
+    />
+  );
+}
+
+function Step4() {
+  return (
+    <GuideScreen
+      eyebrow="Aligned"
+      title="How discovery works"
+      items={ALIGNED_GUIDES}
+      footnote="AMARI is not using in-app messaging yet; project contact opens through email when the owner allows it."
+    />
+  );
+}
+
+function Step5() {
+  return (
+    <GuideScreen
+      eyebrow="Membership"
+      title="Your access layer"
+      items={MEMBER_GUIDES}
+      footnote="The richer your profile is, the better Pulse, Aligned, and the network context can adapt around you."
+    />
+  );
+}
+
+interface InviteStepProps {
   onEnter: (validatedCode: string) => void;
   onSignIn: () => void;
 }
 
-function Step4({ onEnter, onSignIn }: Step4Props) {
+function InviteStep({ onEnter, onSignIn }: InviteStepProps) {
   const [code, setCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
@@ -261,7 +340,11 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
   };
 
   return (
-    <View style={[stepStyles.center, { backgroundColor: colors.onboard }]}>
+    <KeyboardAvoidingView
+      style={[stepStyles.center, { backgroundColor: colors.onboard }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+    >
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient
           colors={['rgba(160,133,107,0.05)', 'transparent']}
@@ -345,7 +428,7 @@ function Step4({ onEnter, onSignIn }: Step4Props) {
           </Pressable>
         </MotiView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -357,7 +440,7 @@ interface OnboardingProps {
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 5;
+  const totalSteps = 7;
 
   // Auto-advance Step 0 after 2.2 seconds
   useEffect(() => {
@@ -388,9 +471,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       {currentStep === 1 && <Step1 />}
       {currentStep === 2 && <Step2 />}
       {currentStep === 3 && <Step3 />}
-      {currentStep === 4 && <Step4 onEnter={onComplete} onSignIn={() => onComplete('')} />}
+      {currentStep === 4 && <Step4 />}
+      {currentStep === 5 && <Step5 />}
+      {currentStep === 6 && <InviteStep onEnter={onComplete} onSignIn={() => onComplete('')} />}
 
-      {/* Navigation footer (hidden on step 0 and step 4) */}
+      {/* Navigation footer (hidden on the loader and invite code screen) */}
       {currentStep > 0 && !isLastStep && (
         <View style={obStyles.footer}>
           {/* Dots */}
@@ -437,7 +522,6 @@ const stepStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 100,
     padding: 0,
   },
   initiating: {
@@ -483,14 +567,30 @@ const stepStyles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '500',
     color: '#fff',
-    marginBottom: 24,
+    marginBottom: 22,
     letterSpacing: -0.3,
+  },
+  guideScroll: {
+    width: '100%',
+  },
+  guideScrollContent: {
+    paddingHorizontal: 32,
+    paddingTop: 78,
+    paddingBottom: 180,
+  },
+  guideEyebrow: {
+    fontFamily: typography.mono.regular,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: colors.sandOnDark,
+    marginBottom: 10,
   },
   featureRow: {
     flexDirection: 'row',
     gap: 14,
     alignItems: 'flex-start',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   featureIcon: {
     width: 36,
@@ -520,6 +620,13 @@ const stepStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     marginTop: 2,
     lineHeight: 17,
+  },
+  guideFootnote: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.34)',
+    lineHeight: 18,
+    marginTop: 8,
   },
   inviteTitle: {
     fontFamily: typography.serif.medium,

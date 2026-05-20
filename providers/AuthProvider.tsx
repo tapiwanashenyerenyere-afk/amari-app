@@ -158,22 +158,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
   //   - Magic link opened on a different device (no SecureStore, but user_metadata has data)
   const syncProfileData = useCallback(async (
     userId: string,
-    pendingData?: { fullName?: string; city?: string; industry?: string },
+    pendingData?: {
+      fullName?: string;
+      city?: string;
+      industry?: string;
+      currentProject?: string;
+      skills?: string[];
+      interests?: string[];
+    },
   ) => {
     try {
       // Fetch current member row
       const { data: member, error: fetchError } = await supabase
         .from('members')
-        .select('full_name, city, industry')
+        .select('full_name, city, industry, current_project, skills, interests')
         .eq('id', userId)
         .single();
 
       if (fetchError || !member) return;
 
       const userMeta = userMetadata;
+      const metaSkills = Array.isArray(userMeta?.skills) ? (userMeta.skills as string[]) : [];
+      const metaInterests = Array.isArray(userMeta?.interests) ? (userMeta.interests as string[]) : [];
 
       // Build updates only for fields that are empty in the DB but available from sources
-      const updates: Record<string, string> = {};
+      const updates: Record<string, string | string[]> = {};
 
       if (!member.full_name || member.full_name === 'AMARI Member') {
         const name = pendingData?.fullName || userMeta?.full_name || userMeta?.name;
@@ -188,6 +197,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!member.industry) {
         const industry = pendingData?.industry || userMeta?.industry;
         if (industry) updates.industry = industry;
+      }
+
+      if (!member.current_project) {
+        const currentProject = pendingData?.currentProject || userMeta?.current_project;
+        if (currentProject) updates.current_project = currentProject;
+      }
+
+      if (!Array.isArray(member.skills) || member.skills.length === 0) {
+        const skills = pendingData?.skills?.length ? pendingData.skills : metaSkills;
+        if (skills.length) updates.skills = skills;
+      }
+
+      if (!Array.isArray(member.interests) || member.interests.length === 0) {
+        const interests = pendingData?.interests?.length ? pendingData.interests : metaInterests;
+        if (interests.length) updates.interests = interests;
       }
 
       if (Object.keys(updates).length === 0) return;
@@ -240,9 +264,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
           redeemingRef.current = false;
           return;
         }
-        const { code, fullName, city, industry } = JSON.parse(pending);
+        const { code, fullName, city, industry, currentProject, skills, interests } = JSON.parse(pending);
+        const profilePayload = { fullName, city, industry, currentProject, skills, interests };
         if (!code) {
-          await syncProfileData(state.user!.id, { fullName, city, industry });
+          await syncProfileData(state.user!.id, profilePayload);
           redeemingRef.current = false;
           return;
         }
@@ -262,6 +287,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         if (data?.success) {
+          await syncProfileData(state.user!.id, profilePayload);
           await clearPendingInvitePayload();
           // Refresh session so JWT reflects new tier + admin status
           const { data: refreshed } = await supabase.auth.refreshSession();
@@ -282,7 +308,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         } else {
           if (data?.error === 'already_member') {
             // Member exists but might have empty profile fields — sync from SecureStore/user_metadata
-            await syncProfileData(state.user!.id, { fullName, city, industry });
+            await syncProfileData(state.user!.id, profilePayload);
             await clearPendingInvitePayload();
           } else if (data?.error === 'invalid_or_expired') {
             await clearPendingInvitePayload();

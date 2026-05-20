@@ -46,6 +46,7 @@ export default function CreateTileScreen() {
 
   const [tileType, setTileType] = useState<'project' | 'interest'>('project');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [contactEnabled, setContactEnabled] = useState(false);
@@ -94,6 +95,10 @@ export default function CreateTileScreen() {
       Alert.alert('Missing tags', 'Select at least one tag.');
       return;
     }
+    if (tileType === 'project' && !location.trim()) {
+      Alert.alert('Missing location', 'Add a city, region, or Remote so members can see where this project is based.');
+      return;
+    }
     if (selectedVisibility.length === 0) {
       Alert.alert('Missing audience', 'Select at least one membership level that can view this tile.');
       return;
@@ -104,6 +109,7 @@ export default function CreateTileScreen() {
       type: tileType,
       description,
       tags: selectedTags,
+      location,
       visibilityTiers: selectedVisibility,
       contactEnabled,
       imageUri,
@@ -132,7 +138,7 @@ export default function CreateTileScreen() {
             <Text style={styles.backIcon}>{'\u2039'}</Text>
           </Pressable>
           <Text style={styles.headerTitle}>New Tile</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 44 }} />
         </View>
 
         <View style={styles.gateWrap}>
@@ -165,7 +171,7 @@ export default function CreateTileScreen() {
             <Text style={styles.backIcon}>{'\u2039'}</Text>
           </Pressable>
           <Text style={styles.headerTitle}>New Tile</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 44 }} />
         </View>
 
         <ScrollView
@@ -210,6 +216,17 @@ export default function CreateTileScreen() {
             </Pressable>
           </View>
 
+          <View style={styles.publishNote}>
+            <Text style={styles.publishNoteTitle}>
+              {tileType === 'project' ? 'Project publishing is reviewed' : 'Interest tiles build your match graph'}
+            </Text>
+            <Text style={styles.publishNoteCopy}>
+              {tileType === 'project'
+                ? 'AMARI reviews projects before they appear in Aligned. Once approved, your selected tiers can discover it, tap Align, and contact you by email if you allow it.'
+                : 'Interests help members find shared context. They also give Aligned better signals for future recommendations.'}
+            </Text>
+          </View>
+
           {/* Image upload */}
           <Text style={styles.label}>
             Image <Text style={styles.labelHint}>(optional)</Text>
@@ -249,6 +266,21 @@ export default function CreateTileScreen() {
             <Text style={[styles.charCount, charCount > 130 && styles.charCountWarn]}>
               {charCount}/{maxChars}
             </Text>
+          </View>
+
+          <Text style={styles.label}>
+            Location <Text style={styles.labelHint}>{tileType === 'project' ? '(required for map)' : '(optional)'}</Text>
+          </Text>
+          <View style={styles.locationInputWrap}>
+            <TextInput
+              style={styles.locationInput}
+              placeholder={tileType === 'project' ? 'Melbourne, Lagos, Remote...' : 'Melbourne, Global, Remote...'}
+              placeholderTextColor={colors.grayLight}
+              value={location}
+              onChangeText={setLocation}
+              autoCapitalize="words"
+              returnKeyType="done"
+            />
           </View>
 
           {/* Tags */}
@@ -367,9 +399,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.ghost,
     alignItems: 'center',
     justifyContent: 'center',
@@ -418,6 +450,27 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textTransform: 'none',
     color: colors.gray,
+  },
+  publishNote: {
+    marginTop: 16,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+    padding: 16,
+    gap: 6,
+  },
+  publishNoteTitle: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 14,
+    color: colors.black,
+    lineHeight: 19,
+  },
+  publishNoteCopy: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 18,
   },
   consentCard: {
     borderRadius: radius.lg,
@@ -516,6 +569,18 @@ const styles = StyleSheet.create({
   },
   charCountWarn: {
     color: colors.warning,
+  },
+  locationInputWrap: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
+  locationInput: {
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.black,
+    padding: 14,
   },
 
   // Tags

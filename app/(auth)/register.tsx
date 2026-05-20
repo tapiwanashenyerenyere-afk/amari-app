@@ -20,6 +20,9 @@ import { colors, typography, spacing, radius } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
 import { signInWithGoogle } from '../../lib/googleAuth';
 
+const SKILL_OPTIONS = ['AI/ML', 'Capital', 'Operations', 'Design', 'Engineering', 'Finance', 'Policy', 'Community'];
+const INTEREST_OPTIONS = ['Community', 'Investors', 'Collaborators', 'Mentors', 'Events', 'Diaspora', 'Health', 'Culture'];
+
 export default function RegisterScreen() {
   const router = useRouter();
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -28,6 +31,9 @@ export default function RegisterScreen() {
   const [fullName, setFullName] = useState('');
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
+  const [currentProject, setCurrentProject] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authMethod, setAuthMethod] = useState<'email' | 'google' | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -41,7 +47,15 @@ export default function RegisterScreen() {
   };
 
   const storePendingCode = async () => {
-    const payload = JSON.stringify({ code, fullName, city, industry });
+    const payload = JSON.stringify({
+      code,
+      fullName,
+      city,
+      industry,
+      currentProject,
+      skills: selectedSkills,
+      interests: selectedInterests,
+    });
 
     if (Platform.OS === 'web') {
       window.localStorage.setItem('pending_invitation_code', payload);
@@ -49,6 +63,20 @@ export default function RegisterScreen() {
     }
 
     await SecureStore.setItemAsync('pending_invitation_code', payload);
+  };
+
+  const toggleSkill = (skill: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedSkills((prev) =>
+      prev.includes(skill) ? prev.filter((item) => item !== skill) : [...prev, skill]
+    );
+  };
+
+  const toggleInterest = (interest: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedInterests((prev) =>
+      prev.includes(interest) ? prev.filter((item) => item !== interest) : [...prev, interest]
+    );
   };
 
   const handleEmailAuth = async () => {
@@ -68,6 +96,9 @@ export default function RegisterScreen() {
             full_name: fullName,
             city,
             industry,
+            current_project: currentProject,
+            skills: selectedSkills,
+            interests: selectedInterests,
             invitation_code: code,
           },
         },
@@ -241,6 +272,64 @@ export default function RegisterScreen() {
                   />
                 </View>
 
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>CURRENT PROJECT</Text>
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={currentProject}
+                    onChangeText={setCurrentProject}
+                    placeholder="What are you building or exploring?"
+                    placeholderTextColor={colors.grayLight}
+                    autoCapitalize="sentences"
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>SKILLS / WHAT YOU CAN OFFER</Text>
+                  <Text style={styles.fieldHint}>Choose any that apply.</Text>
+                  <View style={styles.chipWrap}>
+                    {SKILL_OPTIONS.map((skill) => {
+                      const active = selectedSkills.includes(skill);
+                      return (
+                        <Pressable
+                          key={skill}
+                          style={[styles.profileChip, active && styles.profileChipActive]}
+                          onPress={() => toggleSkill(skill)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${active ? 'Remove' : 'Add'} ${skill}`}
+                        >
+                          <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>
+                            {skill}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>INTERESTS / WHAT YOU WANT TO FIND</Text>
+                  <Text style={styles.fieldHint}>Select multiple if more than one fits.</Text>
+                  <View style={styles.chipWrap}>
+                    {INTEREST_OPTIONS.map((interest) => {
+                      const active = selectedInterests.includes(interest);
+                      return (
+                        <Pressable
+                          key={interest}
+                          style={[styles.profileChip, active && styles.profileChipActive]}
+                          onPress={() => toggleInterest(interest)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${active ? 'Remove' : 'Add'} ${interest}`}
+                        >
+                          <Text style={[styles.profileChipText, active && styles.profileChipTextActive]}>
+                            {interest}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
                 <Pressable
                   style={({ pressed }) => [
                     styles.submitBtn,
@@ -373,6 +462,38 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     borderRadius: radius.md,
     padding: spacing.lg,
+  },
+  fieldHint: {
+    fontFamily: typography.body.regular,
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 17,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  profileChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    backgroundColor: colors.white,
+  },
+  profileChipActive: {
+    backgroundColor: colors.black,
+    borderColor: colors.black,
+  },
+  profileChipText: {
+    fontFamily: typography.body.medium,
+    fontSize: 12,
+    color: colors.gray,
+  },
+  profileChipTextActive: {
+    color: colors.bone,
   },
   submitBtn: {
     backgroundColor: colors.black,
