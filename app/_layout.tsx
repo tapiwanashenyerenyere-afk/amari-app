@@ -1,5 +1,5 @@
-import { useEffect, useCallback, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { useEffect, useCallback, useRef, useState } from 'react';
+import { View, Text, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { Stack, SplashScreen, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -51,6 +51,7 @@ import { QueryProvider } from '../providers/QueryProvider';
 import { configureGoogleSignIn } from '../lib/googleAuth';
 import { initMapbox } from '../lib/mapbox';
 import { completeAuthFromUrl } from '../lib/authCallback';
+import { supabase } from '../lib/supabase';
 import { AmariEmblem } from '../components/v2/AmariEmblem';
 import { useMyOnboardingStatus } from '../queries/members';
 
@@ -61,6 +62,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: onboardingStatus, isLoading: isOnboardingLoading } = useMyOnboardingStatus(isPostAuthSetupComplete);
   const segments = useSegments();
   const router = useRouter();
+  const missingMemberHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -77,6 +79,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!session) return;
     if (!isPostAuthSetupComplete || isOnboardingLoading) return;
 
+    if (onboardingStatus === null) {
+      if (missingMemberHandledRef.current !== session.user.id) {
+        missingMemberHandledRef.current = session.user.id;
+        Alert.alert(
+          'Membership not activated',
+          'Your sign-in worked, but the invite was not connected. Please re-enter your invite code or sign in with the email on your invitation.',
+        );
+        void supabase.auth.signOut();
+      }
+      router.replace('/(auth)/invite');
+      return;
+    }
+
     const needsOnboarding = !onboardingStatus?.onboarded_at;
 
     if (needsOnboarding && !inOnboardingGroup) {
@@ -89,7 +104,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     isLoading,
     isPostAuthSetupComplete,
     isOnboardingLoading,
-    onboardingStatus?.onboarded_at,
+    onboardingStatus,
     segments,
     router,
   ]);
