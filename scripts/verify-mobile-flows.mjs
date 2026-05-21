@@ -99,6 +99,7 @@ const onboarding = read('components/v2/Onboarding.tsx');
 const aligned = read('app/(tabs)/aligned/index.tsx');
 const passModal = read('components/v2/CardPopupModal.tsx');
 const privateRelayMigration = read('supabase/migrations/20260521000001_allow_apple_private_relay_invites.sql');
+const duplicateInviteMigration = read('supabase/migrations/20260521000002_retire_duplicate_member_invites.sql');
 
 assert(
   invite.includes("'member' | 'password'") &&
@@ -130,6 +131,13 @@ assert(
     privateRelayMigration.includes('v_normalized_email not like') &&
     privateRelayMigration.includes('email_mismatch'),
   'Invite redemption must support Sign in with Apple private relay while keeping real email mismatch protection.',
+);
+assert(
+  duplicateInviteMigration.includes('v_existing_member_id') &&
+    duplicateInviteMigration.includes("status in ('active', 'pending')") &&
+    duplicateInviteMigration.includes('first_active_member_by_email') &&
+    duplicateInviteMigration.includes("'error', 'already_member'"),
+  'Invite redemption must retire duplicate codes when the invited email already has an active member.',
 );
 assert(
   rootLayout.includes('onboardingStatus === null') &&

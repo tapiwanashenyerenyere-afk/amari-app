@@ -125,6 +125,7 @@ function validateStaticReleaseConfig() {
   const onboardingQuerySource = readFileSync('queries/onboarding.ts', 'utf8');
   const projectMapSource = readFileSync('components/aligned/ProjectMap.tsx', 'utf8');
   const privateRelayInviteMigration = readFileSync('supabase/migrations/20260521000001_allow_apple_private_relay_invites.sql', 'utf8');
+  const duplicateInviteMigration = readFileSync('supabase/migrations/20260521000002_retire_duplicate_member_invites.sql', 'utf8');
 
   assert(registerSource.includes('getAuthRedirectUrl()'), 'registration must use getAuthRedirectUrl() for magic links.');
   assert(registerSource.includes('signInWithApple'), 'iOS registration must expose Sign in with Apple.');
@@ -158,6 +159,12 @@ function validateStaticReleaseConfig() {
       privateRelayInviteMigration.includes('v_member_email := coalesce(lower(btrim(v_invite.recipient_email)), v_normalized_email)') &&
       privateRelayInviteMigration.includes('email_mismatch'),
     'invite redemption must support Apple private relay while preserving non-relay email mismatch protection.',
+  );
+  assert(
+    duplicateInviteMigration.includes('v_existing_member_id') &&
+      duplicateInviteMigration.includes('first_active_member_by_email') &&
+      duplicateInviteMigration.includes("'error', 'already_member'"),
+    'invite redemption must retire duplicate codes for emails that already have an active member.',
   );
   assert(!/localhost:3000/i.test(registerSource + inviteSource + layoutSource), 'auth source must not reference localhost:3000.');
   assert(!projectMapSource.includes('attributionEnabled={false}'), 'Mapbox attribution must not be disabled.');
