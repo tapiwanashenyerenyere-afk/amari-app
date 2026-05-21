@@ -124,6 +124,7 @@ function validateStaticReleaseConfig() {
   const postAuthOnboardingSource = readFileSync('app/(onboarding)/index.tsx', 'utf8');
   const onboardingQuerySource = readFileSync('queries/onboarding.ts', 'utf8');
   const projectMapSource = readFileSync('components/aligned/ProjectMap.tsx', 'utf8');
+  const privateRelayInviteMigration = readFileSync('supabase/migrations/20260521000001_allow_apple_private_relay_invites.sql', 'utf8');
 
   assert(registerSource.includes('getAuthRedirectUrl()'), 'registration must use getAuthRedirectUrl() for magic links.');
   assert(registerSource.includes('signInWithApple'), 'iOS registration must expose Sign in with Apple.');
@@ -133,6 +134,12 @@ function validateStaticReleaseConfig() {
   assert(layoutSource.includes("currentGroup === '(onboarding)'"), 'root layout must explicitly handle the post-auth onboarding route group.');
   assert(layoutSource.includes("name=\"(onboarding)\""), 'root stack must register the post-auth onboarding route group.');
   assert(layoutSource.includes('useMyOnboardingStatus'), 'root auth guard must use members.onboarded_at for post-auth onboarding gating.');
+  assert(
+    layoutSource.includes('onboardingStatus === null') &&
+      layoutSource.includes('Membership not activated') &&
+      layoutSource.includes('supabase.auth.signOut()'),
+    'root auth guard must block signed-in users who do not have an activated member row.',
+  );
   assert(
     postAuthOnboardingSource.includes('Drag the white A for a blend') &&
       postAuthOnboardingSource.includes('Domain Specialist') &&
@@ -145,6 +152,12 @@ function validateStaticReleaseConfig() {
       !onboardingQuerySource.includes('p_member_id') &&
       !onboardingQuerySource.includes('p_user_id'),
     'onboarding submit must use the server-derived actor RPC without client-supplied member IDs.',
+  );
+  assert(
+    privateRelayInviteMigration.includes('privaterelay.appleid.com') &&
+      privateRelayInviteMigration.includes('v_member_email := coalesce(lower(btrim(v_invite.recipient_email)), v_normalized_email)') &&
+      privateRelayInviteMigration.includes('email_mismatch'),
+    'invite redemption must support Apple private relay while preserving non-relay email mismatch protection.',
   );
   assert(!/localhost:3000/i.test(registerSource + inviteSource + layoutSource), 'auth source must not reference localhost:3000.');
   assert(!projectMapSource.includes('attributionEnabled={false}'), 'Mapbox attribution must not be disabled.');

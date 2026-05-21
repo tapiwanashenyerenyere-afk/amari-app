@@ -21,11 +21,12 @@ iOS TestFlight
 4. Open AMARI.
 5. For a new tester, tap Invitation Code and enter the assigned AMARI code.
 6. Continue with email, enter the tester email, then enter the one-time email code.
-7. For an existing tester moving from a previous build, tap Already a member? Sign in with email.
-8. Enter the same email used in the earlier AMARI build, then enter the one-time email code.
-9. Open Aligned, tap Projects, tap at least three project rows, and confirm each opens a project detail screen.
-10. On the detail screen, test Keep me updated, Connect with project creator, and any project link.
-11. Tap Your pass, test Email details, Share to apps, and Scan pass.
+7. For Apple sign-in testing, enter an invite code first, then use Sign in with Apple. Hide My Email must still activate the invite and reach the member experience.
+8. For an existing tester moving from a previous build, tap Already a member? Sign in with email.
+9. Enter the same email used in the earlier AMARI build, then enter the one-time email code.
+10. Open Aligned, tap Projects, tap at least three project rows, and confirm each opens a project detail screen.
+11. On the detail screen, test Keep me updated, Connect with project creator, and any project link.
+12. Tap Your pass, test Email details, Share to apps, and Scan pass.
 
 Android Play Store
 1. Open the AMARI Play Store listing or closed/production testing link on the Android phone.
@@ -92,9 +93,12 @@ if (process.argv.includes('--tinashe-android')) {
 }
 
 const invite = read('app/(auth)/invite.tsx');
+const register = read('app/(auth)/register.tsx');
+const rootLayout = read('app/_layout.tsx');
 const onboarding = read('components/v2/Onboarding.tsx');
 const aligned = read('app/(tabs)/aligned/index.tsx');
 const passModal = read('components/v2/CardPopupModal.tsx');
+const privateRelayMigration = read('supabase/migrations/20260521000001_allow_apple_private_relay_invites.sql');
 
 assert(
   invite.includes("'member' | 'password'") &&
@@ -112,6 +116,27 @@ assert(
   invite.includes('Already a member? Sign in with email') &&
     onboarding.includes('Existing members can sign in below.'),
   'Invite validation failure must route existing testers to email sign-in.',
+);
+assert(
+  register.includes('storePendingCode') &&
+    register.includes('handleAppleAuth') &&
+    register.includes('signInWithApple') &&
+    register.includes('pending_invitation_code'),
+  'Apple sign-in registration must persist the pending invite code before opening Apple auth.',
+);
+assert(
+  privateRelayMigration.includes('privaterelay.appleid.com') &&
+    privateRelayMigration.includes('v_member_email := coalesce(lower(btrim(v_invite.recipient_email)), v_normalized_email)') &&
+    privateRelayMigration.includes('v_normalized_email not like') &&
+    privateRelayMigration.includes('email_mismatch'),
+  'Invite redemption must support Sign in with Apple private relay while keeping real email mismatch protection.',
+);
+assert(
+  rootLayout.includes('onboardingStatus === null') &&
+    rootLayout.includes('Membership not activated') &&
+    rootLayout.includes('supabase.auth.signOut()') &&
+    rootLayout.includes("router.replace('/(auth)/invite')"),
+  'Auth guard must keep users without activated member rows out of post-auth onboarding.',
 );
 assert(
   aligned.includes('function ProjectDetailModal') &&
