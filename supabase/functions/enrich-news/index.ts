@@ -21,6 +21,16 @@ const BATCH_SIZE = 10;
 const MAX_BATCHES_PER_RUN = 4;
 const RELEVANCE_FLOOR = 25;
 
+// ─── HARD BUDGET CEILING ───────────────────────────────────────────────
+// Maximum Anthropic spend for this pipeline: $10.00 per calendar month.
+// HARD-CODED BY DESIGN — do not lift this into an env var or setting.
+// When the meter in news_ai_spend reaches this ceiling, enrichment stops
+// until the next calendar month. Articles simply stay pending.
+const HARD_MONTHLY_BUDGET_USD = 10.0;
+// Claude Haiku 4.5 pricing used by the meter (USD per million tokens).
+const HAIKU_INPUT_USD_PER_MTOK = 1.0;
+const HAIKU_OUTPUT_USD_PER_MTOK = 5.0;
+
 const TOPIC_TAGS = [
   'entrepreneurship',
   'creative-industries',
@@ -139,9 +149,53 @@ function parseClassifications(text: string): Classification[] {
   }
 }
 
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function costUsd(inputTokens: number, outputTokens: number): number {
+  return (
+    (inputTokens / 1_000_000) * HAIKU_INPUT_USD_PER_MTOK +
+    (outputTokens / 1_000_000) * HAIKU_OUTPUT_USD_PER_MTOK
+  );
+}
+
+async function getMonthSpend(serviceClient: ReturnType<typeof createClient>): Promise<number> {
+  const { data } = await serviceClient
+    .from('news_ai_spend')
+    .select('spent_usd')
+    .eq('month', currentMonth())
+    .maybeSingle();
+  return Number(data?.spent_usd ?? 0);
+}
+
+async function recordSpend(
+  serviceClient: ReturnType<typeof createClient>,
+  inputTokens: number,
+  outputTokens: number,
+): Promise<void> {
+  const month = currentMonth();
+  const { data: existing } = await serviceClient
+    .from('news_ai_spend')
+    .select('input_tokens, output_tokens, spent_usd')
+    .eq('month', month)
+    .maybeSingle();
+
+  const nextInput = Number(existing?.input_tokens ?? 0) + inputTokens;
+  const nextOutput = Number(existing?.output_tokens ?? 0) + outputTokens;
+
+  await serviceClient.from('news_ai_spend').upsert({
+    month,
+    input_tokens: nextInput,
+    output_tokens: nextOutput,
+    spent_usd: costUsd(nextInput, nextOutput).toFixed(4),
+    updated_at: new Date().toISOString(),
+  });
+}
+
 async function classifyBatch(
   articles: { id: number; title: string; snippet: string | null; source: string }[],
-): Promise<Classification[]> {
+): Promise<{ classifications: Classification[]; inputTokens: number; outputTokens: number }> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -167,7 +221,11 @@ async function classifyBatch(
     .map((block: Record<string, unknown>) => block.text)
     .join('\n');
 
-  return parseClassifications(text);
+  return {
+    classifications: parseClassifications(text),
+    inputTokens: Number(data?.usage?.input_tokens ?? 0),
+    outputTokens: Number(data?.usage?.output_tokens ?? 0),
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -181,6 +239,19 @@ Deno.serve(async (req: Request) => {
     }
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // HARD BUDGET GATE: never spend past the monthly ceiling.
+    let monthSpend = await getMonthSpend(serviceClient);
+    if (monthSpend >= HARD_MONTHLY_BUDGET_USD) {
+      return jsonResponse({
+        success: true,
+        enriched: 0,
+        skipped: 'monthly_budget_reached',
+        spent_usd: monthSpend,
+        budget_usd: HARD_MONTHLY_BUDGET_USD,
+        message: `Monthly AI budget of $${HARD_MONTHLY_BUDGET_USD.toFixed(2)} reached; enrichment paused until next month.`,
+      });
+    }
 
     const { data: pending, error: pendingError } = await serviceClient
       .from('news_articles')
@@ -202,6 +273,11 @@ Deno.serve(async (req: Request) => {
     let failed = 0;
 
     for (let offset = 0; offset < pending.length; offset += BATCH_SIZE) {
+      if (monthSpend >= HARD_MONTHLY_BUDGET_USD) {
+        console.warn('[enrich-news] Monthly budget reached mid-run; stopping.');
+        break;
+      }
+
       const batch = pending.slice(offset, offset + BATCH_SIZE).map((row) => ({
         id: row.id,
         title: row.title,
@@ -211,7 +287,10 @@ Deno.serve(async (req: Request) => {
 
       let classifications: Classification[] = [];
       try {
-        classifications = await classifyBatch(batch);
+        const result = await classifyBatch(batch);
+        classifications = result.classifications;
+        monthSpend += costUsd(result.inputTokens, result.outputTokens);
+        await recordSpend(serviceClient, result.inputTokens, result.outputTokens);
       } catch (error) {
         console.error('[enrich-news] Batch classification failed:', error);
         failed += batch.length;
@@ -258,6 +337,8 @@ Deno.serve(async (req: Request) => {
       hidden,
       failed,
       remaining_estimate: Math.max(0, (pending.length ?? 0) - published - hidden - failed),
+      spent_usd_this_month: Number(monthSpend.toFixed(4)),
+      budget_usd: HARD_MONTHLY_BUDGET_USD,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
