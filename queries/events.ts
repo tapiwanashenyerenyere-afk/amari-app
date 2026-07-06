@@ -99,3 +99,20 @@ export function useRsvpToEvent() {
     },
   });
 }
+
+export function useCancelRsvp() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (eventId: number) => {
+      const { data, error } = await supabase.rpc('cancel_event_rsvp', {
+        p_event_id: eventId,
+      });
+      if (error) throw error;
+      return data as { success: boolean; error?: string };
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.events.all });
+    },
+  });
+}

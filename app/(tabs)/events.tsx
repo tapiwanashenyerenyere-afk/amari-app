@@ -15,6 +15,7 @@ import { Lock } from 'lucide-react-native';
 import { EventCard } from '../../components/events/EventCard';
 import { FeaturedEventCard } from '../../components/events/FeaturedEventCard';
 import { PastEventCard } from '../../components/events/PastEventCard';
+import { TicketModal } from '../../components/events/TicketModal';
 import {
   EVENT_FILTER_OPTIONS,
   EVENT_TIER_COPY,
@@ -27,9 +28,10 @@ import {
 } from '../../lib/events';
 import { colors, typography, spacing, radius, TIER_LEVELS } from '../../lib/theme';
 import { useAuth } from '../../providers/AuthProvider';
-import { useEvents, useMyRsvps } from '../../queries/events';
+import { useMyProfile } from '../../queries/members';
+import { useCancelRsvp, useEvents, useMyRsvps, useRsvpToEvent } from '../../queries/events';
 import { FilterPills } from '../../components/v2';
-import type { Event, MembershipTier } from '../../types/database';
+import type { Event, MembershipTier, RsvpStatus } from '../../types/database';
 
 function hasTierAccess(userTier: MembershipTier, minTier: MembershipTier) {
   return TIER_LEVELS[userTier] >= TIER_LEVELS[minTier];
@@ -84,9 +86,14 @@ export default function EventsScreen() {
   const { tier } = useAuth();
   const [filter, setFilter] = useState<EventFilter>('all');
   const [lockedEvent, setLockedEvent] = useState<Event | null>(null);
+  const [ticketEvent, setTicketEvent] = useState<Event | null>(null);
+  const [freshTicketStatus, setFreshTicketStatus] = useState<RsvpStatus | null>(null);
   const { data: upcomingData } = useEvents({ scope: 'upcoming' });
   const { data: pastData } = useEvents({ scope: 'past' });
   const { data: myRsvps } = useMyRsvps();
+  const { data: profile } = useMyProfile();
+  const rsvpToEvent = useRsvpToEvent();
+  const cancelRsvp = useCancelRsvp();
 
   const upcomingEvents = useMemo(
     () => (upcomingData ?? []).filter((event) => matchesEventFilter(event, filter)),
@@ -118,6 +125,16 @@ export default function EventsScreen() {
     [myRsvps],
   );
 
+  const ticketStatusByEventId = useMemo(() => {
+    const map = new Map<number, RsvpStatus>();
+    (myRsvps ?? []).forEach((rsvp: any) => {
+      if (rsvp.status === 'confirmed' || rsvp.status === 'waitlisted') {
+        map.set(rsvp.event_id, rsvp.status);
+      }
+    });
+    return map;
+  }, [myRsvps]);
+
   const selectedFilterLabel = useMemo(
     () => EVENT_FILTER_OPTIONS.find((option) => option.value === filter)?.label ?? 'All',
     [filter],
@@ -130,27 +147,74 @@ export default function EventsScreen() {
       return;
     }
 
-    const registrationUrl = getEventRegistrationUrl(event);
-    if (!registrationUrl) {
-      Alert.alert(
-        'Registration unavailable',
-        'This event does not have a registration link yet.',
-      );
+    if (ticketStatusByEventId.has(event.id)) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setFreshTicketStatus(null);
+      setTicketEvent(event);
       return;
     }
 
-    const canOpen = await Linking.canOpenURL(registrationUrl);
-    if (!canOpen) {
-      Alert.alert('Invalid link', 'This registration link could not be opened.');
+    const registrationUrl = getEventRegistrationUrl(event);
+    if (registrationUrl) {
+      const canOpen = await Linking.canOpenURL(registrationUrl);
+      if (!canOpen) {
+        Alert.alert('Invalid link', 'This registration link could not be opened.');
+        return;
+      }
+
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await Linking.openURL(registrationUrl);
+      } catch {
+        Alert.alert('Registration unavailable', 'This registration link could not be opened right now.');
+      }
       return;
     }
 
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Linking.openURL(registrationUrl);
+      const result = (await rsvpToEvent.mutateAsync(event.id)) as {
+        success: boolean;
+        status?: string;
+        error?: string;
+      };
+
+      if (!result?.success) {
+        Alert.alert('Ticket unavailable', result?.error ?? 'This event could not be booked right now.');
+        return;
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setFreshTicketStatus(result.status === 'waitlisted' ? 'waitlisted' : 'confirmed');
+      setTicketEvent(event);
     } catch {
-      Alert.alert('Registration unavailable', 'This registration link could not be opened right now.');
+      Alert.alert('Ticket unavailable', 'This event could not be booked right now.');
     }
+  };
+
+  const handleCancelTicket = async (event: Event) => {
+    try {
+      const result = await cancelRsvp.mutateAsync(event.id);
+      if (!result?.success) {
+        Alert.alert('Could not cancel', result?.error ?? 'This ticket could not be cancelled.');
+        return;
+      }
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTicketEvent(null);
+    } catch {
+      Alert.alert('Could not cancel', 'This ticket could not be cancelled right now.');
+    }
+  };
+
+  const getActionLabel = (event: Event) => {
+    if (!hasTierAccess(tier, event.min_tier)) {
+      return 'Locked';
+    }
+    const ticketStatus = ticketStatusByEventId.get(event.id);
+    if (ticketStatus) {
+      return ticketStatus === 'waitlisted' ? 'Waitlist' : 'Ticket';
+    }
+    return getEventRegistrationUrl(event) ? 'Register' : 'Get Ticket';
   };
 
   return (
@@ -176,6 +240,13 @@ export default function EventsScreen() {
 
         {featuredEvent ? (
           <FeaturedEventCard
+            actionLabel={
+              ticketStatusByEventId.has(featuredEvent.id)
+                ? 'View your ticket'
+                : getEventRegistrationUrl(featuredEvent)
+                  ? 'Open registration'
+                  : 'Get your ticket'
+            }
             event={featuredEvent}
             gradientColors={EVENT_TYPE_GRADIENTS[featuredEvent.type]}
             locked={!hasTierAccess(tier, featuredEvent.min_tier)}
@@ -196,13 +267,7 @@ export default function EventsScreen() {
           {listEvents.length ? (
             listEvents.map((event) => (
               <EventCard
-                actionLabel={
-                  !hasTierAccess(tier, event.min_tier)
-                    ? 'Locked'
-                    : getEventRegistrationUrl(event)
-                      ? 'Register'
-                      : 'Soon'
-                }
+                actionLabel={getActionLabel(event)}
                 event={event}
                 gradientColors={EVENT_TYPE_GRADIENTS[event.type]}
                 key={event.id}
@@ -238,6 +303,20 @@ export default function EventsScreen() {
       </ScrollView>
 
       <TierRequirementSheet event={lockedEvent} onClose={() => setLockedEvent(null)} />
+
+      <TicketModal
+        cancelling={cancelRsvp.isPending}
+        displayId={profile?.display_id || ''}
+        event={ticketEvent}
+        memberName={profile?.full_name?.trim() || 'AMARI Member'}
+        onCancel={handleCancelTicket}
+        onClose={() => setTicketEvent(null)}
+        rsvpStatus={
+          ticketEvent
+            ? ticketStatusByEventId.get(ticketEvent.id) ?? freshTicketStatus ?? 'confirmed'
+            : null
+        }
+      />
     </View>
   );
 }
