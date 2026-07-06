@@ -89,6 +89,12 @@ export default function AdminScreen() {
       route: '/admin/events' as const,
     },
     {
+      title: 'Check-in',
+      subtitle: 'Scan member passes at the door',
+      icon: '▣',
+      route: '/admin/checkin' as const,
+    },
+    {
       title: 'Invite Codes',
       subtitle: `${stats.codesUsed} used · ${stats.codesRemaining} remaining`,
       icon: '◇',
