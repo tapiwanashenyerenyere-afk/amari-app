@@ -22,6 +22,12 @@ export const queryKeys = {
     mapSummary: () => [...queryKeys.pulse.all, 'map-summary'] as const,
     edition: (id: number) => [...queryKeys.pulse.all, id] as const,
   },
+  news: {
+    all: ['news'] as const,
+    feed: () => [...queryKeys.news.all, 'feed'] as const,
+    saved: () => [...queryKeys.news.all, 'saved'] as const,
+    interests: () => [...queryKeys.news.all, 'interests'] as const,
+  },
   events: {
     all: ['events'] as const,
     list: (scope?: string, type?: string) => [...queryKeys.events.all, 'list', scope ?? 'upcoming', type ?? 'all'] as const,
@@ -51,6 +57,7 @@ export const queryKeys = {
 
 export const staleTimes = {
   pulse: 10 * 60 * 1000,
+  news: 5 * 60 * 1000,
   events: 5 * 60 * 1000,
   corridor: 5 * 60 * 1000,
   aligned: 30 * 1000,

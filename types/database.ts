@@ -214,6 +214,45 @@ export interface Connection {
   connected_at: string;
 }
 
+// ─── Intelligence Feed Types ───────────────────────────────
+
+export type NewsRegion = 'australia' | 'uk' | 'africa' | 'americas' | 'global';
+
+export interface NewsFeedItem {
+  id: number;
+  source_name: string;
+  source_region: NewsRegion;
+  url: string;
+  title: string;
+  snippet: string | null;
+  image_url: string | null;
+  published_at: string;
+  topics: string[];
+  regions: string[];
+  summary: string | null;
+  is_saved: boolean;
+  score: number;
+}
+
+export interface SavedArticleItem {
+  id: number;
+  source_name: string;
+  url: string;
+  title: string;
+  snippet: string | null;
+  image_url: string | null;
+  published_at: string;
+  saved_at: string;
+}
+
+export interface FeedInterest {
+  tag: string;
+  weight: number;
+  declared: boolean;
+}
+
+export type NewsEventType = 'impression' | 'open' | 'dwell' | 'save' | 'unsave' | 'hide';
+
 // ─── Map Feature Types ─────────────────────────────────────
 
 export type ProjectCategory = 'venture' | 'advisory' | 'creative' | 'impact' | 'culture' | 'health' | 'tech';
