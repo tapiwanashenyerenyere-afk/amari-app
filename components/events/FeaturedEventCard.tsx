@@ -8,6 +8,7 @@ import { colors, radius, typography } from '@/lib/theme';
 import type { Event } from '@/types/database';
 
 interface FeaturedEventCardProps {
+  actionLabel?: string;
   event: Event;
   gradientColors: [string, string, string];
   locked?: boolean;
@@ -16,6 +17,7 @@ interface FeaturedEventCardProps {
 }
 
 export function FeaturedEventCard({
+  actionLabel = 'Open registration',
   event,
   gradientColors,
   locked = false,
@@ -32,7 +34,7 @@ export function FeaturedEventCard({
         pressed ? styles.cardPressed : null,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${event.title}. ${locked ? 'View tier requirement.' : 'Open registration.'}`}
+      accessibilityLabel={`${event.title}. ${locked ? 'View tier requirement.' : `${actionLabel}.`}`}
     >
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFillObject} />
       {event.cover_image_path ? (
@@ -88,7 +90,7 @@ export function FeaturedEventCard({
             <ExternalLink color={colors.black} size={15} strokeWidth={2} />
           )}
           <Text style={styles.ctaLabel}>
-            {locked ? 'View tier requirement' : 'Open registration'}
+            {locked ? 'View tier requirement' : actionLabel}
           </Text>
         </View>
       </View>
