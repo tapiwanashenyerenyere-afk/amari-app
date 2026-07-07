@@ -5,7 +5,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  Share,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,8 +23,6 @@ import {
   Bookmark,
   ChevronRight,
   Mail,
-  PenLine,
-  Plus,
   Search,
   ScanLine,
   X,
@@ -211,16 +208,12 @@ function BoardView({
   connections,
   onOpenInterests,
   onOpenMap,
-  onOpenNotes,
   onOpenPass,
-  onStartProject,
 }: {
   connections: ConnectionCardData[];
   onOpenInterests: () => void;
   onOpenMap: () => void;
-  onOpenNotes: () => void;
   onOpenPass: () => void;
-  onStartProject: () => void;
 }) {
   return (
     <View style={styles.boardStack}>
@@ -240,20 +233,6 @@ function BoardView({
         subtitle="Browse members and ideas connected to the same categories you care about."
         tag="Discover shared passions"
         title="Interests"
-      />
-
-      <ActionRow
-        description="Open the share sheet for Notes, Mail, Messages, or another app"
-        icon={<PenLine color={colors.white} size={16} strokeWidth={1.9} />}
-        onPress={onOpenNotes}
-        title="Share board"
-      />
-
-      <ActionRow
-        description="Begin a new project"
-        icon={<Plus color={colors.gold} size={18} strokeWidth={2.2} />}
-        onPress={onStartProject}
-        title="Spark"
       />
 
       <ActionRow
@@ -838,43 +817,6 @@ export default function AlignedScreen() {
     ]);
   }, []);
 
-  const handleOpenNotes = useCallback(async () => {
-    const savedProjects = directoryProjects.filter((project) => bookmarkedProjectIds.has(project.project_id));
-    const hasShareContent = savedProjects.length > 0 || recentConnections.length > 0;
-
-    if (!hasShareContent) {
-      Alert.alert(
-        'Nothing to share yet',
-        'Save a project or make a connection first, then share your board to Notes, Mail, Messages, or another app.',
-      );
-      return;
-    }
-
-    const noteLines = [
-      'AMARI Aligned Board',
-      '',
-      savedProjects.length ? 'Saved projects' : 'Saved projects: none yet',
-      ...savedProjects.flatMap((project, index) => ([
-        `${index + 1}. ${project.name}`,
-        project.creatorEmail ? `   Contact: ${project.creatorEmail}` : `   ${project.display_label}`,
-        `   ${project.description}`,
-        project.external_link ? `   ${project.external_link}` : null,
-      ].filter(Boolean) as string[])),
-      '',
-      recentConnections.length ? 'Recent connections' : 'Recent connections: none yet',
-      ...recentConnections.map((connection, index) => `${index + 1}. ${connection.name} · ${connection.location} · ${connection.matchedVia}`),
-    ];
-
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Share.share({
-        title: 'AMARI Aligned Board',
-        message: noteLines.join('\n'),
-      });
-    } catch {
-      Alert.alert('Share unavailable', 'The share sheet could not be opened right now.');
-    }
-  }, [bookmarkedProjectIds, directoryProjects, recentConnections]);
 
   const mapScene = (
     <View style={[styles.mapScene, { width: contentWidth }, showFullscreenMap ? styles.mapSceneExpanded : null]}>
@@ -941,12 +883,10 @@ export default function AlignedScreen() {
                   connections={recentConnections}
                   onOpenInterests={() => switchView('interests')}
                   onOpenMap={() => switchView('list')}
-                  onOpenNotes={handleOpenNotes}
                   onOpenPass={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setShowPassPopup(true);
                   }}
-                  onStartProject={() => router.push('/(tabs)/aligned/create')}
                 />
               ) : (
                 <>
