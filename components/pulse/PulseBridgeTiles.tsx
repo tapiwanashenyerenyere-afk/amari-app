@@ -1,6 +1,8 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AmbientGradient } from '@/components/v2/AmbientGradient';
+import { PressableScale } from '@/components/v2/PressableScale';
 import { getEventDateParts } from '@/lib/events';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import type { Event } from '@/types/database';
@@ -18,18 +20,21 @@ interface PulseBridgeTilesProps {
 function BridgeTile({
   children,
   gradientColors,
+  glow,
   onPress,
 }: {
   children: React.ReactNode;
   gradientColors: [string, string, string];
+  glow?: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, pressed ? styles.tilePressed : null]}>
+    <PressableScale haptic={false} onPress={onPress} style={styles.tile}>
       <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFillObject} />
+      <AmbientGradient color={glow} size={170} />
       <View style={styles.grain} />
       <View style={styles.inner}>{children}</View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -43,7 +48,7 @@ export function PulseBridgeTiles({
 
   return (
     <View style={styles.row}>
-      <BridgeTile gradientColors={['#1A1510', '#0F0A06', '#1C1510']} onPress={onOpenEvents}>
+      <BridgeTile gradientColors={['#1A1510', '#0F0A06', '#1C1510']} glow="196,162,101" onPress={onOpenEvents}>
         <Text style={styles.label}>Next event</Text>
         {nextEventDate ? (
           <>
@@ -66,7 +71,7 @@ export function PulseBridgeTiles({
         )}
       </BridgeTile>
 
-      <BridgeTile gradientColors={['#101820', '#0A1018', '#141C24']} onPress={onOpenMap}>
+      <BridgeTile gradientColors={['#101820', '#0A1018', '#141C24']} glow="140,170,210" onPress={onOpenMap}>
         <Text style={styles.label}>On the map</Text>
         <View style={styles.countWrap}>
           <Text style={styles.count}>{mapSummary.total}</Text>
@@ -93,9 +98,6 @@ const styles = StyleSheet.create({
     minHeight: 130,
     borderRadius: radius.lg,
     overflow: 'hidden',
-  },
-  tilePressed: {
-    transform: [{ scale: 0.98 }],
   },
   grain: {
     ...StyleSheet.absoluteFillObject,

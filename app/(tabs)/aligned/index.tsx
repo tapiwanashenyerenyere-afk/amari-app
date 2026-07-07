@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilterChips } from '../../../components/aligned/FilterChips';
+import { ProjectPage } from '../../../components/aligned/ProjectPage';
 import { MapResultsSheet, type MapResultsProject } from '../../../components/aligned/MapResultsSheet';
 import { type MapRegionKey, ProjectMap } from '../../../components/aligned/ProjectMap';
 import { type AlignedView, ViewToggle } from '../../../components/aligned/ViewToggle';
@@ -511,31 +512,14 @@ function ProjectDetailModal({
   if (!project) return null;
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} transparent visible>
-      <View style={styles.projectDetailBackdrop}>
-        <Pressable onPress={onClose} style={StyleSheet.absoluteFillObject} />
-        <View style={styles.projectDetailShell}>
-          <ScrollView
-            contentContainerStyle={styles.projectDetailScroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.projectDetailEyebrow}>Project detail</Text>
-            <InterestDetailCard
-              onClear={onClose}
-              onContact={onContact}
-              onOpenLink={onOpenLink}
-              onToggleBookmark={onToggleBookmark}
-              project={project}
-              saved={saved}
-            />
-            <Text style={styles.projectDetailHint}>
-              Keep me updated bookmarks this project so it remains in your AMARI board.
-            </Text>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+    <ProjectPage
+      onClose={onClose}
+      onContact={() => onContact(project)}
+      onOpenLink={onOpenLink}
+      onToggleBookmark={() => onToggleBookmark(project.project_id)}
+      project={project}
+      saved={saved}
+    />
   );
 }
 
