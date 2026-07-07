@@ -13,23 +13,40 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const PIPELINE_SECRET = Deno.env.get('NEWS_PIPELINE_SECRET') ?? '';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+// ─── Model provider adapter ────────────────────────────────────────────
+// One env switch moves the pipeline between providers with no code change:
+//   LLM_PROVIDER=anthropic  → Claude Haiku (ANTHROPIC_API_KEY)
+//   LLM_PROVIDER=openai     → any OpenAI-compatible endpoint
+//     (OPENAI_API_KEY, optional OPENAI_BASE_URL for Groq/Together/Ollama,
+//      optional OPENAI_MODEL, default gpt-4o-mini)
+const LLM_PROVIDER = (Deno.env.get('LLM_PROVIDER') ?? 'anthropic').toLowerCase();
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
+const OPENAI_BASE_URL = (Deno.env.get('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1').replace(/\/$/, '');
+const OPENAI_MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
+
+const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 10;
 const MAX_BATCHES_PER_RUN = 4;
 const RELEVANCE_FLOOR = 25;
 
 // ─── HARD BUDGET CEILING ───────────────────────────────────────────────
-// Maximum Anthropic spend for this pipeline: $10.00 per calendar month.
+// Maximum LLM spend for this pipeline: $10.00 per calendar month.
 // HARD-CODED BY DESIGN — do not lift this into an env var or setting.
 // When the meter in news_ai_spend reaches this ceiling, enrichment stops
 // until the next calendar month. Articles simply stay pending.
 const HARD_MONTHLY_BUDGET_USD = 10.0;
-// Claude Haiku 4.5 pricing used by the meter (USD per million tokens).
-const HAIKU_INPUT_USD_PER_MTOK = 1.0;
-const HAIKU_OUTPUT_USD_PER_MTOK = 5.0;
+// Meter rates (USD per million tokens). Anthropic = Haiku 4.5 list price.
+// The openai rates are deliberately conservative upper bounds so the meter
+// overestimates on cheaper compat hosts and trips the ceiling early.
+const METER_RATES: Record<string, { input: number; output: number }> = {
+  anthropic: { input: 1.0, output: 5.0 },
+  openai: { input: 0.6, output: 2.4 },
+};
+const ACTIVE_RATES = METER_RATES[LLM_PROVIDER] ?? METER_RATES.anthropic;
+const ACTIVE_API_KEY = LLM_PROVIDER === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY;
 
 const TOPIC_TAGS = [
   'entrepreneurship',
@@ -155,8 +172,8 @@ function currentMonth(): string {
 
 function costUsd(inputTokens: number, outputTokens: number): number {
   return (
-    (inputTokens / 1_000_000) * HAIKU_INPUT_USD_PER_MTOK +
-    (outputTokens / 1_000_000) * HAIKU_OUTPUT_USD_PER_MTOK
+    (inputTokens / 1_000_000) * ACTIVE_RATES.input +
+    (outputTokens / 1_000_000) * ACTIVE_RATES.output
   );
 }
 
@@ -196,6 +213,37 @@ async function recordSpend(
 async function classifyBatch(
   articles: { id: number; title: string; snippet: string | null; source: string }[],
 ): Promise<{ classifications: Classification[]; inputTokens: number; outputTokens: number }> {
+  const prompt = buildPrompt(articles);
+
+  if (LLM_PROVIDER === 'openai') {
+    const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`LLM API ${response.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = await response.json();
+    const text = data?.choices?.[0]?.message?.content ?? '';
+
+    return {
+      classifications: parseClassifications(text),
+      inputTokens: Number(data?.usage?.prompt_tokens ?? 0),
+      outputTokens: Number(data?.usage?.completion_tokens ?? 0),
+    };
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -204,9 +252,9 @@ async function classifyBatch(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: ANTHROPIC_MODEL,
       max_tokens: 2000,
-      messages: [{ role: 'user', content: buildPrompt(articles) }],
+      messages: [{ role: 'user', content: prompt }],
     }),
   });
 
@@ -234,8 +282,11 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
-    if (!ANTHROPIC_API_KEY) {
-      return jsonResponse({ error: 'ANTHROPIC_API_KEY is not configured' }, 500);
+    if (!ACTIVE_API_KEY) {
+      return jsonResponse(
+        { error: `No API key configured for LLM provider "${LLM_PROVIDER}"` },
+        500,
+      );
     }
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

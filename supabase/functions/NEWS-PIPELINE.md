@@ -23,6 +23,21 @@ supabase secrets set NEWS_PIPELINE_SECRET=<long random string>
 supabase secrets set ANTHROPIC_API_KEY=<key>
 ```
 
+### Switching model provider
+
+Enrichment is provider-agnostic. Default is Anthropic (Claude Haiku). To run on
+any OpenAI-compatible endpoint instead (OpenAI, Groq, Together, a local Ollama):
+
+```bash
+supabase secrets set LLM_PROVIDER=openai OPENAI_API_KEY=<key>
+# optional overrides:
+supabase secrets set OPENAI_BASE_URL=https://api.groq.com/openai/v1 OPENAI_MODEL=llama-3.3-70b-versatile
+```
+
+The $10.00/month hard ceiling applies to whichever provider is active; the
+meter uses conservative upper-bound rates for openai-compatible hosts so it
+trips early rather than late.
+
 Generate the pipeline secret with `openssl rand -hex 32`. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
 
 ## Schedule (run once in the SQL editor)
