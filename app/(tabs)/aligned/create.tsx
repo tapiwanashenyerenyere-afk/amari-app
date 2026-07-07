@@ -14,8 +14,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ImagePlus } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing, radius } from '../../../lib/theme';
+import { AmbientGradient, PressableScale } from '../../../components/v2';
+import { hapticOutcome } from '../../../lib/motion';
 import { RegionPicker } from '../../../components/aligned/RegionPicker';
 import { useCreateProject } from '../../../hooks/useCreateProject';
 import type { ProjectCategory, RegionCentroid } from '../../../types/database';
@@ -54,19 +57,19 @@ export default function CreateProjectScreen() {
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      Alert.alert('Missing name', 'Give your project a name.');
+      Alert.alert('Missing name', 'Give your work a name. It sits on the cover.');
       return;
     }
     if (!description.trim()) {
-      Alert.alert('Missing description', 'Describe your project in one sentence.');
+      Alert.alert('Missing description', 'Describe the work in one strong sentence.');
       return;
     }
     if (!category) {
-      Alert.alert('Missing category', 'Select a category for your project.');
+      Alert.alert('Missing category', 'Select a category for your work.');
       return;
     }
     if (!region) {
-      Alert.alert('Missing region', 'Select the region where your project is based.');
+      Alert.alert('Missing region', 'Select the region where this work is based.');
       return;
     }
 
@@ -81,12 +84,14 @@ export default function CreateProjectScreen() {
     });
 
     if (success) {
+      hapticOutcome(true);
       Alert.alert(
-        'Project submitted',
-        'Your project is pending review. It will appear on the map once approved.',
-        [{ text: 'OK', onPress: () => router.back() }],
+        'Submitted for review',
+        'Your work is with the desk. Once approved it joins the map and the board, and your journal opens for updates.',
+        [{ text: 'Done', onPress: () => router.back() }],
       );
     } else {
+      hapticOutcome(false);
       Alert.alert('Error', 'Something went wrong. Please try again.');
     }
   };
@@ -97,7 +102,6 @@ export default function CreateProjectScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
         <View style={styles.header}>
           <Pressable
             style={styles.backBtn}
@@ -108,9 +112,9 @@ export default function CreateProjectScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={styles.backIcon}>{'\u2039'}</Text>
+            <Text style={styles.backIcon}>{'‹'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>New Project</Text>
+          <Text style={styles.headerTitle}>New work</Text>
           <View style={{ width: 44 }} />
         </View>
 
@@ -124,54 +128,52 @@ export default function CreateProjectScreen() {
           keyboardShouldPersistTaps="handled"
           automaticallyAdjustKeyboardInsets
         >
-          <View style={styles.publishNote}>
-            <Text style={styles.publishNoteTitle}>Project publishing is reviewed</Text>
-            <Text style={styles.publishNoteCopy}>
-              AMARI reviews projects before they appear in Aligned. Once approved, members can find it on the map or list,
-              keep updates on, and contact you by email when contact details are available.
-            </Text>
-          </View>
-
-          {/* Image upload */}
-          <Text style={styles.label}>
-            Cover image <Text style={styles.labelHint}>(optional)</Text>
-          </Text>
-          <Pressable
-            style={styles.imageUpload}
-            onPress={handlePickImage}
-            accessibilityRole="button"
-            accessibilityLabel="Upload cover image"
-          >
+          {/* The cover is the work. Name is written on it, poster-style. */}
+          <View style={styles.coverCard}>
             {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFillObject} />
             ) : (
-              <LinearGradient
-                colors={['#1C1815', '#111111']}
-                style={styles.imagePlaceholder}
-              >
-                <Text style={styles.imagePlaceholderIcon}>+</Text>
-                <Text style={styles.imagePlaceholderText}>Tap to add</Text>
+              <LinearGradient colors={['#1C1815', '#0F0D0A', '#141210']} style={StyleSheet.absoluteFillObject}>
+                <AmbientGradient intensity={0.07} size={260} />
               </LinearGradient>
             )}
-          </Pressable>
+            <LinearGradient
+              colors={['rgba(10,10,10,0.05)', 'rgba(10,10,10,0.0)', 'rgba(10,10,10,0.82)']}
+              style={StyleSheet.absoluteFillObject}
+            />
 
-          {/* Project name */}
-          <Text style={styles.label}>Project name</Text>
-          <TextInput
-            style={styles.nameInput}
-            placeholder="e.g. Diaspora Capital Fund"
-            placeholderTextColor={colors.grayLight}
-            value={name}
-            onChangeText={setName}
-            maxLength={60}
-          />
+            <Pressable
+              onPress={handlePickImage}
+              style={styles.coverPick}
+              accessibilityRole="button"
+              accessibilityLabel={imageUri ? 'Change cover image' : 'Add cover image'}
+            >
+              <ImagePlus color="rgba(255,255,255,0.85)" size={15} strokeWidth={2} />
+              <Text style={styles.coverPickText}>{imageUri ? 'Change cover' : 'Add cover'}</Text>
+            </Pressable>
 
-          {/* Description */}
-          <Text style={styles.label}>Description</Text>
+            <View style={styles.coverTitleWrap}>
+              <Text style={styles.coverEyebrow}>
+                {category ? CATEGORIES.find((c) => c.key === category)?.label.toUpperCase() : 'YOUR WORK'}
+              </Text>
+              <TextInput
+                style={styles.coverTitleInput}
+                placeholder="Name the work"
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                value={name}
+                onChangeText={setName}
+                maxLength={60}
+                multiline
+              />
+            </View>
+          </View>
+
+          {/* One strong sentence */}
+          <Text style={styles.label}>The one-liner</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.textInput}
-              placeholder="One sentence about your project..."
+              placeholder="What is this work, in one strong sentence?"
               placeholderTextColor={colors.grayLight}
               value={description}
               onChangeText={(text) => setDescription(text.slice(0, MAX_CHARS))}
@@ -185,7 +187,6 @@ export default function CreateProjectScreen() {
             </Text>
           </View>
 
-          {/* Category */}
           <Text style={styles.label}>Category</Text>
           <View style={styles.categoryWrap}>
             {CATEGORIES.map((cat) => {
@@ -198,7 +199,7 @@ export default function CreateProjectScreen() {
                     isActive && { backgroundColor: colors.black, borderColor: colors.black },
                   ]}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    Haptics.selectionAsync();
                     setCategory(cat.key);
                   }}
                   accessibilityRole="button"
@@ -222,14 +223,12 @@ export default function CreateProjectScreen() {
             })}
           </View>
 
-          {/* Region */}
           <Text style={styles.label}>Region</Text>
           <RegionPicker selectedRegion={region} onSelect={setRegion} />
           <Text style={styles.regionNote}>
             Australia is always stored and displayed at state level for member privacy.
           </Text>
 
-          {/* External link */}
           <Text style={styles.label}>
             External link <Text style={styles.labelHint}>(optional)</Text>
           </Text>
@@ -243,22 +242,20 @@ export default function CreateProjectScreen() {
             autoCapitalize="none"
           />
 
-          {/* Submit */}
-          <Pressable
-            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
+          <PressableScale
             disabled={loading}
+            onPress={handleSubmit}
+            style={[styles.submitBtn, loading ? styles.submitBtnDisabled : null]}
             accessibilityRole="button"
             accessibilityLabel={loading ? 'Submitting project' : 'Submit for review'}
           >
             <Text style={styles.submitBtnText}>
-              {loading ? 'Submitting...' : 'Submit for Review'}
+              {loading ? 'Submitting…' : 'Submit for review'}
             </Text>
-          </Pressable>
+          </PressableScale>
 
           <Text style={styles.reviewNote}>
-            Projects are reviewed before appearing on the map. You will be
-            notified once approved.
+            The desk reviews every submission before it appears. Once approved, your journal opens for progress updates.
           </Text>
         </ScrollView>
       </View>
@@ -293,7 +290,51 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: spacing.xl },
 
-  // Labels
+  coverCard: {
+    height: 300,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    backgroundColor: colors.cardBase,
+  },
+  coverPick: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(10,10,10,0.55)',
+  },
+  coverPickText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 11,
+    color: colors.white,
+  },
+  coverTitleWrap: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 16,
+  },
+  coverEyebrow: {
+    fontFamily: typography.mono.medium,
+    fontSize: 8,
+    color: colors.gold,
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  coverTitleInput: {
+    fontFamily: typography.body.bold,
+    fontSize: 26,
+    lineHeight: 31,
+    color: colors.white,
+    letterSpacing: -0.4,
+    padding: 0,
+  },
+
   label: {
     fontFamily: typography.geo.semiBold,
     fontSize: 11,
@@ -310,56 +351,7 @@ const styles = StyleSheet.create({
     textTransform: 'none',
     color: colors.gray,
   },
-  publishNote: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.rule,
-    backgroundColor: colors.white,
-    padding: 16,
-    gap: 6,
-  },
-  publishNoteTitle: {
-    fontFamily: typography.body.semiBold,
-    fontSize: 14,
-    color: colors.black,
-    lineHeight: 19,
-  },
-  publishNoteCopy: {
-    fontFamily: typography.body.regular,
-    fontSize: 12,
-    color: colors.gray,
-    lineHeight: 18,
-  },
 
-  // Image upload
-  imageUpload: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
-  imagePreview: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.md,
-  },
-  imagePlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  imagePlaceholderIcon: {
-    fontSize: 24,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  imagePlaceholderText: {
-    fontFamily: typography.body.regular,
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.6)',
-  },
-
-  // Name input
   nameInput: {
     fontFamily: typography.body.regular,
     fontSize: 14,
@@ -372,14 +364,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // Text input
   inputWrap: {
     backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.rule,
     padding: 14,
-    minHeight: 80,
+    minHeight: 96,
   },
   regionNote: {
     marginTop: 8,
@@ -390,9 +381,9 @@ const styles = StyleSheet.create({
   },
   textInput: {
     fontFamily: typography.body.regular,
-    fontSize: 14,
+    fontSize: 16,
     color: colors.black,
-    lineHeight: 20,
+    lineHeight: 24,
     textAlignVertical: 'top',
   },
   charCount: {
@@ -406,7 +397,6 @@ const styles = StyleSheet.create({
     color: colors.warning,
   },
 
-  // Category
   categoryWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -433,7 +423,6 @@ const styles = StyleSheet.create({
     color: colors.gray,
   },
 
-  // Submit
   submitBtn: {
     marginTop: 32,
     paddingVertical: 16,
