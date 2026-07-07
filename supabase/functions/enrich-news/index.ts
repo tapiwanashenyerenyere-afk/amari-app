@@ -29,7 +29,9 @@ const OPENAI_MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
 
 const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 10;
-const MAX_BATCHES_PER_RUN = 4;
+// Two batches per invocation keeps runs inside edge-worker compute limits;
+// the half-hourly cron still clears ~960 articles/day.
+const MAX_BATCHES_PER_RUN = 2;
 const RELEVANCE_FLOOR = 25;
 
 // ─── HARD BUDGET CEILING ───────────────────────────────────────────────
