@@ -24,6 +24,7 @@ import { useMyProfile } from '@/queries/members';
 import { usePulseFeed, usePulseMapSummary } from '@/queries/pulse';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '@/lib/theme';
+import { getDaypart, getDaypartEyebrow, getPulseSectionOrder } from '@/lib/daypart';
 import {
   formatPulseDate,
   getPulseCategoryLabel,
@@ -114,6 +115,9 @@ export default function PulseScreen() {
   const feedStories = pulseStories.slice(2);
   const archiveTarget = pulseStories[pulseStories.length - 1] ?? null;
   const nextEvent = upcomingEvents[0] ?? null;
+  const daypart = getDaypart();
+  const daypartEyebrow = getDaypartEyebrow();
+  const sectionOrder = getPulseSectionOrder(daypart);
 
   const openArticle = (article: PulseEdition) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -165,55 +169,71 @@ export default function PulseScreen() {
         </View>
 
         <View style={styles.header}>
+          <Text style={styles.daypartEyebrow}>{daypartEyebrow}</Text>
           <Text style={styles.title}>Explore</Text>
         </View>
 
-        {heroStories.length ? (
-          <PulseHeroCarousel onPressStory={openArticle} stories={heroStories} />
-        ) : (
-          <View style={styles.emptyHero}>
-            <Text style={styles.emptyHeroTitle}>The next Pulse edition is warming up.</Text>
-            <Text style={styles.emptyHeroText}>
-              Published stories will appear here once the editorial desk sends them live.
-            </Text>
-          </View>
-        )}
+        {sectionOrder.map((section) => {
+          if (section === 'hero') {
+            return heroStories.length ? (
+              <PulseHeroCarousel key="hero" onPressStory={openArticle} stories={heroStories} />
+            ) : (
+              <View key="hero" style={styles.emptyHero}>
+                <Text style={styles.emptyHeroTitle}>The next Pulse edition is warming up.</Text>
+                <Text style={styles.emptyHeroText}>
+                  Published stories will appear here once the editorial desk sends them live.
+                </Text>
+              </View>
+            );
+          }
 
-        <PulseBridgeTiles
-          mapSummary={mapSummary}
-          nextEvent={nextEvent}
-          onOpenEvents={openEvents}
-          onOpenMap={openMap}
-        />
+          if (section === 'bridge') {
+            return (
+              <PulseBridgeTiles
+                key="bridge"
+                mapSummary={mapSummary}
+                nextEvent={nextEvent}
+                onOpenEvents={openEvents}
+                onOpenMap={openMap}
+              />
+            );
+          }
 
-        <View style={styles.feedHeader}>
-          <Text style={styles.feedHeaderTitle}>The Pulse</Text>
-          <Pressable
-            disabled={!archiveTarget}
-            onPress={() => archiveTarget && openArticle(archiveTarget)}
-            style={({ pressed }) => [
-              styles.archiveButton,
-              !archiveTarget ? styles.archiveButtonDisabled : null,
-              pressed && archiveTarget ? styles.archiveButtonPressed : null,
-            ]}
-          >
-            <Text style={styles.archiveButtonText}>Archive →</Text>
-          </Pressable>
-        </View>
+          if (section === 'editions') {
+            return (
+              <View key="editions">
+                <View style={styles.feedHeader}>
+                  <Text style={styles.feedHeaderTitle}>The Pulse</Text>
+                  <Pressable
+                    disabled={!archiveTarget}
+                    onPress={() => archiveTarget && openArticle(archiveTarget)}
+                    style={({ pressed }) => [
+                      styles.archiveButton,
+                      !archiveTarget ? styles.archiveButtonDisabled : null,
+                      pressed && archiveTarget ? styles.archiveButtonPressed : null,
+                    ]}
+                  >
+                    <Text style={styles.archiveButtonText}>Archive →</Text>
+                  </Pressable>
+                </View>
 
-        <View style={styles.feedList}>
-          {feedStories.length ? (
-            feedStories.map((article) => (
-              <FeedRow article={article} key={article.id} onPress={() => openArticle(article)} />
-            ))
-          ) : (
-            <Text style={styles.feedEmpty}>
-              Archived editions will collect here once more Pulse stories are published.
-            </Text>
-          )}
-        </View>
+                <View style={styles.feedList}>
+                  {feedStories.length ? (
+                    feedStories.map((article) => (
+                      <FeedRow article={article} key={article.id} onPress={() => openArticle(article)} />
+                    ))
+                  ) : (
+                    <Text style={styles.feedEmpty}>
+                      Archived editions will collect here once more Pulse stories are published.
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          }
 
-        <IntelligenceFeed />
+          return <IntelligenceFeed key="intelligence" />;
+        })}
 
         <EmblemFooter />
       </ScrollView>
@@ -306,6 +326,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.black,
     letterSpacing: -0.5,
+  },
+  daypartEyebrow: {
+    fontFamily: typography.mono.medium,
+    fontSize: 9,
+    color: colors.sand,
+    letterSpacing: 2.2,
+    marginBottom: 6,
   },
   emptyHero: {
     minHeight: 240,

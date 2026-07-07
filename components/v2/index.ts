@@ -11,6 +11,8 @@ export { Barcode } from './Barcode';
 export { StaggerReveal } from './StaggerReveal';
 export { Tag } from './Tag';
 export { PressableCard } from './PressableCard';
+export { PressableScale } from './PressableScale';
+export { AmbientGradient } from './AmbientGradient';
 export { BreathingDot } from './BreathingDot';
 export { AnimatedCounter } from './AnimatedCounter';
 export { AmariEmblem } from './AmariEmblem';
