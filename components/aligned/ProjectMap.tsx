@@ -120,6 +120,15 @@ export function ProjectMap({
     };
   }, [countries.data, projects.data, states.data, tier]);
 
+  const visibleCategories = useMemo(() => {
+    if (tier !== 'project' || !projects.data) return [] as string[];
+    const set = new Set<string>();
+    projects.data.forEach((project) => set.add(project.category));
+    return Array.from(set);
+  }, [projects.data, tier]);
+
+  const nothingInView = HAS_MAPBOX_TOKEN && !isLoading && features.features.length === 0;
+
   const handleClusterPress = useCallback(
     (project: GeoJSON.Feature<GeoJSON.Point>) => {
       const [lng, lat] = project.geometry.coordinates;
@@ -431,6 +440,28 @@ export function ProjectMap({
         </Pressable>
       </View>
 
+      {visibleCategories.length ? (
+        <View style={styles.legend} pointerEvents="none">
+          {visibleCategories.map((category) => {
+            const entry = CATEGORY_COLORS[category];
+            if (!entry) return null;
+            return (
+              <View key={category} style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: entry.accent }]} />
+                <Text style={styles.legendText}>{entry.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {nothingInView ? (
+        <View style={styles.emptyBadge} pointerEvents="none">
+          <Text style={styles.emptyBadgeText}>No projects in view</Text>
+          <Text style={styles.emptyBadgeHint}>Zoom out or switch region to find more.</Text>
+        </View>
+      ) : null}
+
       <View style={styles.bottomOverlay} pointerEvents="box-none">
         {!expanded ? <Text style={styles.expandHint}>Tap map to expand</Text> : null}
 
@@ -486,22 +517,23 @@ const styles = StyleSheet.create({
   },
   regionRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 2,
     flexWrap: 'wrap',
     maxWidth: '82%',
-  },
-  regionChip: {
-    minHeight: 34,
-    paddingHorizontal: 13,
+    padding: 3,
     borderRadius: radius.full,
     backgroundColor: 'rgba(12,12,12,0.68)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
+  },
+  regionChip: {
+    minHeight: 30,
+    paddingHorizontal: 13,
+    borderRadius: radius.full,
     justifyContent: 'center',
   },
   regionChipActive: {
     backgroundColor: 'rgba(201,169,98,0.92)',
-    borderColor: 'rgba(201,169,98,0.92)',
   },
   regionChipText: {
     fontFamily: typography.mono.regular,
@@ -606,5 +638,57 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     color: '#C9A962',
     textTransform: 'uppercase',
+  },
+  legend: {
+    position: 'absolute',
+    left: 16,
+    bottom: 74,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(12,12,12,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 6,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontFamily: typography.mono.regular,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    color: 'rgba(255,255,255,0.82)',
+    textTransform: 'uppercase',
+  },
+  emptyBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '44%',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(12,12,12,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+  },
+  emptyBadgeText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.white,
+  },
+  emptyBadgeHint: {
+    marginTop: 4,
+    fontFamily: typography.body.regular,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.6)',
   },
 });

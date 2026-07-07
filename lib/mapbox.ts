@@ -282,14 +282,16 @@ export const ZOOM_TIERS = {
 } as const;
 
 // Category colors for pin accents
+// Distinct per-category accents so pins actually differentiate on the map,
+// derived from the shared category palette so shelves and map agree.
 export const CATEGORY_COLORS: Record<string, { accent: string; label: string }> = {
-  venture:  { accent: '#C9A962', label: 'Venture' },
-  advisory: { accent: '#722F37', label: 'Advisory' },
-  creative: { accent: '#C9A962', label: 'Creative' },
-  impact:   { accent: '#722F37', label: 'Impact' },
-  culture:  { accent: '#C9A962', label: 'Culture' },
-  health:   { accent: '#722F37', label: 'Health' },
-  tech:     { accent: '#C9A962', label: 'Tech' },
+  venture:  { accent: '#C4A265', label: 'Venture' },
+  advisory: { accent: '#B0707A', label: 'Advisory' },
+  creative: { accent: '#8CAAD2', label: 'Creative' },
+  impact:   { accent: '#78B482', label: 'Impact' },
+  culture:  { accent: '#C48A6E', label: 'Culture' },
+  health:   { accent: '#7FB8B0', label: 'Health' },
+  tech:     { accent: '#9B93C4', label: 'Tech' },
 };
 
 // Initialize Mapbox

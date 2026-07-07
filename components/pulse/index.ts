@@ -1,6 +1,7 @@
+export { ArticleRow } from './ArticleRow';
+export { BriefingPreview } from './BriefingPreview';
 export { ExploreCarousel } from './ExploreCarousel';
 export { ExploreTile } from './ExploreTile';
-export { IntelligenceFeed } from './IntelligenceFeed';
 export { InterestSheet } from './InterestSheet';
 export { PulseArticleModal } from './PulseArticleModal';
 export { PulseBridgeTiles } from './PulseBridgeTiles';

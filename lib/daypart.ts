@@ -19,7 +19,7 @@ export function getDaypartEyebrow(date = new Date()): string {
   return `${weekday} ${daypart}`;
 }
 
-export type PulseSection = 'hero' | 'bridge' | 'editions' | 'intelligence';
+export type PulseSection = 'hero' | 'bridge' | 'editions' | 'briefing';
 
 // Morning: the briefing sits directly under the hero.
 // Afternoon: house editorial first, then the briefing.
@@ -27,10 +27,10 @@ export type PulseSection = 'hero' | 'bridge' | 'editions' | 'intelligence';
 export function getPulseSectionOrder(daypart: Daypart): PulseSection[] {
   switch (daypart) {
     case 'morning':
-      return ['hero', 'intelligence', 'bridge', 'editions'];
+      return ['hero', 'briefing', 'bridge', 'editions'];
     case 'evening':
-      return ['bridge', 'hero', 'editions', 'intelligence'];
+      return ['bridge', 'hero', 'editions', 'briefing'];
     default:
-      return ['hero', 'bridge', 'editions', 'intelligence'];
+      return ['hero', 'bridge', 'editions', 'briefing'];
   }
 }

@@ -151,8 +151,9 @@ assert(
     aligned.includes('const [detailProject, setDetailProject]') &&
     aligned.includes('openProjectDetailById') &&
     aligned.includes("onProjectSelect={openProjectDetailById}") &&
-    aligned.includes('Keep me updated'),
-  'Aligned project taps must open a detail modal with keep-me-updated bookmarking.',
+    aligned.includes('ProjectShelves') &&
+    aligned.includes('handleToggleBookmark'),
+  'Aligned project taps must open the ProjectPage detail (with follow bookmarking) and browse via shelves.',
 );
 assert(
   passModal.includes('No email or share app is available on this device.') &&

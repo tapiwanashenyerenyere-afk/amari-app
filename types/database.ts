@@ -218,6 +218,8 @@ export interface Connection {
 
 export type NewsRegion = 'australia' | 'uk' | 'africa' | 'americas' | 'global';
 
+export type ContentMediaType = 'article' | 'editorial' | 'video' | 'audio' | 'digest';
+
 export interface NewsFeedItem {
   id: number;
   source_name: string;
@@ -230,6 +232,9 @@ export interface NewsFeedItem {
   topics: string[];
   regions: string[];
   summary: string | null;
+  media_type: ContentMediaType;
+  duration_seconds: number | null;
+  format_meta: Record<string, unknown>;
   is_saved: boolean;
   score: number;
 }

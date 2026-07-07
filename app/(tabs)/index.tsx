@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { CardPopupModal, EmblemFooter } from '@/components/v2';
 import { BreathingDot } from '@/components/v2/BreathingDot';
 import {
-  IntelligenceFeed,
+  BriefingPreview,
   PulseArticleModal,
   PulseBridgeTiles,
   PulseHeroCarousel,
@@ -232,7 +232,7 @@ export default function PulseScreen() {
             );
           }
 
-          return <IntelligenceFeed key="intelligence" />;
+          return <BriefingPreview key="briefing" />;
         })}
 
         <EmblemFooter />

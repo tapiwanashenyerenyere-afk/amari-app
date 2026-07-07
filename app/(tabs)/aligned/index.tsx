@@ -5,7 +5,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  Share,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,11 +20,8 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowRight,
-  Bookmark,
   ChevronRight,
   Mail,
-  PenLine,
-  Plus,
   Search,
   ScanLine,
   X,
@@ -33,6 +29,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FilterChips } from '../../../components/aligned/FilterChips';
 import { ProjectPage } from '../../../components/aligned/ProjectPage';
+import { ProjectShelves } from '../../../components/aligned/ProjectShelves';
 import { MapResultsSheet, type MapResultsProject } from '../../../components/aligned/MapResultsSheet';
 import { type MapRegionKey, ProjectMap } from '../../../components/aligned/ProjectMap';
 import { type AlignedView, ViewToggle } from '../../../components/aligned/ViewToggle';
@@ -40,7 +37,6 @@ import { CardPopupModal } from '../../../components/v2/CardPopupModal';
 import { useMapProjects } from '../../../hooks/useMapData';
 import { type ViewportBounds } from '../../../hooks/useMapViewport';
 import { useProjectBookmarks, useToggleBookmark } from '../../../hooks/useProjectBookmarks';
-import { CATEGORY_COLORS } from '../../../lib/mapbox';
 import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '../../../lib/theme';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../providers/AuthProvider';
@@ -211,16 +207,12 @@ function BoardView({
   connections,
   onOpenInterests,
   onOpenMap,
-  onOpenNotes,
   onOpenPass,
-  onStartProject,
 }: {
   connections: ConnectionCardData[];
   onOpenInterests: () => void;
   onOpenMap: () => void;
-  onOpenNotes: () => void;
   onOpenPass: () => void;
-  onStartProject: () => void;
 }) {
   return (
     <View style={styles.boardStack}>
@@ -240,20 +232,6 @@ function BoardView({
         subtitle="Browse members and ideas connected to the same categories you care about."
         tag="Discover shared passions"
         title="Interests"
-      />
-
-      <ActionRow
-        description="Open the share sheet for Notes, Mail, Messages, or another app"
-        icon={<PenLine color={colors.white} size={16} strokeWidth={1.9} />}
-        onPress={onOpenNotes}
-        title="Share board"
-      />
-
-      <ActionRow
-        description="Begin a new project"
-        icon={<Plus color={colors.gold} size={18} strokeWidth={2.2} />}
-        onPress={onStartProject}
-        title="Spark"
       />
 
       <ActionRow
@@ -277,150 +255,6 @@ function BoardView({
         )}
       </View>
     </View>
-  );
-}
-
-function InterestDetailCard({
-  onClear,
-  onContact,
-  onOpenLink,
-  onToggleBookmark,
-  project,
-  saved,
-}: {
-  onClear: () => void;
-  onContact: (project: DirectoryProject) => void;
-  onOpenLink: (url: string) => void;
-  onToggleBookmark: (projectId: string) => void;
-  project: DirectoryProject;
-  saved: boolean;
-}) {
-  return (
-    <View style={styles.interestDetailCard}>
-      <View style={styles.interestDetailTop}>
-        <View style={styles.interestAvatar}>
-          <Text style={styles.interestAvatarInitials}>{project.name.slice(0, 2).toUpperCase()}</Text>
-        </View>
-
-        <View style={styles.interestDetailCopy}>
-          <Text style={styles.interestDetailName}>{project.name}</Text>
-          <Text style={styles.interestDetailLocation}>
-            {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
-          </Text>
-        </View>
-
-        <Pressable onPress={onClear} style={styles.closePill}>
-          <X color={colors.gray} size={14} strokeWidth={2} />
-        </Pressable>
-      </View>
-
-      <Text style={styles.interestQuote}>"{project.description}"</Text>
-
-      <View style={styles.interestTagRow}>
-        {project.tags.map((tag) => (
-          <View key={tag} style={styles.interestTag}>
-            <Text style={styles.interestTagText}>{tag}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.interestActionRow}>
-        <Pressable onPress={onClear} style={styles.interestSecondaryButton}>
-          <Text style={styles.interestSecondaryButtonText}>Not now</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => onToggleBookmark(project.project_id)}
-          style={[styles.interestPrimaryButton, saved ? styles.interestPrimaryButtonSaved : null]}
-        >
-          <Bookmark
-            color={saved ? colors.black : colors.white}
-            fill={saved ? colors.black : 'transparent'}
-            size={15}
-            strokeWidth={1.7}
-          />
-          <Text style={[styles.interestPrimaryButtonText, saved ? styles.interestPrimaryButtonTextSaved : null]}>
-            {saved ? 'Updates on' : 'Keep me updated'}
-          </Text>
-        </Pressable>
-      </View>
-
-      {project.creatorEmail ? (
-        <Pressable onPress={() => onContact(project)} style={styles.contactAction}>
-          <Mail color={colors.white} size={15} strokeWidth={1.8} />
-          <Text style={styles.contactActionText}>Connect with project creator</Text>
-        </Pressable>
-      ) : null}
-
-      {project.creatorEmail ? (
-        <Text style={styles.contactRequirementText}>
-          A short message is required before this opens your email app.
-        </Text>
-      ) : null}
-
-      {project.external_link ? (
-        <Pressable onPress={() => onOpenLink(project.external_link!)} style={styles.linkAction}>
-          <Text style={styles.linkActionText}>Visit project link</Text>
-        </Pressable>
-      ) : null}
-
-      <Text style={styles.guidelineText}>
-        <Text style={styles.guidelineStrong}>Community guideline:</Text> All communication between members must reflect
-        AMARI values of respect, integrity, and mutual benefit. Behaviour inconsistent with these values may result in
-        removal from the community.
-      </Text>
-    </View>
-  );
-}
-
-function InterestRow({
-  active,
-  onPress,
-  onToggleBookmark,
-  project,
-  saved,
-}: {
-  active: boolean;
-  onPress: () => void;
-  onToggleBookmark: (projectId: string) => void;
-  project: DirectoryProject;
-  saved: boolean;
-}) {
-  const accent = CATEGORY_COLORS[project.category]?.accent ?? colors.gold;
-
-  return (
-    <Pressable onPress={onPress} style={[styles.interestRow, active ? styles.interestRowActive : null]}>
-      <View style={styles.interestRowAvatar}>
-        <Text style={styles.interestRowInitials}>{project.name.slice(0, 2).toUpperCase()}</Text>
-      </View>
-
-      <View style={styles.interestRowCopy}>
-        <Text style={[styles.interestRowCategory, { color: accent }]}>{CATEGORY_COLORS[project.category]?.label ?? project.category}</Text>
-        <Text style={styles.interestRowName}>{project.name}</Text>
-        <Text style={styles.interestRowDescription} numberOfLines={1}>
-          {project.description}
-        </Text>
-        <Text style={styles.interestRowContact} numberOfLines={1}>
-          {project.creatorEmail ? `Contact: ${project.creatorEmail}` : project.display_label}
-        </Text>
-        <View style={styles.interestRowTags}>
-          {project.tags.slice(0, 3).map((tag) => (
-            <View key={tag} style={styles.interestRowTag}>
-              <Text style={styles.interestRowTagText}>{tag}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <Pressable onPress={() => onToggleBookmark(project.project_id)} style={[styles.rowBookmark, saved ? styles.rowBookmarkSaved : null]}>
-        <Bookmark
-          color={saved ? colors.white : 'rgba(10,10,10,0.48)'}
-          fill={saved ? colors.white : 'transparent'}
-          size={18}
-          strokeWidth={1.7}
-        />
-      </Pressable>
-    </Pressable>
   );
 }
 
@@ -838,43 +672,6 @@ export default function AlignedScreen() {
     ]);
   }, []);
 
-  const handleOpenNotes = useCallback(async () => {
-    const savedProjects = directoryProjects.filter((project) => bookmarkedProjectIds.has(project.project_id));
-    const hasShareContent = savedProjects.length > 0 || recentConnections.length > 0;
-
-    if (!hasShareContent) {
-      Alert.alert(
-        'Nothing to share yet',
-        'Save a project or make a connection first, then share your board to Notes, Mail, Messages, or another app.',
-      );
-      return;
-    }
-
-    const noteLines = [
-      'AMARI Aligned Board',
-      '',
-      savedProjects.length ? 'Saved projects' : 'Saved projects: none yet',
-      ...savedProjects.flatMap((project, index) => ([
-        `${index + 1}. ${project.name}`,
-        project.creatorEmail ? `   Contact: ${project.creatorEmail}` : `   ${project.display_label}`,
-        `   ${project.description}`,
-        project.external_link ? `   ${project.external_link}` : null,
-      ].filter(Boolean) as string[])),
-      '',
-      recentConnections.length ? 'Recent connections' : 'Recent connections: none yet',
-      ...recentConnections.map((connection, index) => `${index + 1}. ${connection.name} · ${connection.location} · ${connection.matchedVia}`),
-    ];
-
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Share.share({
-        title: 'AMARI Aligned Board',
-        message: noteLines.join('\n'),
-      });
-    } catch {
-      Alert.alert('Share unavailable', 'The share sheet could not be opened right now.');
-    }
-  }, [bookmarkedProjectIds, directoryProjects, recentConnections]);
 
   const mapScene = (
     <View style={[styles.mapScene, { width: contentWidth }, showFullscreenMap ? styles.mapSceneExpanded : null]}>
@@ -941,24 +738,22 @@ export default function AlignedScreen() {
                   connections={recentConnections}
                   onOpenInterests={() => switchView('interests')}
                   onOpenMap={() => switchView('list')}
-                  onOpenNotes={handleOpenNotes}
                   onOpenPass={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setShowPassPopup(true);
                   }}
-                  onStartProject={() => router.push('/(tabs)/aligned/create')}
                 />
               ) : (
                 <>
                   <View style={styles.projectModeHeader}>
                     <View style={styles.projectModeCopy}>
                       <Text style={styles.projectModeTitle}>
-                        {activeView === 'list' ? 'Project list' : 'Interests'}
+                        {activeView === 'list' ? 'Projects' : 'Interests'}
                       </Text>
                       <Text style={styles.projectModeSubtitle}>
                         {activeView === 'list'
-                          ? 'Scan every approved project, filter by category, then jump back to the map.'
-                          : 'Browse projects and ideas through the categories members care about.'}
+                          ? 'What members are building — browse by category, or open the map for where.'
+                          : 'Ideas and ventures across the categories members care about.'}
                       </Text>
                     </View>
                     <Pressable
@@ -975,31 +770,13 @@ export default function AlignedScreen() {
                     <FilterChips activeFilter={activeCategory} onFilterChange={setActiveCategory} />
                   </View>
 
-                  {selectedInterestProject ? (
-                    <InterestDetailCard
-                      onClear={() => setSelectedProjectId(null)}
-                      onContact={openConnectRequest}
-                      onOpenLink={handleVisitLink}
-                      onToggleBookmark={handleToggleBookmark}
-                      project={selectedInterestProject}
-                      saved={bookmarkedProjectIds.has(selectedInterestProject.project_id)}
-                    />
-                  ) : (
-                    <Text style={styles.emptyCopy}>Approved projects will surface here once members start publishing them.</Text>
-                  )}
-
-                  <View style={styles.interestList}>
-                    {filteredInterestProjects.map((project) => (
-                      <InterestRow
-                        active={project.project_id === selectedInterestProject?.project_id}
-                        key={project.project_id}
-                        onPress={() => openProjectDetail(project)}
-                        onToggleBookmark={handleToggleBookmark}
-                        project={project}
-                        saved={bookmarkedProjectIds.has(project.project_id)}
-                      />
-                    ))}
-                  </View>
+                  <ProjectShelves
+                    activeCategory={activeCategory}
+                    onOpen={(project) => openProjectDetail(project as DirectoryProject)}
+                    onToggleSave={handleToggleBookmark}
+                    projects={filteredInterestProjects}
+                    savedIds={bookmarkedProjectIds}
+                  />
                 </>
               )}
             </View>
