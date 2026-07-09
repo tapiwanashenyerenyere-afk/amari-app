@@ -360,7 +360,7 @@ function ProjectDetailModal({
 export default function AlignedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ view?: string }>();
+  const params = useLocalSearchParams<{ view?: string; projectId?: string }>();
   const { user, tier } = useAuth();
   const { data: profile } = useMyProfile();
   const { width } = useWindowDimensions();
@@ -592,6 +592,13 @@ export default function AlignedScreen() {
     },
     [directoryProjectMap, openProjectDetail, visibleProjects],
   );
+
+  useEffect(() => {
+    if (typeof params.projectId === 'string' && params.projectId && directoryProjects.length) {
+      openProjectDetailById(params.projectId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.projectId, directoryProjects.length]);
 
   const closeConnectRequest = useCallback(() => {
     setConnectProject(null);

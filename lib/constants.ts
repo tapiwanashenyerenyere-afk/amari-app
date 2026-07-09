@@ -4,11 +4,12 @@
 export const TIER_LEVELS = {
   member: 1,
   silver: 2,
-  platinum: 3,
-  laureate: 4,
+  gold: 3,
+  platinum: 4,
+  laureate: 5,
 } as const;
 
-export const TIERS = ['member', 'silver', 'platinum', 'laureate'] as const;
+export const TIERS = ['member', 'silver', 'gold', 'platinum', 'laureate'] as const;
 export type MembershipTier = (typeof TIERS)[number];
 
 export const TAB_VISIBILITY: Record<string, number> = {
@@ -110,6 +111,7 @@ export const R = { none: 0, sm: 4, md: 8, lg: 12, xl: 20, pill: 50 } as const;
 export const TIER_DISPLAY_NAMES: Record<string, string> = {
   member: 'Member',
   silver: 'Silver',
+  gold: 'Gold',
   platinum: 'Platinum',
   laureate: 'Laureate',
 };
@@ -117,6 +119,7 @@ export const TIER_DISPLAY_NAMES: Record<string, string> = {
 export const TIER_COLORS: Record<string, { bg: string; text: string; accent: string }> = {
   member: { bg: C.cream, text: C.textPrimary, accent: C.burgundy },
   silver: { bg: '#C0C0C0', text: C.charcoal, accent: '#A9A9A9' },
+  gold: { bg: '#D4AF37', text: C.charcoal, accent: '#B8963C' },
   platinum: { bg: '#E5E4E2', text: C.charcoal, accent: '#C0C0C0' },
   laureate: { bg: '#D4AF37', text: C.charcoal, accent: '#B8860B' },
 };

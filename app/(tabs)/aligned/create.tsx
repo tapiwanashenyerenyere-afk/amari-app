@@ -72,7 +72,22 @@ export default function CreateProjectScreen() {
       Alert.alert('Missing region', 'Select the region where this work is based.');
       return;
     }
+    if (!imageUri) {
+      Alert.alert(
+        'Add a cover?',
+        'Work with a cover stands out on the shelves and the map. Add one now?',
+        [
+          { text: 'Add cover', onPress: () => { void handlePickImage(); } },
+          { text: 'Submit without', style: 'cancel', onPress: () => { void submitProject(); } },
+        ],
+      );
+      return;
+    }
+    await submitProject();
+  };
 
+  const submitProject = async () => {
+    if (!category || !region) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const success = await createProject({
       name,
