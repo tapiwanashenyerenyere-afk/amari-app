@@ -73,3 +73,69 @@ export function usePostProjectUpdate(projectId: string | null) {
     },
   });
 }
+
+export interface ProjectRequestRow {
+  id: number;
+  requester_name: string;
+  requester_industry: string | null;
+  requester_email: string | null;
+  message: string;
+  status: 'pending' | 'approved' | 'declined';
+  created_at: string;
+}
+
+export function useProjectRequests(projectId: string | null, isOwner: boolean) {
+  return useQuery({
+    queryKey: ['projects', projectId ?? 'none', 'requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_project_requests', { p_project_id: projectId });
+      if (error) throw error;
+      return (data ?? []) as ProjectRequestRow[];
+    },
+    enabled: !!projectId && isOwner,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useMyProjectRequest(projectId: string | null, isOwner: boolean) {
+  return useQuery({
+    queryKey: ['projects', projectId ?? 'none', 'my-request'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_project_request', { p_project_id: projectId });
+      if (error) throw error;
+      return ((data ?? [])[0] ?? null) as { id: number; status: string; owner_email: string | null } | null;
+    },
+    enabled: !!projectId && !isOwner,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useRequestContact(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (message: string) => {
+      const { data, error } = await supabase.rpc('request_project_contact', {
+        p_project_id: projectId,
+        p_message: message,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? 'Request failed');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId ?? 'none', 'my-request'] }),
+  });
+}
+
+export function useRespondContact(projectId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ requestId, approve }: { requestId: number; approve: boolean }) => {
+      const { data, error } = await supabase.rpc('respond_project_contact', {
+        p_request_id: requestId,
+        p_approve: approve,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? 'Response failed');
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId ?? 'none', 'requests'] }),
+  });
+}

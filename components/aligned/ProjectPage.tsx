@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -18,8 +19,12 @@ import { hapticOutcome } from '@/lib/motion';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import {
   useIsProjectOwner,
+  useMyProjectRequest,
   usePostProjectUpdate,
+  useProjectRequests,
   useProjectUpdates,
+  useRequestContact,
+  useRespondContact,
 } from '@/queries/projects';
 
 export interface ProjectPageProject {
@@ -37,7 +42,7 @@ export interface ProjectPageProject {
 
 interface ProjectPageProps {
   onClose: () => void;
-  onContact: () => void;
+  onContact?: () => void;
   onOpenLink: (url: string) => void;
   onToggleBookmark: () => void;
   project: ProjectPageProject;
@@ -52,7 +57,6 @@ function formatUpdateDate(iso: string) {
 
 export function ProjectPage({
   onClose,
-  onContact,
   onOpenLink,
   onToggleBookmark,
   project,
@@ -62,6 +66,24 @@ export function ProjectPage({
   const { data: isOwner = false } = useIsProjectOwner(project.project_id);
   const postUpdate = usePostProjectUpdate(project.project_id);
   const [draft, setDraft] = useState('');
+  const [introDraft, setIntroDraft] = useState('');
+  const [introOpen, setIntroOpen] = useState(false);
+  const { data: myRequest } = useMyProjectRequest(project.project_id, isOwner);
+  const { data: requests = [] } = useProjectRequests(project.project_id, isOwner);
+  const requestContact = useRequestContact(project.project_id);
+  const respondContact = useRespondContact(project.project_id);
+
+  const sendIntroRequest = async () => {
+    try {
+      await requestContact.mutateAsync(introDraft);
+      setIntroOpen(false);
+      setIntroDraft('');
+      hapticOutcome(true);
+    } catch (error) {
+      hapticOutcome(false);
+      Alert.alert('Could not send', error instanceof Error ? error.message : 'Try again shortly.');
+    }
+  };
 
   const submitUpdate = async () => {
     if (!draft.trim()) return;
@@ -156,6 +178,43 @@ export function ProjectPage({
               ) : null}
             </View>
 
+            {isOwner && requests.length ? (
+              <View style={styles.requestsPanel}>
+                <Text style={styles.journalTitle}>Introduction requests</Text>
+                {requests.map((r) => (
+                  <View key={r.id} style={styles.requestRow}>
+                    <Text style={styles.requestName}>
+                      {r.requester_name}
+                      {r.requester_industry ? `  \u00B7  ${r.requester_industry}` : ''}
+                    </Text>
+                    <Text style={styles.requestMessage}>{r.message}</Text>
+                    {r.status === 'pending' ? (
+                      <View style={styles.requestActions}>
+                        <PressableScale
+                          onPress={() => respondContact.mutate({ requestId: r.id, approve: true })}
+                          style={styles.approveButton}
+                        >
+                          <Text style={styles.approveText}>Approve</Text>
+                        </PressableScale>
+                        <PressableScale
+                          onPress={() => respondContact.mutate({ requestId: r.id, approve: false })}
+                          style={styles.declineButton}
+                        >
+                          <Text style={styles.declineText}>Decline</Text>
+                        </PressableScale>
+                      </View>
+                    ) : (
+                      <Text style={styles.requestStatus}>
+                        {r.status === 'approved'
+                          ? `Approved \u2014 ${r.requester_email ?? 'email shared'}`
+                          : 'Declined'}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             <View style={styles.journalHeader}>
               <Text style={styles.journalTitle}>Journal</Text>
               <Text style={styles.journalHint}>
@@ -215,12 +274,55 @@ export function ProjectPage({
           </View>
         </ScrollView>
 
-        <SafeAreaView edges={['bottom']} style={styles.footer}>
-          <PressableScale onPress={onContact} style={styles.contactButton}>
-            <Mail color={colors.white} size={15} strokeWidth={2} />
-            <Text style={styles.contactText}>Connect with the builder</Text>
-          </PressableScale>
-        </SafeAreaView>
+        {!isOwner ? (
+          <SafeAreaView edges={['bottom']} style={styles.footer}>
+            {myRequest?.status === 'approved' && myRequest.owner_email ? (
+              <PressableScale
+                onPress={() => onOpenLink(`mailto:${myRequest.owner_email}`)}
+                style={styles.contactButton}
+              >
+                <Mail color={colors.white} size={15} strokeWidth={2} />
+                <Text style={styles.contactText}>Email the builder</Text>
+              </PressableScale>
+            ) : myRequest?.status === 'pending' ? (
+              <View style={[styles.contactButton, styles.contactPending]}>
+                <Text style={styles.contactPendingText}>Introduction requested \u2014 awaiting approval</Text>
+              </View>
+            ) : myRequest?.status === 'declined' ? (
+              <View style={[styles.contactButton, styles.contactPending]}>
+                <Text style={styles.contactPendingText}>The builder passed this time</Text>
+              </View>
+            ) : introOpen ? (
+              <View style={styles.introComposer}>
+                <TextInput
+                  multiline
+                  maxLength={600}
+                  onChangeText={setIntroDraft}
+                  placeholder="Why do you want to connect? A sentence or two."
+                  placeholderTextColor={colors.grayLight}
+                  style={styles.introInput}
+                  value={introDraft}
+                />
+                <PressableScale
+                  disabled={requestContact.isPending || introDraft.trim().length < 12}
+                  onPress={sendIntroRequest}
+                  style={[styles.contactButton, introDraft.trim().length < 12 ? styles.contactDisabled : null]}
+                >
+                  {requestContact.isPending ? (
+                    <ActivityIndicator color={colors.white} size="small" />
+                  ) : (
+                    <Text style={styles.contactText}>Send request</Text>
+                  )}
+                </PressableScale>
+              </View>
+            ) : (
+              <PressableScale onPress={() => setIntroOpen(true)} style={styles.contactButton}>
+                <Mail color={colors.white} size={15} strokeWidth={2} />
+                <Text style={styles.contactText}>Request an introduction</Text>
+              </PressableScale>
+            )}
+          </SafeAreaView>
+        ) : null}
       </View>
     </Modal>
   );
@@ -479,5 +581,90 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.semiBold,
     fontSize: 14,
     color: colors.white,
+  },
+  contactPending: {
+    backgroundColor: colors.warm,
+  },
+  contactPendingText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 13,
+    color: colors.gray,
+  },
+  contactDisabled: {
+    opacity: 0.5,
+  },
+  introComposer: {
+    gap: 10,
+  },
+  introInput: {
+    minHeight: 70,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.10)',
+    backgroundColor: colors.white,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontFamily: typography.body.regular,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: colors.black,
+    textAlignVertical: 'top',
+  },
+  requestsPanel: {
+    marginTop: 30,
+  },
+  requestRow: {
+    marginTop: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.07)',
+    padding: 14,
+  },
+  requestName: {
+    fontFamily: typography.body.bold,
+    fontSize: 13.5,
+    color: colors.black,
+  },
+  requestMessage: {
+    marginTop: 5,
+    fontFamily: typography.body.regular,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: colors.gray,
+  },
+  requestStatus: {
+    marginTop: 10,
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.goldDark,
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  approveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radius.md,
+    backgroundColor: colors.black,
+  },
+  approveText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.white,
+  },
+  declineButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.14)',
+  },
+  declineText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.black,
   },
 });

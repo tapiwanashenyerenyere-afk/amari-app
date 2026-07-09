@@ -66,6 +66,8 @@ export function usePushSetup() {
       const data = response.notification.request.content.data as Record<string, unknown> | undefined;
       if (data?.type === 'briefing') {
         router.push('/briefing');
+      } else if (data?.type === 'project' && typeof data.project_id === 'string') {
+        router.push({ pathname: '/(tabs)/aligned', params: { view: 'list', projectId: data.project_id } });
       }
     });
     return () => sub.remove();
