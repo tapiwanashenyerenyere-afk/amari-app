@@ -172,16 +172,18 @@ export const shadows = {
 export const TIER_LEVELS = {
   member: 1,
   silver: 2,
-  platinum: 3,
-  laureate: 4,
+  gold: 3,
+  platinum: 4,
+  laureate: 5,
 } as const;
 
-export const TIERS = ['member', 'silver', 'platinum', 'laureate'] as const;
+export const TIERS = ['member', 'silver', 'gold', 'platinum', 'laureate'] as const;
 export type MembershipTier = (typeof TIERS)[number];
 
 export const TIER_DISPLAY_NAMES: Record<string, string> = {
   member: 'MEMBER',
   silver: 'SILVER MEMBER',
+  gold: 'GOLD MEMBER',
   platinum: 'PLATINUM MEMBER',
   laureate: 'LAUREATE',
 };

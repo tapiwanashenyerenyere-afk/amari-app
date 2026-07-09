@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, typography, radius } from '../../lib/theme';
 
-type MembershipTier = 'member' | 'silver' | 'platinum' | 'laureate';
+type MembershipTier = 'member' | 'silver' | 'gold' | 'platinum' | 'laureate';
 
 const TIER_PILL_COLORS: Record<MembershipTier, { text: string; border: string; bg: string }> = {
   member: {
@@ -14,6 +14,11 @@ const TIER_PILL_COLORS: Record<MembershipTier, { text: string; border: string; b
     text: '#9A9A94',
     border: 'rgba(154,154,148,0.2)',
     bg: 'rgba(154,154,148,0.08)',
+  },
+  gold: {
+    text: colors.goldDark,
+    border: 'rgba(196,162,101,0.25)',
+    bg: 'rgba(196,162,101,0.08)',
   },
   platinum: {
     text: '#C8C4BC',

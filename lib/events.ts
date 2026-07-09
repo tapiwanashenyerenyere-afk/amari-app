@@ -39,6 +39,7 @@ export const EVENT_TYPE_GRADIENTS: Record<EventType, [string, string, string]> =
 export const EVENT_TIER_COPY: Record<MembershipTier, string> = {
   member: 'This event is open to all AMARI members.',
   silver: 'Silver membership opens earlier, tighter rooms across curated conversations and partner access.',
+  gold: 'Gold membership carries the full AMARI experience: every feature, all content, and priority rooms.',
   platinum: 'Platinum membership unlocks premium tables, partner-led rooms, and higher-trust gatherings.',
   laureate: 'Laureate membership is reserved for the most selective rooms and invitation-led experiences.',
 };
