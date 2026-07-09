@@ -169,8 +169,21 @@ export default function PulseScreen() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.daypartEyebrow}>{daypartEyebrow}</Text>
-          <Text style={styles.title}>Explore</Text>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.daypartEyebrow}>{daypartEyebrow}</Text>
+              <Text style={styles.title}>Explore</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/briefing');
+              }}
+              style={({ pressed }) => [styles.briefingShortcut, pressed ? styles.briefingShortcutPressed : null]}
+            >
+              <Text style={styles.briefingShortcutText}>Briefing →</Text>
+            </Pressable>
+          </View>
         </View>
 
         {sectionOrder.map((section) => {
@@ -333,6 +346,26 @@ const styles = StyleSheet.create({
     color: colors.sand,
     letterSpacing: 2.2,
     marginBottom: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  briefingShortcut: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: radius.full,
+    backgroundColor: colors.black,
+    marginBottom: 2,
+  },
+  briefingShortcutPressed: {
+    opacity: 0.85,
+  },
+  briefingShortcutText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 12,
+    color: colors.white,
   },
   emptyHero: {
     minHeight: 240,

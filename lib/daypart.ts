@@ -21,16 +21,16 @@ export function getDaypartEyebrow(date = new Date()): string {
 
 export type PulseSection = 'hero' | 'bridge' | 'editions' | 'briefing';
 
-// Morning: the briefing sits directly under the hero.
-// Afternoon: house editorial first, then the briefing.
-// Evening: rooms and people first, reading after.
+// The briefing never sits below the second slot — members should always
+// find it without hunting, at any hour. Daypart still sets the lead:
+// mornings open on the hero, evenings on rooms and people.
 export function getPulseSectionOrder(daypart: Daypart): PulseSection[] {
   switch (daypart) {
     case 'morning':
       return ['hero', 'briefing', 'bridge', 'editions'];
     case 'evening':
-      return ['bridge', 'hero', 'editions', 'briefing'];
+      return ['bridge', 'briefing', 'hero', 'editions'];
     default:
-      return ['hero', 'bridge', 'editions', 'briefing'];
+      return ['hero', 'briefing', 'bridge', 'editions'];
   }
 }
