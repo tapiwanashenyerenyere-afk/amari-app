@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
 import { useAuth } from '../../providers/AuthProvider';
 import { CustomTabBar } from '../../components/v2/CustomTabBar';
+import { usePushSetup } from '../../lib/push';
 
 export default function TabLayout() {
   const { isAdmin } = useAuth();
+  usePushSetup();
 
   return (
     <Tabs
