@@ -19,6 +19,8 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const PIPELINE_SECRET = Deno.env.get('NEWS_PIPELINE_SECRET') ?? '';
 
 const MAX_ITEMS_PER_SOURCE = 25;
+const ENTITIES_PER_RUN = 10;          // rotates least-recently-checked
+const ENTITY_ITEMS_PER_ENTITY = 5;
 const FETCH_TIMEOUT_MS = 15000;
 const USER_AGENT = 'AMARI-App-Feed/1.0 (+https://www.amarigroupau.com)';
 
@@ -293,10 +295,84 @@ Deno.serve(async (req: Request) => {
       results.push({ source: source.name, status, inserted });
     }
 
+    // ── Entity tracking pass ─────────────────────────────────────────
+    // Rotate through house entities least-recently checked, discovering
+    // coverage via Google News query feeds (free, link-out only). Items
+    // are tagged with the entity name for follow-boosted ranking.
+    // Attribution note: entity tags are an internal index; published
+    // synthesis aggregates per house rules.
+    const { data: entities } = await serviceClient
+      .from('tracked_entities')
+      .select('id, name, aliases, region')
+      .eq('active', true)
+      .eq('house', true)
+      .eq('status', 'approved')
+      .order('last_checked_at', { ascending: true, nullsFirst: true })
+      .limit(ENTITIES_PER_RUN);
+
+    // Entity items need a source row; reuse the Google News discovery source.
+    const { data: gnewsSource } = await serviceClient
+      .from('news_sources')
+      .select('id')
+      .ilike('feed_url', '%news.google.com%')
+      .limit(1)
+      .maybeSingle();
+
+    let entityInserted = 0;
+    if (gnewsSource) {
+      for (const entity of entities ?? []) {
+        const query = encodeURIComponent(`"${entity.name}"`);
+        const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=en-AU&gl=AU&ceid=AU:en`;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+          const response = await fetch(feedUrl, {
+            headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/xml' },
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const items = parseFeed(await response.text()).slice(0, ENTITY_ITEMS_PER_ENTITY);
+          for (const item of items) {
+            const urlHash = await sha256Hex(item.url);
+            const { error: insertError } = await serviceClient.from('news_articles').insert({
+              source_id: gnewsSource.id,
+              url: item.url,
+              url_hash: urlHash,
+              title: cleanGoogleNewsTitle(item.title),
+              snippet: item.snippet,
+              image_url: item.imageUrl,
+              published_at: item.publishedAt,
+              entities: [entity.name],
+            });
+            if (!insertError) {
+              entityInserted += 1;
+            } else if (insertError.code === '23505') {
+              // Already ingested elsewhere — append the entity tag instead.
+              await serviceClient.rpc('append_article_entity', {
+                p_url_hash: urlHash,
+                p_entity: entity.name,
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`[ingest-news] entity ${entity.name}:`, error instanceof Error ? error.message : String(error));
+        }
+
+        await serviceClient
+          .from('tracked_entities')
+          .update({ last_checked_at: new Date().toISOString() })
+          .eq('id', entity.id);
+      }
+    }
+
     return jsonResponse({
       success: true,
       sources: results.length,
       inserted: totalInserted,
+      entities_checked: (entities ?? []).length,
+      entity_items: entityInserted,
       details: results,
       timestamp: new Date().toISOString(),
     });
