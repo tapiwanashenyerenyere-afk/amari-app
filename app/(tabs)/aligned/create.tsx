@@ -38,7 +38,7 @@ const MAX_CHARS = 100;
 export default function CreateProjectScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { pickImage, createProject, loading } = useCreateProject();
+  const { pickImage, createProject, loading, validationError } = useCreateProject();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -107,7 +107,10 @@ export default function CreateProjectScreen() {
       );
     } else {
       hapticOutcome(false);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      Alert.alert(
+        validationError ? 'Check your entry' : 'Error',
+        validationError ?? 'Something went wrong. Please try again.',
+      );
     }
   };
 
