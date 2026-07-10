@@ -68,6 +68,8 @@ export function usePushSetup() {
         router.push('/briefing');
       } else if (data?.type === 'project' && typeof data.project_id === 'string') {
         router.push({ pathname: '/(tabs)/aligned', params: { view: 'list', projectId: data.project_id } });
+      } else if (data?.type === 'issue') {
+        router.push('/admin/issues');
       }
     });
     return () => sub.remove();

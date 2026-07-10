@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMyProfile, useUpdateProfile } from '@/queries/members';
 import { supabase } from '@/lib/supabase';
+import { ReportIssueSheet } from '@/components/v2/ReportIssueSheet';
 import { colors, radius, spacing, TIER_DISPLAY_NAMES, typography } from '@/lib/theme';
 import { EditFieldModal } from '@/components/EditFieldModal';
 import { CardPopupModal } from '@/components/v2/CardPopupModal';
@@ -361,6 +362,8 @@ export default function ProfileScreen() {
     router.push({ pathname: '/(tabs)/aligned', params: { view: 'interests' } } as never);
   };
 
+  const [reportOpen, setReportOpen] = useState(false);
+
   const handleOpenSupport = async () => {
     const subject = encodeURIComponent('AMARI support');
     const body = encodeURIComponent(`Hi AMARI,\n\nI need help with my account.\n\nMember: ${displayId}`);
@@ -641,6 +644,11 @@ export default function ProfileScreen() {
                       onPress={handleOpenPrivacyPolicy}
                     />
                     <AccountRow
+                      label="Report an issue"
+                      value="Alert the AMARI team"
+                      onPress={() => setReportOpen(true)}
+                    />
+                    <AccountRow
                       label="Help"
                       value="Support and guidance"
                       onPress={handleOpenSupport}
@@ -688,6 +696,7 @@ export default function ProfileScreen() {
         multiline={editField?.multiline}
         isSaving={updateProfile.isPending}
       />
+      <ReportIssueSheet onClose={() => setReportOpen(false)} visible={reportOpen} />
     </View>
   );
 }

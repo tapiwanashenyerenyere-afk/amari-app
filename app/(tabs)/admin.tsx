@@ -19,6 +19,7 @@ interface AdminStats {
   submittedProjects: number;
   pendingProjects: number;
   submittedInterests: number;
+  openIssues: number;
 }
 
 export default function AdminScreen() {
@@ -27,18 +28,19 @@ export default function AdminScreen() {
   const [stats, setStats] = useState<AdminStats>({
     totalMembers: 0, activeMembers: 0, codesUsed: 0,
     codesRemaining: 0, activeEvents: 0, totalRsvps: 0,
-    submittedProjects: 0, pendingProjects: 0, submittedInterests: 0,
+    submittedProjects: 0, pendingProjects: 0, submittedInterests: 0, openIssues: 0,
   });
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
-    const [members, codes, events, rsvps, projects, interests] = await Promise.all([
+    const [members, codes, events, rsvps, projects, interests, openIssues] = await Promise.all([
       supabase.from('members').select('id, status', { count: 'exact', head: true }),
       supabase.from('invitation_codes').select('id, used_by', { count: 'exact' }),
       supabase.from('events').select('id', { count: 'exact' }).gte('ends_at', new Date().toISOString()),
       supabase.from('event_rsvps').select('id', { count: 'exact' }).eq('status', 'confirmed'),
       supabase.from('projects').select('id, status', { count: 'exact' }),
       supabase.from('aligned_tiles').select('id, type', { count: 'exact' }),
+      supabase.from('issue_reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ]);
 
     const allCodes = codes.data || [];
@@ -54,6 +56,7 @@ export default function AdminScreen() {
       submittedProjects: projects.count || 0,
       pendingProjects: (projects.data || []).filter((project: any) => project.status === 'pending').length,
       submittedInterests: interests.count || 0,
+      openIssues: openIssues.count || 0,
     });
   };
 
@@ -93,6 +96,12 @@ export default function AdminScreen() {
       subtitle: 'Scan member passes at the door',
       icon: '▣',
       route: '/admin/checkin' as const,
+    },
+    {
+      title: 'Issues',
+      subtitle: stats.openIssues > 0 ? `${stats.openIssues} open · needs attention` : 'Member-reported issues',
+      icon: '⚑',
+      route: '/admin/issues' as const,
     },
     {
       title: 'Invite Codes',
