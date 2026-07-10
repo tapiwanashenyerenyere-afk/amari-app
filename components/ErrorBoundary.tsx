@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { colors, typography, spacing, radius } from '@/lib/theme';
+import { reportError } from '@/lib/reportError';
 
 interface Props { children: React.ReactNode; screen?: string; }
 interface State { hasError: boolean; error?: Error; }
@@ -13,8 +14,15 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(`[ErrorBoundary:${this.props.screen}]`, error, errorInfo);
+    reportError(error, {
+      screen: this.props.screen,
+      componentStack: errorInfo.componentStack,
+    });
   }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: undefined });
+  };
 
   render() {
     if (this.state.hasError) {
@@ -22,10 +30,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <View style={styles.container}>
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.body}>
-            We've been notified and are looking into it.
+            {this.state.error?.message || 'An unexpected error occurred.'}
           </Text>
           <Pressable
-            onPress={() => this.setState({ hasError: false })}
+            onPress={this.handleRetry}
             style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
             accessibilityRole="button"
             accessibilityLabel="Try again"

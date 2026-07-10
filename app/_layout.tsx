@@ -54,8 +54,13 @@ import { completeAuthFromUrl } from '../lib/authCallback';
 import { supabase } from '../lib/supabase';
 import { AmariEmblem } from '../components/v2/AmariEmblem';
 import { useMyOnboardingStatus } from '../queries/members';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { initSentry } from '../lib/sentry';
+import { installGlobalErrorHandler } from '../lib/reportError';
 
 SplashScreen.preventAutoHideAsync();
+initSentry();
+installGlobalErrorHandler();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, isLoading, isPostAuthSetupComplete } = useAuth();
@@ -373,7 +378,7 @@ const splashStyles = StyleSheet.create({
   },
 });
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const [showSplash, setShowSplash] = useState(true);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -471,6 +476,14 @@ export default function RootLayout() {
         </AuthGuard>
       </AuthProvider>
     </QueryProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ErrorBoundary screen="root">
+      <RootLayoutContent />
+    </ErrorBoundary>
   );
 }
 

@@ -193,6 +193,10 @@ const steps = [
     label: 'TypeScript',
   },
   {
+    command: 'npm run test:ci',
+    label: 'Unit tests (Jest)',
+  },
+  {
     command: 'npx expo config --json',
     label: 'Expo config',
   },

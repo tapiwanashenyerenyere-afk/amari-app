@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
+import { createProjectSchema } from '../lib/schemas';
 import type { ProjectCategory } from '../types/database';
 
 interface CreateProjectInput {
@@ -18,6 +19,7 @@ export function useCreateProject() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const pickImage = async (): Promise<string | null> => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -33,6 +35,13 @@ export function useCreateProject() {
 
   const createProject = async (input: CreateProjectInput): Promise<boolean> => {
     if (!user) return false;
+
+    const parsed = createProjectSchema.safeParse(input);
+    if (!parsed.success) {
+      setValidationError(parsed.error.issues[0]?.message ?? 'Please check your work before submitting.');
+      return false;
+    }
+    setValidationError(null);
     setLoading(true);
 
     try {
@@ -128,5 +137,5 @@ export function useCreateProject() {
     }
   };
 
-  return { pickImage, createProject, loading };
+  return { pickImage, createProject, loading, validationError };
 }

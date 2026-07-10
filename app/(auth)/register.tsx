@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { signInWithGoogle } from '../../lib/googleAuth';
 import { signInWithApple } from '../../lib/appleAuth';
 import { getAuthRedirectUrl } from '../../lib/authRedirect';
+import { registerEmailAuthSchema } from '../../lib/schemas';
 
 const SKILL_OPTIONS = ['AI/ML', 'Capital', 'Operations', 'Design', 'Engineering', 'Finance', 'Policy', 'Community'];
 const INTEREST_OPTIONS = ['Community', 'Investors', 'Collaborators', 'Mentors', 'Events', 'Diaspora', 'Health', 'Culture'];
@@ -72,26 +73,38 @@ export default function RegisterScreen() {
   };
 
   const handleEmailAuth = async () => {
-    if (!email || !fullName) {
-      Alert.alert('Required', 'Please enter your name and email.');
+    const parsed = registerEmailAuthSchema.safeParse({
+      email,
+      fullName,
+      city,
+      industry,
+      currentProject,
+      skills: selectedSkills,
+      interests: selectedInterests,
+    });
+
+    if (!parsed.success) {
+      Alert.alert('Check your details', parsed.error.issues[0]?.message ?? 'Please review your details and try again.');
       return;
     }
+
+    const validated = parsed.data;
 
     setIsSubmitting(true);
     try {
       await storePendingCode();
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
+        email: validated.email,
         options: {
           emailRedirectTo: getAuthRedirectUrl(),
           shouldCreateUser: true,
           data: {
-            full_name: fullName,
-            city,
-            industry,
-            current_project: currentProject,
-            skills: selectedSkills,
-            interests: selectedInterests,
+            full_name: validated.fullName,
+            city: validated.city,
+            industry: validated.industry,
+            current_project: validated.currentProject,
+            skills: validated.skills,
+            interests: validated.interests,
             invitation_code: code,
           },
         },
