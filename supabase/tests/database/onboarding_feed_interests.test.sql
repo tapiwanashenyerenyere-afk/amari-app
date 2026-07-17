@@ -1,6 +1,6 @@
 begin;
 
-select plan(24);
+select plan(29);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -23,6 +23,11 @@ select ok(has_function_privilege('authenticated', 'public.set_feed_interests(tex
 select ok(not has_function_privilege('anon', 'public.set_feed_interests(text[])', 'EXECUTE'), 'anonymous cannot execute interests RPC');
 select is((select prosecdef from pg_proc where oid = 'public.set_feed_interests(text[])'::regprocedure), true, 'interests RPC is security definer');
 select ok((select proconfig @> array['search_path=public'] from pg_proc where oid = 'public.set_feed_interests(text[])'::regprocedure), 'interests RPC fixes search path');
+select ok(has_function_privilege('authenticated', 'public.is_pending_member()', 'EXECUTE'), 'authenticated can evaluate own pending eligibility');
+select ok(not has_function_privilege('anon', 'public.is_pending_member()', 'EXECUTE'), 'anonymous cannot evaluate pending eligibility');
+select is((select prosecdef from pg_proc where oid = 'public.is_pending_member()'::regprocedure), true, 'pending eligibility helper is security definer');
+select ok((select proconfig @> array['search_path=public'] from pg_proc where oid = 'public.is_pending_member()'::regprocedure), 'pending eligibility helper fixes search path');
+select ok(not has_table_privilege('authenticated', 'public.members', 'SELECT'), 'pending interest access does not require members table select privilege');
 select is((select count(*) from pg_policies where schemaname = 'public' and tablename = 'member_feed_interests' and cmd <> 'SELECT'), 0::bigint, 'member interest table has no direct-write policy');
 select is((select count(*) from pg_policies where schemaname = 'public' and tablename = 'member_feed_interests' and cmd = 'SELECT'), 1::bigint, 'member interest table has one select-only policy');
 

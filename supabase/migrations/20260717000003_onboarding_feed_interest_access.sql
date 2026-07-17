@@ -3,6 +3,22 @@
 
 begin;
 
+create or replace function public.is_pending_member()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $fn$
+  select exists (
+    select 1 from public.members
+    where id = auth.uid() and status::text = 'pending'
+  );
+$fn$;
+
+revoke execute on function public.is_pending_member() from public, anon;
+grant execute on function public.is_pending_member() to authenticated;
+
 drop policy if exists "feed_interests_own" on public.member_feed_interests;
 drop policy if exists "feed_interests_active_select_own" on public.member_feed_interests;
 create policy "feed_interests_active_select_own"
@@ -12,13 +28,7 @@ create policy "feed_interests_active_select_own"
     member_id = auth.uid()
     and (
       public.is_active_member()
-      or (
-        declared
-        and exists (
-          select 1 from public.members as m
-          where m.id = auth.uid() and m.status::text = 'pending'
-        )
-      )
+      or (declared and public.is_pending_member())
     )
   );
 
