@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { queryKeys, staleTimes } from '@/lib/queryClient';
-import type { FeedInterest, NewsFeedItem, SavedArticleItem } from '@/types/database';
+import type { FeedInterest, FollowableEntity, NewsFeedItem, SavedArticleItem } from '@/types/database';
 
 const FEED_PAGE_SIZE = 20;
 
@@ -61,6 +61,77 @@ export function useSetFeedInterests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.news.interests() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.news.feed() });
+    },
+  });
+}
+
+export function useFollowableEntities(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.entities.catalogue(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tracked_entities')
+        .select('id, kind, name, industry, region')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as FollowableEntity[];
+    },
+    enabled,
+    staleTime: staleTimes.news,
+  });
+}
+
+export function useEntityFollows(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.entities.follows(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('member_entity_follows')
+        .select('entity_id');
+      if (error) throw error;
+      return (data ?? []).map((row) => Number(row.entity_id));
+    },
+    enabled,
+    staleTime: staleTimes.news,
+  });
+}
+
+export function useSetEntityFollow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ entityId, follow }: { entityId: number; follow: boolean }) => {
+      const { data, error } = await supabase.rpc('set_entity_follow', {
+        p_entity_id: entityId,
+        p_follow: follow,
+      });
+      if (error) throw error;
+      return { entityId, followed: Boolean(data) };
+    },
+    onMutate: async ({ entityId, follow }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.entities.follows() });
+      const current = queryClient.getQueryData<number[]>(queryKeys.entities.follows()) ?? [];
+      const wasFollowed = current.includes(entityId);
+      queryClient.setQueryData<number[]>(
+        queryKeys.entities.follows(),
+        follow
+          ? Array.from(new Set([...current, entityId]))
+          : current.filter((id) => id !== entityId),
+      );
+      return { entityId, wasFollowed };
+    },
+    onError: (_error, _variables, context) => {
+      if (!context) return;
+      queryClient.setQueryData<number[]>(queryKeys.entities.follows(), (current = []) =>
+        context.wasFollowed
+          ? Array.from(new Set([...current, context.entityId]))
+          : current.filter((id) => id !== context.entityId),
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.follows() });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.news.feed() });
     },
   });

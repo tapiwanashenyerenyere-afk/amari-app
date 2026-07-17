@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, findNodeHandle, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, SlidersHorizontal } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { ArticleRow } from '@/components/pulse/ArticleRow';
 import { InterestSheet } from '@/components/pulse/InterestSheet';
+import { BriefingActionRow } from '@/components/pulse/BriefingActionRow';
+import { EntityFollowSheet } from '@/components/pulse/EntityFollowSheet';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import { feedTagLabel } from '@/constants/feedTags';
 import { reasonLabel } from '@/lib/contentMeta';
@@ -18,6 +20,8 @@ import type { NewsFeedItem } from '@/types/database';
 export default function BriefingScreen() {
   const router = useRouter();
   const [interestsOpen, setInterestsOpen] = useState(false);
+  const [entitiesOpen, setEntitiesOpen] = useState(false);
+  const followButtonRef = useRef<View>(null);
   const { data: interests = [] } = useFeedInterests();
   const { data, isLoading, hasNextPage, isFetchingNextPage, fetchNextPage } = useNewsFeed();
   const { openArticle, handleToggleSave } = useBriefingActions();
@@ -40,6 +44,19 @@ export default function BriefingScreen() {
     setInterestsOpen(true);
   };
 
+  const openEntities = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEntitiesOpen(true);
+  };
+
+  const closeEntities = () => {
+    setEntitiesOpen(false);
+    setTimeout(() => {
+      const node = findNodeHandle(followButtonRef.current);
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 350);
+  };
+
   const renderItem = ({ item }: { item: NewsFeedItem }) => (
     <ArticleRow
       article={item}
@@ -56,11 +73,15 @@ export default function BriefingScreen() {
           <Pressable hitSlop={8} onPress={() => router.back()} style={styles.iconButton}>
             <ArrowLeft color={colors.black} size={20} strokeWidth={2} />
           </Pressable>
-          <Text style={styles.headerTitle}>Briefing</Text>
-          <Pressable hitSlop={8} onPress={openInterests} style={styles.iconButton}>
-            <SlidersHorizontal color={colors.black} size={18} strokeWidth={2} />
-          </Pressable>
+          <Text style={styles.headerTitle}>Your briefing</Text>
+          <View style={styles.iconButton} />
         </View>
+
+        <BriefingActionRow
+          followButtonRef={followButtonRef}
+          onFollowWorld={openEntities}
+          onTuneInterests={openInterests}
+        />
 
         {followed.length ? (
           <FlatList
@@ -129,6 +150,7 @@ export default function BriefingScreen() {
       )}
 
       <InterestSheet onClose={() => setInterestsOpen(false)} visible={interestsOpen} />
+      <EntityFollowSheet onClose={closeEntities} visible={entitiesOpen} />
     </View>
   );
 }

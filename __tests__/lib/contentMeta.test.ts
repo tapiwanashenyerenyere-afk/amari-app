@@ -59,6 +59,19 @@ describe('formatLabel', () => {
 });
 
 describe('reasonLabel', () => {
+  it('credits an eligible followed entity before any topic match', () => {
+    const label = reasonLabel(
+      {
+        topics: ['technology'],
+        regions: ['africa'],
+        source_name: 'AMARI Wire',
+        matched_entity: 'Flutterwave',
+      },
+      [{ tag: 'technology', declared: true } as any],
+    );
+    expect(label).toBe('Because you follow Flutterwave');
+  });
+
   it('credits a followed interest when a topic or region matches', () => {
     const label = reasonLabel(
       { topics: ['technology'], regions: ['australia'], source_name: 'AMARI Wire' },
