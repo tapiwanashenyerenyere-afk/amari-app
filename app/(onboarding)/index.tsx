@@ -200,7 +200,7 @@ function scoresForTimeFocus(timeFocus: OnboardingTimeFocus | null) {
 function ProgressRail({ step }: { step: number }) {
   return (
     <View style={styles.progressBlock}>
-      <Text accessibilityLiveRegion="polite" accessibilityRole="text" style={styles.stepStatus}>
+      <Text accessibilityRole="text" style={styles.stepStatus}>
         Step {step + 1} of 5
       </Text>
       <View style={styles.progressRail} accessibilityElementsHidden>
@@ -711,11 +711,6 @@ export default function PostAuthOnboardingScreen() {
   };
 
   const handleSubmit = async () => {
-    if (feedInterests.size === 0) {
-      await submitProfile();
-      return;
-    }
-
     try {
       await setFeedInterests.mutateAsync(Array.from(feedInterests));
     } catch {

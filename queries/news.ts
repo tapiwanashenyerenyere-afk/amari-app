@@ -4,6 +4,7 @@ import { queryKeys, staleTimes } from '@/lib/queryClient';
 import type { FeedInterest, FollowableEntity, NewsFeedItem, SavedArticleItem } from '@/types/database';
 
 const FEED_PAGE_SIZE = 20;
+const ENTITY_PAGE_SIZE = 500;
 
 export function useNewsFeed() {
   return useInfiniteQuery({
@@ -70,12 +71,19 @@ export function useFollowableEntities(enabled = true) {
   return useQuery({
     queryKey: queryKeys.entities.catalogue(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tracked_entities')
-        .select('id, kind, name, industry, region')
-        .order('name', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as FollowableEntity[];
+      const catalogue: FollowableEntity[] = [];
+      for (let from = 0; ; from += ENTITY_PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('tracked_entities')
+          .select('id, kind, name, industry, region')
+          .order('name', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, from + ENTITY_PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = (data ?? []) as FollowableEntity[];
+        catalogue.push(...page);
+        if (page.length < ENTITY_PAGE_SIZE) return catalogue;
+      }
     },
     enabled,
     staleTime: staleTimes.news,
@@ -86,11 +94,18 @@ export function useEntityFollows(enabled = true) {
   return useQuery({
     queryKey: queryKeys.entities.follows(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('member_entity_follows')
-        .select('entity_id');
-      if (error) throw error;
-      return (data ?? []).map((row) => Number(row.entity_id));
+      const follows: number[] = [];
+      for (let from = 0; ; from += ENTITY_PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('member_entity_follows')
+          .select('entity_id')
+          .order('entity_id', { ascending: true })
+          .range(from, from + ENTITY_PAGE_SIZE - 1);
+        if (error) throw error;
+        const page = data ?? [];
+        follows.push(...page.map((row) => Number(row.entity_id)));
+        if (page.length < ENTITY_PAGE_SIZE) return follows;
+      }
     },
     enabled,
     staleTime: staleTimes.news,
@@ -131,7 +146,7 @@ export function useSetEntityFollow() {
       queryClient.invalidateQueries({ queryKey: queryKeys.entities.follows() });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.entities.follows() });
       queryClient.invalidateQueries({ queryKey: queryKeys.news.feed() });
     },
   });

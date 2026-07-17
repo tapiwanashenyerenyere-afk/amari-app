@@ -52,13 +52,20 @@ describe('entity following mobile surface', () => {
     expect(sheet).toContain('AccessibilityInfo.announceForAccessibility');
   });
 
-  it('optimistically updates one entity, rolls back only that row, and invalidates entity and feed caches', () => {
+  it('optimistically updates one entity, rolls back only that row, and invalidates follows and feed caches', () => {
     expect(queries).toContain('onMutate: async ({ entityId, follow })');
     expect(queries).toContain('context.wasFollowed');
     expect(queries).toContain('current.filter((id) => id !== context.entityId)');
-    expect(queries).toContain('queryKeys.entities.all');
+    expect(queries).toContain('queryKeys.entities.follows()');
     expect(queries).toContain('queryKeys.news.feed()');
     expect(sheet).toContain('pendingIds.has(entityId)');
+  });
+
+  it('pages through catalogue and follow rows instead of trusting the PostgREST row cap', () => {
+    expect(queries).toContain('const ENTITY_PAGE_SIZE = 500');
+    expect(queries.match(/\.range\(from, from \+ ENTITY_PAGE_SIZE - 1\)/g)?.length).toBe(2);
+    expect(queries).toContain(".order('id', { ascending: true })");
+    expect(queries).toContain(".order('entity_id', { ascending: true })");
   });
 
   it('restores assistive focus to the launcher after close', () => {

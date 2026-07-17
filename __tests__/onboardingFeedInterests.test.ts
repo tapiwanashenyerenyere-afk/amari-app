@@ -12,6 +12,7 @@ describe('post-auth onboarding feed interests', () => {
     expect(onboarding).toContain('Step {step + 1} of 5');
     expect(onboarding).toContain('[0, 1, 2, 3, 4]');
     expect(onboarding).toContain('AccessibilityInfo.announceForAccessibility(`Step ${step + 1} of 5`)');
+    expect(onboarding).not.toContain('accessibilityLiveRegion="polite"');
     expect(onboarding.match(/<ScrollView/g)?.length).toBeGreaterThanOrEqual(3);
     const renderedSteps = onboarding.slice(onboarding.indexOf('{step === 0'));
     expect(renderedSteps.indexOf('Question three')).toBeLessThan(renderedSteps.indexOf('<InterestScreen'));
@@ -35,6 +36,7 @@ describe('post-auth onboarding feed interests', () => {
     const interestSave = finalSubmit.indexOf('await setFeedInterests.mutateAsync');
     expect(interestSave).toBeGreaterThanOrEqual(0);
     expect(finalSubmit.indexOf('await submitProfile()', interestSave)).toBeGreaterThan(interestSave);
+    expect(finalSubmit).not.toContain('if (feedInterests.size === 0)');
   });
 
   it('offers uncertainty-safe retry and continue paths', () => {
@@ -59,5 +61,16 @@ describe('post-auth onboarding feed interests', () => {
     expect(onboarding).toContain('backgroundColor: colors.gold');
     expect(onboarding).toMatch(/primaryButtonText:[\s\S]*?color: colors\.black/);
     expect(onboarding).toContain('<ActivityIndicator color={colors.black} />');
+  });
+
+  it('announces tune-sheet failures and keeps save semantics stable while busy', () => {
+    expect(tuneSheet).toContain('accessibilityLabel="Save feed interests"');
+    expect(tuneSheet).toContain('accessibilityRole="button"');
+    expect(tuneSheet).toContain('busy: interestsLoading || setInterests.isPending');
+    expect(tuneSheet).toContain('accessibilityLiveRegion="assertive"');
+    expect(tuneSheet).toContain('AccessibilityInfo.announceForAccessibility');
+    expect(tuneSheet).toContain('if (!hasHydrated && interests)');
+    expect(tuneSheet).toContain('disabled={!hasHydrated || setInterests.isPending}');
+    expect(tuneSheet).toContain('Your saved interests didn’t load. Try again before making changes.');
   });
 });
