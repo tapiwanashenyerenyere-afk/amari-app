@@ -3,7 +3,7 @@
 Entry point for Codex, Claude, and any other agent working this repo.
 
 **Verify before you trust.** This file is a point-in-time record. It was last
-reconciled against the code on **2026-07-16** at release head `c6eee96`
+reconciled against the code on **2026-07-17** at release head `c6eee96`
 (v1.2.4). If you are reading it much later, check `git log` before relying on
 any claim here. Docs in this repo have gone stale before — the previous version
 of this file described v1.1.2 and was two months behind the code.
@@ -74,7 +74,7 @@ in-app issue reporting with admin fan-out, and a five-tier membership model.
 ## Known Defects — Read Before You Touch These Areas
 
 These are verified against the code, not speculation. They are open as of
-2026-07-16.
+2026-07-17.
 
 **`getPulseMatchFooter` fabricates a personalisation claim.** `lib/pulse.ts:110`,
 called at `app/(tabs)/index.tsx:102`. It takes only the member profile — the

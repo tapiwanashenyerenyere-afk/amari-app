@@ -1,6 +1,6 @@
 # AMARI Working Memory
 
-**Last reconciled against the code: 2026-07-16**, at release head `c6eee96`
+**Last reconciled against the code: 2026-07-17**, at release head `c6eee96`
 (v1.2.4). The previous version of this file was dated 2026-05-11 and described
 v1.1.2 — it was two months behind and would have misled anyone who trusted it.
 Treat everything here as a point-in-time record. Check `git log`,
@@ -164,7 +164,7 @@ classifier calls.
 
 ## Known Defects
 
-Verified against the code on 2026-07-16. All open.
+Verified against the code on 2026-07-17. All open.
 
 **`getPulseMatchFooter` fabricates a personalisation claim.** `lib/pulse.ts:110`,
 live at `app/(tabs)/index.tsx:102`. Takes only the member profile — the edition

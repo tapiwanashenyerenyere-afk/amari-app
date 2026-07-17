@@ -2,7 +2,7 @@
 
 The production release path for the AMARI mobile app.
 
-Last reconciled: **2026-07-16**, at v1.2.4. Verify against `git log` and
+Last reconciled: **2026-07-17**, at v1.2.4. Verify against `git log` and
 `npx eas build:list` before trusting any specific build number below.
 
 ## Read This First — The Two Traps

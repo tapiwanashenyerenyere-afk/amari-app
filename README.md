@@ -6,7 +6,7 @@ Australia first. React Native (Expo SDK 54) with a Supabase backend.
 **Agents: read `AGENTS.md` before changing anything.** It carries the worktree
 layout, the operating rules, and the current list of known defects.
 
-Last reconciled against the code: **2026-07-16**, release head `c6eee96`
+Last reconciled against the code: **2026-07-17**, release head `c6eee96`
 (v1.2.4). Check `git log` before trusting specifics.
 
 ## Where To Work
