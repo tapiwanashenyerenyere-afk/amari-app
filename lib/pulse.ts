@@ -106,25 +106,3 @@ export function formatPulseDate(dateString: string) {
     year: 'numeric',
   });
 }
-
-export function getPulseMatchFooter(profile: {
-  city?: string | null;
-  industry?: string | null;
-  interests?: string[] | null;
-} | null | undefined) {
-  const matches = [
-    profile?.interests?.[0],
-    profile?.industry,
-    profile?.city,
-  ].filter((value): value is string => Boolean(value && value.trim()));
-
-  if (matches.length === 0) {
-    return 'Matched to your AMARI profile.';
-  }
-
-  if (matches.length === 1) {
-    return `Matched to ${matches[0]} in your profile.`;
-  }
-
-  return `Matched to ${matches[0]} and ${matches[1]} in your profile.`;
-}

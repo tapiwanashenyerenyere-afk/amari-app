@@ -24,7 +24,6 @@ import type { PulseEdition } from '@/types/database';
 
 interface PulseArticleModalProps {
   article: PulseEdition | null;
-  matchFooter: string;
   onClose: () => void;
 }
 
@@ -49,7 +48,6 @@ function groupNominees(nominees: GalaNominee[]): NomineeGroup[] {
 
 export function PulseArticleModal({
   article,
-  matchFooter,
   onClose,
 }: PulseArticleModalProps) {
   if (!article) {
@@ -64,7 +62,6 @@ export function PulseArticleModal({
     return (
       <NomineeDirectoryModal
         article={article}
-        matchFooter={matchFooter}
         nominees={nominees}
         onClose={onClose}
       />
@@ -154,9 +151,6 @@ export function PulseArticleModal({
                 ))}
               </View>
             ) : null}
-
-            <View style={styles.divider} />
-            <Text style={styles.matchFooter}>{matchFooter}</Text>
           </View>
         </ScrollView>
       </View>
@@ -166,12 +160,10 @@ export function PulseArticleModal({
 
 function NomineeDirectoryModal({
   article,
-  matchFooter,
   nominees,
   onClose,
 }: {
   article: PulseEdition;
-  matchFooter: string;
   nominees: GalaNominee[];
   onClose: () => void;
 }) {
@@ -209,12 +201,6 @@ function NomineeDirectoryModal({
                 Scroll through each category, swipe across the nominees, then tap a card for
                 the short AMARI note on who they are and what they are building.
               </Text>
-            </View>
-          }
-          ListFooterComponent={
-            <View style={styles.nomineeFooter}>
-              <View style={styles.divider} />
-              <Text style={styles.matchFooter}>{matchFooter}</Text>
             </View>
           }
           contentContainerStyle={styles.nomineeListContent}
@@ -532,17 +518,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: 'rgba(0,0,0,0.64)',
   },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.06)',
-    marginVertical: 24,
-  },
-  matchFooter: {
-    fontFamily: typography.body.italic,
-    fontSize: 12,
-    lineHeight: 18,
-    color: 'rgba(0,0,0,0.46)',
-  },
   nomineeRoot: {
     flex: 1,
     backgroundColor: colors.bone,
@@ -721,9 +696,5 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.bold,
     fontSize: 13,
     color: colors.white,
-  },
-  nomineeFooter: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: 18,
   },
 });

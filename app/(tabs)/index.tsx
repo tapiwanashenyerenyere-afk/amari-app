@@ -29,7 +29,6 @@ import {
   formatPulseDate,
   getPulseCategoryLabel,
   getPulseExcerpt,
-  getPulseMatchFooter,
   normalizePulseText,
 } from '@/lib/pulse';
 import type { PulseEdition } from '@/types/database';
@@ -99,7 +98,6 @@ export default function PulseScreen() {
   const locationLabel = profile?.city?.trim() || 'Australia';
   const displayId = profile?.display_id || `AMARI-${new Date().getFullYear()}-0000`;
   const tierLabel = TIER_DISPLAY_NAMES[tier] || tier.toUpperCase();
-  const matchFooter = getPulseMatchFooter(profile);
   const pulseStories = useMemo(() => {
     const normalizedLiveStories = livePulseStories
       .map((story) => ({
@@ -263,7 +261,6 @@ export default function PulseScreen() {
 
       <PulseArticleModal
         article={selectedArticle}
-        matchFooter={matchFooter}
         onClose={closeArticle}
       />
     </View>
