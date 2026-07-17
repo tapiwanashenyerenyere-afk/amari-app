@@ -3,6 +3,10 @@
 
 begin;
 
+revoke select on table public.tracked_entities from authenticated;
+grant select (id, kind, name, industry, region)
+  on table public.tracked_entities to authenticated;
+
 drop policy if exists "entity_follows_own" on public.member_entity_follows;
 drop policy if exists "entity_follows_active_select_own" on public.member_entity_follows;
 create policy "entity_follows_active_select_own"
@@ -116,7 +120,7 @@ begin
     (sa.article_id is not null),
     ef.matched_entity,
     (
-      exp(-extract(epoch from (now() - coalesce(a.published_at, a.ingested_at))) / 3600.0 / 48.0)
+      exp(-greatest(extract(epoch from (now() - coalesce(a.published_at, a.ingested_at))), 0) / 3600.0 / 48.0)
       * s.default_weight
       * (0.5 + coalesce(a.relevance, 50) / 100.0)
       * (1.0 + least(coalesce(im.tag_boost, 0.0), 2.0))
@@ -145,6 +149,7 @@ begin
   ) as ef on true
   where a.status = 'published'
     and coalesce(a.published_at, a.ingested_at) > now() - interval '14 days'
+    and coalesce(a.published_at, a.ingested_at) <= now() + interval '15 minutes'
     and not exists (
       select 1 from public.news_events as h
       where h.member_id = auth.uid()
@@ -152,7 +157,7 @@ begin
         and h.event_type = 'hide'
     )
   order by score desc, coalesce(a.published_at, a.ingested_at) desc, a.id desc
-  limit greatest(coalesce(p_limit, 20), 1)
+  limit least(greatest(coalesce(p_limit, 20), 1), 100)
   offset greatest(coalesce(p_offset, 0), 0);
 end;
 $fn$;

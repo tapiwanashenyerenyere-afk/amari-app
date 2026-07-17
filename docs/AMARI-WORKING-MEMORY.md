@@ -92,7 +92,9 @@ an entity query rediscovers an existing URL it calls `append_article_entity` to
 merge the tag onto the existing row rather than duplicating.
 
 **Classify** — `supabase/functions/enrich-news`. Takes `status = 'pending'` rows
-in batches of 10, `MAX_BATCHES_PER_RUN = 2`. The LLM returns per article: 1–3
+in queue groups of 10, `MAX_BATCHES_PER_RUN = 2`, with each article isolated in
+its own bounded model request so publisher text cannot affect sibling results.
+The LLM returns per article: 1–3
 topic tags, 1–2 region tags, a 0–100 diaspora relevance score, and a one-sentence
 summary in Australian English. Articles scoring **≥ 25** (`RELEVANCE_FLOOR`) flip
 to `published`; below that they go to `hidden` — ingested, never shown. Roughly a

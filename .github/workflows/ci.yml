@@ -43,9 +43,9 @@ jobs:
         run: deno test --allow-read --no-config supabase/functions
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 2.109.1
 
       - name: Start Supabase
         run: supabase db start

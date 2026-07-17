@@ -1,6 +1,6 @@
 begin;
 
-select plan(39);
+select plan(41);
 
 insert into public.news_sources (
   name,
@@ -108,6 +108,8 @@ values ('lease', public.try_acquire_news_pipeline_lease('enrich-news', 180));
 
 select isnt((select id from pr_b_state where key = 'lease'), null::uuid, 'first lease is acquired');
 select is(public.try_acquire_news_pipeline_lease('enrich-news', 180), null::uuid, 'overlapping lease is denied');
+select is(public.renew_news_pipeline_lease('enrich-news', extensions.gen_random_uuid(), 180), false, 'wrong lease id cannot renew');
+select is(public.renew_news_pipeline_lease('enrich-news', (select id from pr_b_state where key = 'lease'), 180), true, 'lease owner can renew');
 select is(public.release_news_pipeline_lease('enrich-news', extensions.gen_random_uuid()), false, 'wrong lease id cannot release');
 select is(public.release_news_pipeline_lease('enrich-news', (select id from pr_b_state where key = 'lease')), true, 'owner releases lease');
 select isnt(public.try_acquire_news_pipeline_lease('enrich-news', 180), null::uuid, 'lease can be reacquired after release');
@@ -117,14 +119,15 @@ select is(
    from pg_proc
    where proname in (
      'get_pending_for_enrichment',
-     'try_acquire_news_pipeline_lease',
-     'release_news_pipeline_lease',
+      'try_acquire_news_pipeline_lease',
+      'renew_news_pipeline_lease',
+      'release_news_pipeline_lease',
      'reserve_news_ai_budget',
      'settle_news_ai_budget',
      'release_news_ai_budget_reservation'
    )
    and has_function_privilege('service_role', oid, 'EXECUTE')),
-  6::bigint,
+   7::bigint,
   'service role can execute every pipeline primitive'
 );
 select is(
@@ -132,8 +135,9 @@ select is(
    from pg_proc
    where proname in (
      'get_pending_for_enrichment',
-     'try_acquire_news_pipeline_lease',
-     'release_news_pipeline_lease',
+      'try_acquire_news_pipeline_lease',
+      'renew_news_pipeline_lease',
+      'release_news_pipeline_lease',
      'reserve_news_ai_budget',
      'settle_news_ai_budget',
      'release_news_ai_budget_reservation'
@@ -147,8 +151,9 @@ select is(
    from pg_proc
    where proname in (
      'get_pending_for_enrichment',
-     'try_acquire_news_pipeline_lease',
-     'release_news_pipeline_lease',
+      'try_acquire_news_pipeline_lease',
+      'renew_news_pipeline_lease',
+      'release_news_pipeline_lease',
      'reserve_news_ai_budget',
      'settle_news_ai_budget',
      'release_news_ai_budget_reservation'
@@ -162,14 +167,15 @@ select is(
    from pg_proc
    where proname in (
      'get_pending_for_enrichment',
-     'try_acquire_news_pipeline_lease',
-     'release_news_pipeline_lease',
+      'try_acquire_news_pipeline_lease',
+      'renew_news_pipeline_lease',
+      'release_news_pipeline_lease',
      'reserve_news_ai_budget',
      'settle_news_ai_budget',
      'release_news_ai_budget_reservation'
    )
    and prosecdef),
-  6::bigint,
+   7::bigint,
   'all pipeline primitives are security definer'
 );
 select is(
@@ -177,14 +183,15 @@ select is(
    from pg_proc
    where proname in (
      'get_pending_for_enrichment',
-     'try_acquire_news_pipeline_lease',
-     'release_news_pipeline_lease',
+      'try_acquire_news_pipeline_lease',
+      'renew_news_pipeline_lease',
+      'release_news_pipeline_lease',
      'reserve_news_ai_budget',
      'settle_news_ai_budget',
      'release_news_ai_budget_reservation'
    )
    and proconfig @> array['search_path=public']),
-  6::bigint,
+   7::bigint,
   'all pipeline primitives have a fixed search path'
 );
 

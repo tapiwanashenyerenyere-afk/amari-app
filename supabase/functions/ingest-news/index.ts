@@ -5,7 +5,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   buildEntityFeedUrl,
-  cleanGoogleNewsTitle,
   ENTITIES_PER_RUN,
   ENTITY_ITEMS_PER_ENTITY,
   FETCH_CONCURRENCY,
@@ -91,16 +90,22 @@ async function isAuthorized(req: Request): Promise<boolean> {
 async function processSource(
   serviceClient: ReturnType<typeof createClient>,
   source: SourceRow,
+  discoverySourceId: number | null,
 ): Promise<SourceResult> {
   let inserted = 0;
   try {
     const items = await fetchAndParseFeed(source.feed_url);
     const isGoogleNews = source.feed_url.startsWith("https://news.google.com/");
+    if (isGoogleNews && discoverySourceId === null) {
+      throw new Error("Google News discovery source is not configured");
+    }
     const rows = await Promise.all(items.map(async (item) => ({
-      source_id: source.id,
+      source_id: isGoogleNews ? discoverySourceId : source.id,
       url: item.url,
       url_hash: await sha256Hex(item.url),
-      title: isGoogleNews ? cleanGoogleNewsTitle(item.title) : item.title,
+      // Google News appends the actual publisher to the title; retain it because
+      // the database source is deliberately the generic discovery service.
+      title: item.title,
       snippet: item.snippet,
       image_url: item.imageUrl,
       published_at: item.publishedAt,
@@ -173,7 +178,7 @@ async function processEntity(
       source_id: discoverySourceId,
       url: item.url,
       url_hash: await sha256Hex(item.url),
-      title: cleanGoogleNewsTitle(item.title),
+      title: item.title,
       snippet: item.snippet,
       image_url: item.imageUrl,
       published_at: item.publishedAt,
@@ -261,6 +266,12 @@ Deno.serve(async (req: Request) => {
     }
     leaseToken = acquiredLease;
 
+    const { data: discoverySource, error: discoverySourceError } =
+      await serviceClient.from("news_sources")
+        .select("id").eq("feed_url", GOOGLE_DISCOVERY_SOURCE_FEED_URL)
+        .maybeSingle();
+    if (discoverySourceError) throw discoverySourceError;
+
     const { data: sources, error: sourcesError } = await serviceClient.from(
       "news_sources",
     )
@@ -277,8 +288,20 @@ Deno.serve(async (req: Request) => {
     const sourceResults = await mapWithConcurrency(
       selectedSources,
       FETCH_CONCURRENCY,
-      (source) => processSource(serviceClient!, source),
+      (source) => processSource(serviceClient!, source, discoverySource?.id ?? null),
     );
+
+    const { data: renewedLease, error: renewError } = await serviceClient.rpc(
+      "renew_news_pipeline_lease",
+      {
+        p_pipeline: "ingest-news",
+        p_lease_id: leaseToken,
+        p_lease_seconds: LEASE_SECONDS,
+      },
+    );
+    if (renewError || renewedLease !== true) {
+      throw new Error(renewError?.message ?? "Ingestion lease ownership lost");
+    }
 
     const { data: entities, error: entitiesError } = await serviceClient.from(
       "tracked_entities",
@@ -290,11 +313,6 @@ Deno.serve(async (req: Request) => {
         { ascending: true },
       ).limit(ENTITIES_PER_RUN);
     if (entitiesError) throw entitiesError;
-    const { data: discoverySource, error: discoverySourceError } =
-      await serviceClient.from("news_sources")
-        .select("id").eq("feed_url", GOOGLE_DISCOVERY_SOURCE_FEED_URL)
-        .maybeSingle();
-    if (discoverySourceError) throw discoverySourceError;
     const selectedEntities = (entities ?? []) as EntityRow[];
     const entityResults = discoverySource
       ? await mapWithConcurrency(
@@ -306,6 +324,13 @@ Deno.serve(async (req: Request) => {
 
     const sourceFailures = sourceResults.filter((result) => result.failed);
     const entityFailures = entityResults.filter((result) => result.failed);
+    const processedCount = sourceResults.length - sourceFailures.length +
+      entityResults.length - entityFailures.length;
+    const attemptedCount = selectedSources.length +
+      (discoverySource ? selectedEntities.length : 0);
+    const discoveryMissing = !discoverySource && selectedEntities.length > 0;
+    const pipelineSuccess = !discoveryMissing &&
+      (attemptedCount === 0 || processedCount > 0);
     const totalInserted = sourceResults.reduce(
       (total, result) => total + result.inserted,
       0,
@@ -315,7 +340,8 @@ Deno.serve(async (req: Request) => {
       0,
     );
     return jsonResponse({
-      success: true,
+      success: pipelineSuccess,
+      degraded: discoveryMissing || sourceFailures.length > 0 || entityFailures.length > 0,
       already_running: false,
       elapsed_ms: elapsedMs(startedAt),
       sources: sourceResults.length,
@@ -336,7 +362,7 @@ Deno.serve(async (req: Request) => {
       details: sourceResults,
       entity_details: entityResults,
       timestamp: new Date().toISOString(),
-    });
+    }, pipelineSuccess ? 200 : 502);
   } catch (error) {
     console.error("[ingest-news] Error:", error);
     return jsonResponse({
@@ -350,7 +376,7 @@ Deno.serve(async (req: Request) => {
         "release_news_pipeline_lease",
         {
           p_pipeline: "ingest-news",
-          p_lease_token: leaseToken,
+          p_lease_id: leaseToken,
         },
       );
       if (releaseError) {
