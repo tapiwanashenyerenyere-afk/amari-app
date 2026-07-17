@@ -1,386 +1,364 @@
 // @ts-nocheck
-// AMARI intelligence feed: RSS ingestion.
-// Pulls active feeds from news_sources, normalises items, and inserts new
-// rows into news_articles as status 'pending' for the enrichment pass.
-//
-// Content posture: only what the feed itself provides is stored (title,
-// summary snippet, link, image reference). Full article text is never
-// fetched or stored.
-//
-// Invocation: scheduled via pg_cron/pg_net with the x-amari-pipeline-secret
-// header, or manually by an admin member JWT. See supabase/functions/NEWS-PIPELINE.md.
+// AMARI intelligence feed: bounded RSS ingestion.
+// Stores feed-provided headline, snippet, image reference, and link only.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { XMLParser } from 'https://esm.sh/fast-xml-parser@4.5.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildEntityFeedUrl,
+  cleanGoogleNewsTitle,
+  ENTITIES_PER_RUN,
+  ENTITY_ITEMS_PER_ENTITY,
+  FETCH_CONCURRENCY,
+  fetchAndParseFeed,
+  GOOGLE_DISCOVERY_SOURCE_FEED_URL,
+  mapWithConcurrency,
+  sha256Hex,
+  SOURCES_PER_RUN,
+} from "./core.ts";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
-const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const PIPELINE_SECRET = Deno.env.get('NEWS_PIPELINE_SECRET') ?? '';
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const PIPELINE_SECRET = Deno.env.get("NEWS_PIPELINE_SECRET") ?? "";
+const LEASE_SECONDS = 180;
 
-const MAX_ITEMS_PER_SOURCE = 25;
-const ENTITIES_PER_RUN = 10;          // rotates least-recently-checked
-const ENTITY_ITEMS_PER_ENTITY = 5;
-const FETCH_TIMEOUT_MS = 15000;
-const USER_AGENT = 'AMARI-App-Feed/1.0 (+https://www.amarigroupau.com)';
+interface SourceRow {
+  id: number;
+  name: string;
+  feed_url: string;
+  region: string;
+  fail_count: number | null;
+  last_fetched_at: string | null;
+}
+interface EntityRow {
+  id: number;
+  name: string;
+  aliases: string[] | null;
+  region: string | null;
+  last_checked_at: string | null;
+}
+interface SourceResult {
+  source: string;
+  source_id: number;
+  status: string;
+  items: number;
+  inserted: number;
+  empty: boolean;
+  failed: boolean;
+}
+interface EntityResult {
+  entity: string;
+  entity_id: number;
+  status: string;
+  items: number;
+  inserted: number;
+  failed: boolean;
+}
 
 function jsonResponse(payload: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
+}
+function elapsedMs(startedAt: number): number {
+  return Math.round(performance.now() - startedAt);
+}
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function isAuthorized(req: Request): Promise<boolean> {
-  const secret = req.headers.get('x-amari-pipeline-secret');
-  if (PIPELINE_SECRET && secret === PIPELINE_SECRET) {
-    return true;
-  }
-
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return false;
-  }
-
+  const secret = req.headers.get("x-amari-pipeline-secret");
+  if (PIPELINE_SECRET && secret === PIPELINE_SECRET) return true;
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
   const accessToken = authHeader.slice(7).trim();
-  if (!accessToken) {
-    return false;
-  }
-
+  if (!accessToken) return false;
   const memberClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
-
-  const {
-    data: { user },
-    error: userError,
-  } = await memberClient.auth.getUser(accessToken);
-
-  if (userError || !user) {
-    return false;
-  }
-
-  const { data: adminRole } = await memberClient
-    .from('admin_roles')
-    .select('member_id')
-    .eq('member_id', user.id)
-    .maybeSingle();
-
+  const { data: { user }, error: userError } = await memberClient.auth.getUser(
+    accessToken,
+  );
+  if (userError || !user) return false;
+  const { data: adminRole } = await memberClient.from("admin_roles").select(
+    "member_id",
+  ).eq("member_id", user.id).maybeSingle();
   return Boolean(adminRole);
 }
 
-function stripHtml(value: string): string {
-  return value
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&#8217;|&rsquo;/gi, "'")
-    .replace(/&#8216;|&lsquo;/gi, "'")
-    .replace(/&#8220;|&ldquo;/gi, '"')
-    .replace(/&#8221;|&rdquo;/gi, '"')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function truncate(value: string, max: number): string {
-  if (value.length <= max) return value;
-  return `${value.slice(0, max - 1).trimEnd()}…`;
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function textOf(node: unknown): string {
-  if (typeof node === 'string') return node;
-  if (typeof node === 'number') return String(node);
-  if (node && typeof node === 'object') {
-    const record = node as Record<string, unknown>;
-    if (typeof record['#text'] === 'string') return record['#text'];
-    if (typeof record['#text'] === 'number') return String(record['#text']);
-    if (typeof record['@_href'] === 'string') return record['@_href'];
+async function processSource(
+  serviceClient: ReturnType<typeof createClient>,
+  source: SourceRow,
+): Promise<SourceResult> {
+  let inserted = 0;
+  try {
+    const items = await fetchAndParseFeed(source.feed_url);
+    const isGoogleNews = source.feed_url.startsWith("https://news.google.com/");
+    const rows = await Promise.all(items.map(async (item) => ({
+      source_id: source.id,
+      url: item.url,
+      url_hash: await sha256Hex(item.url),
+      title: isGoogleNews ? cleanGoogleNewsTitle(item.title) : item.title,
+      snippet: item.snippet,
+      image_url: item.imageUrl,
+      published_at: item.publishedAt,
+    })));
+    if (rows.length > 0) {
+      const { error: insertError, count } = await serviceClient.from(
+        "news_articles",
+      )
+        .upsert(rows, {
+          onConflict: "url_hash",
+          ignoreDuplicates: true,
+          count: "exact",
+        });
+      if (insertError) throw insertError;
+      inserted = count ?? 0;
+    }
+    const now = new Date().toISOString();
+    const { error: updateError } = await serviceClient.from("news_sources")
+      .update({
+        last_fetched_at: now,
+        last_status: `ok: ${items.length} items, ${inserted} new`,
+        fail_count: 0,
+        updated_at: now,
+      }).eq("id", source.id);
+    if (updateError) throw updateError;
+    return {
+      source: source.name,
+      source_id: source.id,
+      status: "ok",
+      items: items.length,
+      inserted,
+      empty: items.length === 0,
+      failed: false,
+    };
+  } catch (error) {
+    const status = errorMessage(error);
+    const now = new Date().toISOString();
+    await serviceClient.from("news_sources").update({
+      last_fetched_at: now,
+      last_status: `error: ${status}`,
+      fail_count: (source.fail_count ?? 0) + 1,
+      updated_at: now,
+    }).eq("id", source.id);
+    console.warn(`[ingest-news] source ${source.name}:`, status);
+    return {
+      source: source.name,
+      source_id: source.id,
+      status,
+      items: 0,
+      inserted,
+      empty: false,
+      failed: true,
+    };
   }
-  return '';
 }
 
-function asArray<T>(value: T | T[] | undefined): T[] {
-  if (value === undefined || value === null) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
-interface FeedItem {
-  title: string;
-  url: string;
-  snippet: string | null;
-  imageUrl: string | null;
-  publishedAt: string | null;
-}
-
-function extractImage(item: Record<string, unknown>): string | null {
-  const enclosures = asArray(item.enclosure as Record<string, unknown>[]);
-  for (const enclosure of enclosures) {
-    const type = String(enclosure?.['@_type'] ?? '');
-    const url = String(enclosure?.['@_url'] ?? '');
-    if (url && (type.startsWith('image/') || /\.(jpe?g|png|webp)(\?|$)/i.test(url))) {
-      return url;
+async function processEntity(
+  serviceClient: ReturnType<typeof createClient>,
+  discoverySourceId: number,
+  entity: EntityRow,
+): Promise<EntityResult> {
+  let inserted = 0;
+  try {
+    const feedUrl = buildEntityFeedUrl(entity.name, entity.aliases);
+    const items = (await fetchAndParseFeed(feedUrl)).slice(
+      0,
+      ENTITY_ITEMS_PER_ENTITY,
+    );
+    const rows = await Promise.all(items.map(async (item) => ({
+      source_id: discoverySourceId,
+      url: item.url,
+      url_hash: await sha256Hex(item.url),
+      title: cleanGoogleNewsTitle(item.title),
+      snippet: item.snippet,
+      image_url: item.imageUrl,
+      published_at: item.publishedAt,
+      entities: [entity.name],
+    })));
+    if (rows.length > 0) {
+      const { error: insertError, count } = await serviceClient.from(
+        "news_articles",
+      )
+        .upsert(rows, {
+          onConflict: "url_hash",
+          ignoreDuplicates: true,
+          count: "exact",
+        });
+      if (insertError) throw insertError;
+      inserted = count ?? 0;
+      for (const row of rows) {
+        const { error: appendError } = await serviceClient.rpc(
+          "append_article_entity",
+          { p_url_hash: row.url_hash, p_entity: entity.name },
+        );
+        if (appendError) throw appendError;
+      }
+    }
+    return {
+      entity: entity.name,
+      entity_id: entity.id,
+      status: "ok",
+      items: items.length,
+      inserted,
+      failed: false,
+    };
+  } catch (error) {
+    const status = errorMessage(error);
+    console.warn(`[ingest-news] entity ${entity.name}:`, status);
+    return {
+      entity: entity.name,
+      entity_id: entity.id,
+      status,
+      items: 0,
+      inserted,
+      failed: true,
+    };
+  } finally {
+    const { error: updateError } = await serviceClient.from("tracked_entities")
+      .update({ last_checked_at: new Date().toISOString() }).eq(
+        "id",
+        entity.id,
+      );
+    if (updateError) {
+      console.warn(
+        `[ingest-news] entity rotation update ${entity.name}:`,
+        updateError.message,
+      );
     }
   }
-
-  const media = asArray(item['media:content'] as Record<string, unknown>[]).concat(
-    asArray(item['media:thumbnail'] as Record<string, unknown>[]),
-  );
-  for (const entry of media) {
-    const url = String(entry?.['@_url'] ?? '');
-    if (url) return url;
-  }
-
-  return null;
-}
-
-function parseFeed(xml: string): FeedItem[] {
-  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
-  const doc = parser.parse(xml);
-
-  const rssItems = asArray(doc?.rss?.channel?.item);
-  const atomEntries = asArray(doc?.feed?.entry);
-  const items: FeedItem[] = [];
-
-  for (const item of rssItems) {
-    const title = stripHtml(textOf(item.title));
-    const url = textOf(item.link).trim();
-    if (!title || !url.startsWith('http')) continue;
-
-    const description = stripHtml(textOf(item.description ?? item['content:encoded'] ?? ''));
-    const pubDate = textOf(item.pubDate ?? item['dc:date'] ?? '');
-    const parsedDate = pubDate ? new Date(pubDate) : null;
-
-    items.push({
-      title: truncate(title, 300),
-      url,
-      snippet: description ? truncate(description, 320) : null,
-      imageUrl: extractImage(item),
-      publishedAt: parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : null,
-    });
-  }
-
-  for (const entry of atomEntries) {
-    const title = stripHtml(textOf(entry.title));
-    const links = asArray(entry.link as Record<string, unknown>[]);
-    const alternate = links.find((l) => (l?.['@_rel'] ?? 'alternate') === 'alternate');
-    const url = String(alternate?.['@_href'] ?? links[0]?.['@_href'] ?? '').trim();
-    if (!title || !url.startsWith('http')) continue;
-
-    const summary = stripHtml(textOf(entry.summary ?? entry.content ?? ''));
-    const published = textOf(entry.published ?? entry.updated ?? '');
-    const parsedDate = published ? new Date(published) : null;
-
-    items.push({
-      title: truncate(title, 300),
-      url,
-      snippet: summary ? truncate(summary, 320) : null,
-      imageUrl: null,
-      publishedAt: parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : null,
-    });
-  }
-
-  return items.slice(0, MAX_ITEMS_PER_SOURCE);
-}
-
-function cleanGoogleNewsTitle(title: string): string {
-  const separatorIndex = title.lastIndexOf(' - ');
-  if (separatorIndex > 20) {
-    return title.slice(0, separatorIndex).trim();
-  }
-  return title;
 }
 
 Deno.serve(async (req: Request) => {
+  const startedAt = performance.now();
+  let serviceClient: ReturnType<typeof createClient> | null = null;
+  let leaseToken: string | null = null;
   try {
     if (!(await isAuthorized(req))) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
-
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-    const { data: sources, error: sourcesError } = await serviceClient
-      .from('news_sources')
-      .select('id, name, feed_url, region, fail_count')
-      .eq('active', true);
-
-    if (sourcesError) {
-      throw sourcesError;
+    serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const { data: acquiredLease, error: leaseError } = await serviceClient.rpc(
+      "try_acquire_news_pipeline_lease",
+      {
+        p_pipeline: "ingest-news",
+        p_lease_seconds: LEASE_SECONDS,
+      },
+    );
+    if (leaseError) throw leaseError;
+    if (!acquiredLease) {
+      return jsonResponse({
+        success: true,
+        already_running: true,
+        elapsed_ms: elapsedMs(startedAt),
+        sources_attempted: 0,
+        entities_attempted: 0,
+        timestamp: new Date().toISOString(),
+      });
     }
+    leaseToken = acquiredLease;
 
-    const results: Record<string, unknown>[] = [];
-    let totalInserted = 0;
+    const { data: sources, error: sourcesError } = await serviceClient.from(
+      "news_sources",
+    )
+      .select("id, name, feed_url, region, fail_count, last_fetched_at").eq(
+        "active",
+        true,
+      )
+      .order("last_fetched_at", { ascending: true, nullsFirst: true }).order(
+        "id",
+        { ascending: true },
+      ).limit(SOURCES_PER_RUN);
+    if (sourcesError) throw sourcesError;
+    const selectedSources = (sources ?? []) as SourceRow[];
+    const sourceResults = await mapWithConcurrency(
+      selectedSources,
+      FETCH_CONCURRENCY,
+      (source) => processSource(serviceClient!, source),
+    );
 
-    for (const source of sources ?? []) {
-      const isGoogleNews = source.feed_url.includes('news.google.com');
-      let inserted = 0;
-      let status = 'ok';
+    const { data: entities, error: entitiesError } = await serviceClient.from(
+      "tracked_entities",
+    )
+      .select("id, name, aliases, region, last_checked_at").eq("active", true)
+      .eq("house", true).eq("status", "approved")
+      .order("last_checked_at", { ascending: true, nullsFirst: true }).order(
+        "id",
+        { ascending: true },
+      ).limit(ENTITIES_PER_RUN);
+    if (entitiesError) throw entitiesError;
+    const { data: discoverySource, error: discoverySourceError } =
+      await serviceClient.from("news_sources")
+        .select("id").eq("feed_url", GOOGLE_DISCOVERY_SOURCE_FEED_URL)
+        .maybeSingle();
+    if (discoverySourceError) throw discoverySourceError;
+    const selectedEntities = (entities ?? []) as EntityRow[];
+    const entityResults = discoverySource
+      ? await mapWithConcurrency(
+        selectedEntities,
+        FETCH_CONCURRENCY,
+        (entity) => processEntity(serviceClient!, discoverySource.id, entity),
+      )
+      : [];
 
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-        const response = await fetch(source.feed_url, {
-          headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' },
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const xml = await response.text();
-        const items = parseFeed(xml);
-
-        for (const item of items) {
-          const title = isGoogleNews ? cleanGoogleNewsTitle(item.title) : item.title;
-          const urlHash = await sha256Hex(item.url);
-
-          const { error: insertError, count } = await serviceClient
-            .from('news_articles')
-            .insert(
-              {
-                source_id: source.id,
-                url: item.url,
-                url_hash: urlHash,
-                title,
-                snippet: item.snippet,
-                image_url: item.imageUrl,
-                published_at: item.publishedAt,
-              },
-              { count: 'exact' },
-            );
-
-          if (!insertError) {
-            inserted += count ?? 1;
-          } else if (insertError.code !== '23505') {
-            // 23505 = duplicate url_hash, expected on every run.
-            console.error(`[ingest-news] insert failed for ${source.name}:`, insertError.message);
-          }
-        }
-
-        await serviceClient
-          .from('news_sources')
-          .update({
-            last_fetched_at: new Date().toISOString(),
-            last_status: `ok: ${items.length} items, ${inserted} new`,
-            fail_count: 0,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', source.id);
-      } catch (error) {
-        status = error instanceof Error ? error.message : String(error);
-        await serviceClient
-          .from('news_sources')
-          .update({
-            last_fetched_at: new Date().toISOString(),
-            last_status: `error: ${status}`,
-            fail_count: (source.fail_count ?? 0) + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', source.id);
-      }
-
-      totalInserted += inserted;
-      results.push({ source: source.name, status, inserted });
-    }
-
-    // ── Entity tracking pass ─────────────────────────────────────────
-    // Rotate through house entities least-recently checked, discovering
-    // coverage via Google News query feeds (free, link-out only). Items
-    // are tagged with the entity name for follow-boosted ranking.
-    // Attribution note: entity tags are an internal index; published
-    // synthesis aggregates per house rules.
-    const { data: entities } = await serviceClient
-      .from('tracked_entities')
-      .select('id, name, aliases, region')
-      .eq('active', true)
-      .eq('house', true)
-      .eq('status', 'approved')
-      .order('last_checked_at', { ascending: true, nullsFirst: true })
-      .limit(ENTITIES_PER_RUN);
-
-    // Entity items need a source row; reuse the Google News discovery source.
-    const { data: gnewsSource } = await serviceClient
-      .from('news_sources')
-      .select('id')
-      .ilike('feed_url', '%news.google.com%')
-      .limit(1)
-      .maybeSingle();
-
-    let entityInserted = 0;
-    if (gnewsSource) {
-      for (const entity of entities ?? []) {
-        const query = encodeURIComponent(`"${entity.name}"`);
-        const feedUrl = `https://news.google.com/rss/search?q=${query}&hl=en-AU&gl=AU&ceid=AU:en`;
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-          const response = await fetch(feedUrl, {
-            headers: { 'User-Agent': USER_AGENT, Accept: 'application/rss+xml, application/xml' },
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-          const items = parseFeed(await response.text()).slice(0, ENTITY_ITEMS_PER_ENTITY);
-          for (const item of items) {
-            const urlHash = await sha256Hex(item.url);
-            const { error: insertError } = await serviceClient.from('news_articles').insert({
-              source_id: gnewsSource.id,
-              url: item.url,
-              url_hash: urlHash,
-              title: cleanGoogleNewsTitle(item.title),
-              snippet: item.snippet,
-              image_url: item.imageUrl,
-              published_at: item.publishedAt,
-              entities: [entity.name],
-            });
-            if (!insertError) {
-              entityInserted += 1;
-            } else if (insertError.code === '23505') {
-              // Already ingested elsewhere — append the entity tag instead.
-              await serviceClient.rpc('append_article_entity', {
-                p_url_hash: urlHash,
-                p_entity: entity.name,
-              });
-            }
-          }
-        } catch (error) {
-          console.warn(`[ingest-news] entity ${entity.name}:`, error instanceof Error ? error.message : String(error));
-        }
-
-        await serviceClient
-          .from('tracked_entities')
-          .update({ last_checked_at: new Date().toISOString() })
-          .eq('id', entity.id);
-      }
-    }
-
+    const sourceFailures = sourceResults.filter((result) => result.failed);
+    const entityFailures = entityResults.filter((result) => result.failed);
+    const totalInserted = sourceResults.reduce(
+      (total, result) => total + result.inserted,
+      0,
+    );
+    const entityInserted = entityResults.reduce(
+      (total, result) => total + result.inserted,
+      0,
+    );
     return jsonResponse({
       success: true,
-      sources: results.length,
+      already_running: false,
+      elapsed_ms: elapsedMs(startedAt),
+      sources: sourceResults.length,
+      sources_attempted: selectedSources.length,
+      sources_processed: sourceResults.length - sourceFailures.length,
+      source_ids: selectedSources.map((source) => source.id),
+      failed_source_ids: sourceFailures.map((result) => result.source_id),
+      empty_feeds: sourceResults.filter((result) => result.empty).length,
+      source_failures: sourceFailures.length,
       inserted: totalInserted,
-      entities_checked: (entities ?? []).length,
+      entities_checked: entityResults.length,
+      entities_attempted: discoverySource ? selectedEntities.length : 0,
+      entities_processed: entityResults.length - entityFailures.length,
+      failed_entity_ids: entityFailures.map((result) => result.entity_id),
+      entity_failures: entityFailures.length,
       entity_items: entityInserted,
-      details: results,
+      entity_discovery_source_found: Boolean(discoverySource),
+      details: sourceResults,
+      entity_details: entityResults,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[ingest-news] Error:', error);
-    return jsonResponse(
-      { error: 'Ingestion failed', details: error instanceof Error ? error.message : String(error) },
-      500,
-    );
+    console.error("[ingest-news] Error:", error);
+    return jsonResponse({
+      error: "Ingestion failed",
+      details: errorMessage(error),
+      elapsed_ms: elapsedMs(startedAt),
+    }, 500);
+  } finally {
+    if (serviceClient && leaseToken) {
+      const { error: releaseError } = await serviceClient.rpc(
+        "release_news_pipeline_lease",
+        {
+          p_pipeline: "ingest-news",
+          p_lease_token: leaseToken,
+        },
+      );
+      if (releaseError) {
+        console.error(
+          "[ingest-news] lease release failed:",
+          releaseError.message,
+        );
+      }
+    }
   }
 });
