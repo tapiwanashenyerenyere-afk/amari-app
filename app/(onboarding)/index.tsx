@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -19,7 +20,10 @@ import Svg, { Circle, G, Line, Polygon, Text as SvgText } from 'react-native-svg
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { AmariEmblem } from '../../components/v2/AmariEmblem';
+import { SelectionChip } from '../../components/v2/SelectionChip';
+import { FEED_REGION_TAGS, FEED_TOPIC_TAGS } from '../../constants/feedTags';
 import { colors, radius, spacing, typography } from '../../lib/theme';
+import { useSetFeedInterests } from '../../queries/news';
 import { useSubmitOnboarding, type OnboardingScores } from '../../queries/onboarding';
 import type {
   OnboardingAxis,
@@ -195,10 +199,15 @@ function scoresForTimeFocus(timeFocus: OnboardingTimeFocus | null) {
 
 function ProgressRail({ step }: { step: number }) {
   return (
-    <View style={styles.progressRail} accessibilityElementsHidden>
-      {[0, 1, 2, 3].map((item) => (
-        <View key={item} style={[styles.progressDot, item <= step && styles.progressDotActive]} />
-      ))}
+    <View style={styles.progressBlock}>
+      <Text accessibilityLiveRegion="polite" accessibilityRole="text" style={styles.stepStatus}>
+        Step {step + 1} of 5
+      </Text>
+      <View style={styles.progressRail} accessibilityElementsHidden>
+        {[0, 1, 2, 3, 4].map((item) => (
+          <View key={item} style={[styles.progressDot, item <= step && styles.progressDotActive]} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -211,6 +220,7 @@ function ChoiceScreen<T extends string>({
   value,
   onSelect,
   onNext,
+  onBack,
 }: {
   step: number;
   eyebrow: string;
@@ -219,44 +229,114 @@ function ChoiceScreen<T extends string>({
   value: T | null;
   onSelect: (value: T) => void;
   onNext: () => void;
+  onBack?: () => void;
 }) {
   return (
-    <View style={styles.screen}>
-      <ProgressRail step={step} />
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
-      <Text style={styles.title}>{title}</Text>
-      <View style={styles.choiceGrid}>
-        {options.map((option) => {
-          const selected = value === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => {
-                Haptics.selectionAsync();
-                onSelect(option.value);
-              }}
-              style={({ pressed }) => [
-                styles.choiceCard,
-                selected && styles.choiceCardSelected,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{option.label}</Text>
-            </Pressable>
-          );
-        })}
+    <ScrollView style={styles.screenScroll} contentContainerStyle={styles.screen} showsVerticalScrollIndicator={false}>
+      <View>
+        <ProgressRail step={step} />
+        <Text style={styles.eyebrow}>{eyebrow}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <View style={styles.choiceGrid}>
+          {options.map((option) => {
+            const selected = value === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onSelect(option.value);
+                }}
+                style={({ pressed }) => [
+                  styles.choiceCard,
+                  selected && styles.choiceCardSelected,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{option.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        disabled={!value}
-        onPress={onNext}
-        style={({ pressed }) => [styles.primaryButton, !value && styles.disabledButton, pressed && value && styles.pressed]}
-      >
-        <Text style={styles.primaryButtonText}>Continue</Text>
-      </Pressable>
-    </View>
+      <View style={styles.choiceActions}>
+        {onBack ? (
+          <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.choiceBackButton, pressed && styles.pressed]}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          disabled={!value}
+          onPress={onNext}
+          style={({ pressed }) => [styles.primaryButton, styles.choicePrimaryButton, !value && styles.disabledButton, pressed && value && styles.pressed]}
+        >
+          <Text style={styles.primaryButtonText}>Continue</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
+
+function InterestScreen({
+  selected,
+  onToggle,
+  onBack,
+  onNext,
+}: {
+  selected: Set<string>;
+  onToggle: (tag: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <ScrollView style={styles.screenScroll} contentContainerStyle={styles.interestContent} showsVerticalScrollIndicator={false}>
+      <View>
+        <ProgressRail step={3} />
+        <Text style={styles.eyebrow}>Question four</Text>
+        <Text style={styles.title}>What should your briefing bring closer?</Text>
+        <Text style={styles.interestHelper}>Choose any sectors and regions. You can tune this later.</Text>
+
+        <Text style={styles.interestGroupLabel}>SECTORS</Text>
+        <View style={styles.interestChipWrap}>
+          {FEED_TOPIC_TAGS.map((entry) => (
+            <SelectionChip
+              key={entry.tag}
+              label={entry.label}
+              onPress={() => onToggle(entry.tag)}
+              selected={selected.has(entry.tag)}
+              variant="dark"
+            />
+          ))}
+        </View>
+
+        <Text style={[styles.interestGroupLabel, styles.interestGroupSpaced]}>REGIONS</Text>
+        <View style={styles.interestChipWrap}>
+          {FEED_REGION_TAGS.map((entry) => (
+            <SelectionChip
+              key={entry.tag}
+              label={entry.label}
+              onPress={() => onToggle(entry.tag)}
+              selected={selected.has(entry.tag)}
+              variant="dark"
+            />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.choiceActions}>
+        <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.choiceBackButton, pressed && styles.pressed]}>
+          <Text style={styles.secondaryButtonText}>Back</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onNext} style={({ pressed }) => [styles.primaryButton, styles.choicePrimaryButton, pressed && styles.pressed]}>
+          <Text style={styles.primaryButtonText}>
+            {selected.size === 0 ? 'Skip for now' : `Continue with ${selected.size} interests`}
+          </Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -518,7 +598,7 @@ function GraphScreen({
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
       >
-        <ProgressRail step={3} />
+        <ProgressRail step={4} />
         <Text style={styles.eyebrow}>Signal map</Text>
         <Text style={styles.title}>Move the A to map your builder energy.</Text>
         <Text style={styles.graphIntro}>
@@ -568,7 +648,7 @@ function GraphScreen({
             onPress={onSubmit}
             style={({ pressed }) => [styles.primaryButton, styles.submitButton, isSubmitting && styles.disabledButton, pressed && !isSubmitting && styles.pressed]}
           >
-            {isSubmitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.primaryButtonText}>Enter AMARI</Text>}
+            {isSubmitting ? <ActivityIndicator color={colors.black} /> : <Text style={styles.primaryButtonText}>Enter AMARI</Text>}
           </Pressable>
         </View>
       </ScrollView>
@@ -579,15 +659,21 @@ function GraphScreen({
 export default function PostAuthOnboardingScreen() {
   const router = useRouter();
   const submitOnboarding = useSubmitOnboarding();
+  const setFeedInterests = useSetFeedInterests();
   const [step, setStep] = useState(0);
   const [timeFocus, setTimeFocus] = useState<OnboardingTimeFocus | null>(null);
   const [currentStage, setCurrentStage] = useState<OnboardingWorkStage | null>(null);
   const [communityNeed, setCommunityNeed] = useState<OnboardingCommunityNeed | null>(null);
+  const [feedInterests, setFeedInterestTags] = useState<Set<string>>(new Set());
   const [scores, setScores] = useState<OnboardingScores>(DEFAULT_SCORES);
+
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(`Step ${step + 1} of 5`);
+  }, [step]);
 
   const goNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setStep((current) => Math.min(current + 1, 3));
+    setStep((current) => Math.min(current + 1, 4));
   };
 
   const handleTimeFocus = (value: OnboardingTimeFocus) => {
@@ -595,7 +681,17 @@ export default function PostAuthOnboardingScreen() {
     setScores(scoresForTimeFocus(value));
   };
 
-  const handleSubmit = async () => {
+  const toggleFeedInterest = (tag: string) => {
+    Haptics.selectionAsync();
+    setFeedInterestTags((current) => {
+      const next = new Set(current);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  };
+
+  const submitProfile = async () => {
     if (!timeFocus || !currentStage || !communityNeed) return;
 
     try {
@@ -612,6 +708,30 @@ export default function PostAuthOnboardingScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Signal not saved', 'Please check your connection and try again.');
     }
+  };
+
+  const handleSubmit = async () => {
+    if (feedInterests.size === 0) {
+      await submitProfile();
+      return;
+    }
+
+    try {
+      await setFeedInterests.mutateAsync(Array.from(feedInterests));
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        'Interests may still be saving',
+        'We couldn’t confirm the update. You can try again, or continue and tune your briefing later.',
+        [
+          { text: 'Try again', onPress: () => void handleSubmit() },
+          { text: 'Continue and tune later', onPress: () => void submitProfile() },
+        ],
+      );
+      return;
+    }
+
+    await submitProfile();
   };
 
   return (
@@ -644,6 +764,7 @@ export default function PostAuthOnboardingScreen() {
           value={currentStage}
           onSelect={setCurrentStage}
           onNext={goNext}
+          onBack={() => setStep(0)}
         />
       )}
       {step === 2 && (
@@ -655,15 +776,24 @@ export default function PostAuthOnboardingScreen() {
           value={communityNeed}
           onSelect={setCommunityNeed}
           onNext={goNext}
+          onBack={() => setStep(1)}
         />
       )}
       {step === 3 && (
+        <InterestScreen
+          onBack={() => setStep(2)}
+          onNext={goNext}
+          onToggle={toggleFeedInterest}
+          selected={feedInterests}
+        />
+      )}
+      {step === 4 && (
         <GraphScreen
           scores={scores}
           setScores={setScores}
-          onBack={() => setStep(2)}
+          onBack={() => setStep(3)}
           onSubmit={handleSubmit}
-          isSubmitting={submitOnboarding.isPending}
+          isSubmitting={submitOnboarding.isPending || setFeedInterests.isPending}
         />
       )}
     </SafeAreaView>
@@ -680,15 +810,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.018)',
   },
   screen: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
     paddingBottom: spacing.xxxl,
+  },
+  screenScroll: {
+    flex: 1,
+  },
+  progressBlock: {
+    marginBottom: spacing.xxl,
   },
   progressRail: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: spacing.xxxl,
+    flexWrap: 'wrap',
+  },
+  stepStatus: {
+    marginBottom: spacing.sm,
+    fontFamily: typography.mono.medium,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.68)',
+    textTransform: 'uppercase',
   },
   progressDot: {
     height: 4,
@@ -750,7 +896,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontFamily: typography.body.bold,
     fontSize: 14,
-    color: colors.white,
+    color: colors.black,
     letterSpacing: 0.2,
   },
   disabledButton: {
@@ -759,6 +905,58 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.82,
     transform: [{ scale: 0.98 }],
+  },
+  choiceActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: spacing.md,
+  },
+  choiceBackButton: {
+    minHeight: 54,
+    minWidth: 88,
+    marginTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  choicePrimaryButton: {
+    flex: 1,
+    paddingHorizontal: spacing.md,
+  },
+  interestContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxxl,
+  },
+  interestHelper: {
+    marginTop: -spacing.lg,
+    marginBottom: spacing.xxl,
+    fontFamily: typography.body.regular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255,255,255,0.68)',
+  },
+  interestGroupLabel: {
+    marginBottom: spacing.md,
+    fontFamily: typography.mono.medium,
+    fontSize: 10,
+    lineHeight: 16,
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.62)',
+  },
+  interestGroupSpaced: {
+    marginTop: spacing.xxl,
+  },
+  interestChipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   graphScroll: {
     flex: 1,

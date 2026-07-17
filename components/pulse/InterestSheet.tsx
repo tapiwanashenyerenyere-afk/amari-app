@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import { FEED_REGION_TAGS, FEED_TOPIC_TAGS, type FeedTag } from '@/constants/feedTags';
 import { useFeedInterests, useSetFeedInterests } from '@/queries/news';
+import { SelectionChip } from '@/components/v2/SelectionChip';
 
 interface InterestSheetProps {
   visible: boolean;
@@ -34,15 +35,13 @@ function ChipGroup({
       {tags.map((entry) => {
         const isOn = selected.has(entry.tag);
         return (
-          <Pressable
+          <SelectionChip
             key={entry.tag}
+            label={entry.label}
             onPress={() => onToggle(entry.tag)}
-            style={[styles.chip, isOn ? styles.chipOn : null]}
-          >
-            <Text style={[styles.chipText, isOn ? styles.chipTextOn : null]}>
-              {entry.label}
-            </Text>
-          </Pressable>
+            selected={isOn}
+            variant="light"
+          />
         );
       })}
     </View>
@@ -95,7 +94,7 @@ export function InterestSheet({ visible, onClose }: InterestSheetProps) {
               The briefing ranks around what you choose here.
             </Text>
           </View>
-          <Pressable hitSlop={8} onPress={onClose} style={styles.closeButton}>
+          <Pressable accessibilityLabel="Close feed interests" accessibilityRole="button" hitSlop={8} onPress={onClose} style={styles.closeButton}>
             <X color="rgba(0,0,0,0.55)" size={18} strokeWidth={2.1} />
           </Pressable>
         </View>
@@ -109,7 +108,7 @@ export function InterestSheet({ visible, onClose }: InterestSheetProps) {
 
           {setInterests.isError ? (
             <Text style={styles.errorText}>
-              Your interests could not be saved. Check your connection and try again.
+              We couldn’t confirm your interests were saved. Check your connection and try again.
             </Text>
           ) : null}
         </ScrollView>
@@ -186,26 +185,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: colors.white,
-  },
-  chipOn: {
-    backgroundColor: colors.black,
-    borderColor: colors.black,
-  },
-  chipText: {
-    fontFamily: typography.body.medium,
-    fontSize: 12.5,
-    color: colors.black,
-  },
-  chipTextOn: {
-    color: colors.white,
   },
   errorText: {
     marginTop: 20,
