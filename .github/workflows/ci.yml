@@ -40,7 +40,7 @@ jobs:
           cache: true
 
       - name: Deno unit tests
-        run: deno test --no-config supabase/functions
+        run: deno test --allow-read --no-config supabase/functions
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
