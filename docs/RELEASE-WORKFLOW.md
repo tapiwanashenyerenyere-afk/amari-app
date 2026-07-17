@@ -1,32 +1,51 @@
 # AMARI Release Workflow
 
-This is the production release path for the AMARI mobile app.
+The production release path for the AMARI mobile app.
 
-## Principles
+Last reconciled: **2026-07-16**, at v1.2.4. Verify against `git log` and
+`npx eas build:list` before trusting any specific build number below.
 
-- Use the native dev client for development and QA.
-- Use EAS for all Android release builds.
-- Run release builds from `C:\amari-mobile-release`, not directly from OneDrive.
-- Keep native Mapbox download auth in environment variables, not committed source.
+## Read This First — The Two Traps
+
+Both have cost real failed submissions. They are not theoretical.
+
+**Android production builds must come from GitHub Actions, never locally.**
+A local `npm run release:android` uses EAS *remote* Android credentials, which
+are the **wrong upload key**. Play rejects the AAB. The GitHub Actions workflow
+`.github/workflows/eas-build.yml` injects the correct keystore from repo
+secrets. This cost a failed 1.2.4 submit on 11 Jul.
+
+- Play expects SHA1 `C4:CD:C3:BA:73:2E:42:07:2D:D0:5E:2B:0F:2D:C2:9A:74:6F:31:4B`
+- EAS remote credentials produce SHA1 `37:21:FB:C3:25:7D:C8:C0:8E:BE:8E:CA:79:2F:4E:8D:2B:1A:BA:6A`
+
+iOS local builds are fine — Apple accepts `npm run release:ios:ci`.
+
+**The Android Play submit must run from `C:\amari-mobile-eas-release`.**
+That worktree holds the gitignored Play service-account key at
+`C:\amari-mobile-eas-release\google-services.json`, which `eas.json` references
+as `./google-services.json`. `C:\amari-ui-build` does not have the key and the
+submit fails there with "google-services.json doesn't exist". iOS submits work
+from any worktree — they use the ASC API key held on EAS.
+
+## Worktree Layout
+
+| Path | Branch | Use for |
+|---|---|---|
+| `C:\amari-ui-build` | `release/v2-redesign-signed` | Development, iOS builds, iOS submits |
+| `C:\amari-mobile-eas-release` | `docs/final-user-test-script` | **Android Play submits only** (holds the Play key) |
+| `C:\Users\tapiw\OneDrive\AMARI Group App\amari-mobile` | `feature/app-pitch-deck` | Main checkout — do not disturb, usually dirty |
+
+The older `C:\amari-mobile-release` path referenced by previous versions of this
+doc no longer exists. Ignore it.
 
 ## Daily Development
 
-Use the native client instead of Expo Go:
+Use the native dev client, not Expo Go:
 
 ```bash
-npm run start:dev
-```
-
-For a clean Metro session:
-
-```bash
-npm run start:dev:clear
-```
-
-To launch Android through the dev client:
-
-```bash
-npm run android:dev
+npm run start:dev          # dev client
+npm run start:dev:clear    # clean Metro session
+npm run android:dev        # launch Android via dev client
 ```
 
 ## Release Verification
@@ -37,191 +56,151 @@ Before every release:
 npm run verify:release
 ```
 
-This runs:
+Runs full ESLint, full TypeScript check, and Expo config validation. Also runs
+automatically on `git push`.
 
-- full ESLint
-- full TypeScript check
-- Expo config validation
+## Version Bump
 
-The repo also runs this automatically on `git push`.
+Bump **both** `app.json` and `package.json`. Expo reads `app.json` — that is what
+reaches the store — but leaving `package.json` behind causes drift. The 1.2.4
+bump touched only `app.json` and the two currently disagree.
 
-## Clean Release Copy
+## Android Release — Full Path
 
-Prepare a clean copy outside OneDrive before EAS builds:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\prepare-release-copy.ps1
-```
-
-Then switch to:
-
-```text
-C:\amari-mobile-release
-```
-
-From that clean path:
-
-```bash
-npm ci
-npm run verify:release
-```
-
-## Production Android Build
-
-From `C:\amari-mobile-release`:
-
-```bash
-npm run release:android
-```
-
-Do not submit this local EAS production Android build to Google Play unless EAS
-remote Android credentials have first been verified against Play Console's upload
-certificate. On 2026-04-27, a local EAS production build used the wrong remote
-upload key and Play rejected it with:
-
-- found SHA1: `37:21:FB:C3:25:7D:C8:C0:8E:BE:8E:CA:79:2F:4E:8D:2B:1A:BA:6A`
-- expected SHA1: `C4:CD:C3:BA:73:2E:42:07:2D:D0:5E:2B:0F:2D:C2:9A:74:6F:31:4B`
-
-Until EAS remote Android credentials are replaced with the same upload key used
-by Play, Play-bound production Android builds must use the GitHub Actions
-workflow below.
-
-## Play-Bound Android Build
-
-The GitHub Actions workflow `.github/workflows/eas-build.yml` injects the
-correct Play upload keystore for production builds:
-
-- `ANDROID_KEYSTORE_BASE64`
-- `KEYSTORE_PASSWORD`
-- keystore alias: `amari-key`
-- generated local keystore path during CI: `amari-upload.jks`
-
-Trigger the workflow from the release branch:
+Trigger the Play-bound build from the release branch:
 
 ```bash
 gh workflow run eas-build.yml --ref release/v2-redesign-signed -f profile=production
-```
-
-Watch it:
-
-```bash
 gh run list --workflow eas-build.yml --limit 5
-gh run watch <run-id> --exit-status
+gh run watch <run-id> --exit-status        # ~25 min
 ```
 
-Find the resulting EAS Android build ID:
+Get the resulting build ID:
 
 ```bash
 npx eas build:list --platform android --limit 5 --json
 ```
 
-Submit that exact build ID to Google Play closed testing/Alpha from
-`C:\amari-mobile-eas-release`:
+Submit that exact ID **from the release worktree**:
 
 ```bash
+cd /c/amari-mobile-eas-release
 npx eas submit --platform android --profile production --id <android-build-id> --non-interactive --wait
 ```
 
-The service-account JSON must exist locally at
-`C:\amari-mobile-eas-release\google-services.json`, matching the
-`submit.production.android.serviceAccountKeyPath` entry in `eas.json`. Do not
-commit this file. It is ignored by `.gitignore` and excluded from EAS upload by
-`.easignore`.
+Do **not** use `eas submit --latest` — it may pick up a locally-built AAB signed
+with the wrong key.
 
-## 2026-04-27 Android Submit Notes
+**Then someone must press Publish.** Managed Publishing is ON. A submitted build
+sits at "Ready to publish" in Play Console → Publishing overview, approved by
+Google but not live to testers, until a human clicks Publish. This is easy to
+forget and has held releases before.
 
-Automated Play upload was fixed by separating two problems:
+CI keystore secrets: `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, alias
+`amari-key`.
 
-1. The Google Play service account was valid. The JSON key was saved outside the
-   repo, copied locally to `C:\amari-mobile-release\google-services.json`, and
-   EAS Submit reached Google Play successfully.
-2. The failing AAB was signed with the wrong upload key. Play rejected Android
-   build `f52e39f3-86fb-4f3a-b4e5-aa1d211b2f6f`, versionCode `38`.
-3. The repo workflow revealed the intended signing path: production Android CI
-   builds use `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, alias `amari-key`,
-   and local EAS credentials.
-4. Running the GitHub Actions production workflow produced Android build
-   `75ec1c15-b67b-4577-ae50-7e15838e2683`, version `1.1.0`, versionCode `39`.
-5. EAS Submit accepted that build to the Play internal track:
-   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/a2390daa-a7d5-4093-8534-a90c496ef6a6`
+## iOS Release — Full Path
 
-If a future build is rejected for upload-key mismatch, check Play Console >
-Release > Setup > App integrity and compare the upload certificate SHA1 with the
-keystore used by the build. Either rebuild with the expected upload key or reset
-the Play upload key to the EAS key.
+From `C:\amari-ui-build`:
 
-## 2026-04-29 Android v46 Closed Testing Notes
+```bash
+npm run release:ios:ci
+npm run submit:ios
+```
 
-The app changes for the onboarding AMARI A emblem, six-axis onboarding graph,
-and AMARI Gala nominee story were merged into `release/v2-redesign-signed`
-through PR #19. The EAS Update signing certificate/runtime rotation was merged
-through PR #20. Android submit target correction was merged through PR #21.
+To submit for review manually in App Store Connect: create the version via **+**
+next to "iOS App", fill "What's New" **in every localization** — the app has both
+English (U.S.) primary *and* English (Australia), and a missing AU entry silently
+blocks submission — then Add Build → Save → Add for Review → Submit for Review.
 
-Release outcome:
+**If submission 500s** ("Reading App information... Unexpected response (500)...
+UNEXPECTED_ERROR"): this is transient Apple-side propagation lag, usually after
+account or agreement changes. Wait 15–30 minutes and retry. It cleared on the
+third attempt in July. It is not an agreement block.
 
-1. Android build `a8847c48-aacf-4a1a-bb35-466ae47c8d1d`, versionCode `45`,
-   was created with EAS remote Android credentials and rejected by Google Play
-   for the same upload-key mismatch:
-   - found SHA1: `37:21:FB:C3:25:7D:C8:C0:8E:BE:8E:CA:79:2F:4E:8D:2B:1A:BA:6A`
-   - expected SHA1: `C4:CD:C3:BA:73:2E:42:07:2D:D0:5E:2B:0F:2D:C2:9A:74:6F:31:4B`
-2. PR #21 changed `submit.production.android.track` from `internal` to
-   `alpha`, which is the Google Play closed testing track used for employee
-   testing.
-3. GitHub Actions run `25092863839` used the repository keystore secrets and
-   produced EAS Android build `ec5cde55-609d-4547-8356-8e9ed78d9906`,
-   app version `1.1.1`, versionCode `46`, runtime `1.1.1`.
-4. EAS Submit accepted build `ec5cde55-609d-4547-8356-8e9ed78d9906` to Google
-   Play Alpha/closed testing:
-   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/325638b0-aa2c-4205-b8e8-5da7d061de6a`
-5. The accepted AAB is archived locally at
-   `C:\Users\tapiw\amari-build\amari-mobile-1.1.1-v46-play-alpha-2026-04-29.aab`
-   with SHA256
-   `4b26ccc766fa9ba56beccbeeefa76d695499547dcbb08c16dd18055721814e4c`.
+**CocoaPods CDN 429s** during build are transient. Retry.
 
-## 2026-05-11 iOS 1.1.2 / Android v52 Store Notes
+## iOS — What Was Blocking It, and How It Was Fixed
 
-PR #34 fixed the mobile invite/sign-in regression for already-redeemed testers
-and restored project detail navigation/contact actions. PR #35 bumped the store
-version to `1.1.2` because App Store Connect rejected additional `1.1.1` uploads
-after the `1.1.1` train was approved and closed.
+iOS builds failed five times on "Provisioning profile doesn't include the
+aps-environment entitlement" after `expo-notifications` was added. Three
+compounding causes, fixed in this order (10 Jul 2026):
 
-Release outcome:
+- **Expired Apple Developer Program License Agreement.** Silently blocked App ID
+  access, the Push capability, *and* submissions. Fixed at
+  developer.apple.com/account → "Review agreement".
+- **Push Notifications capability was OFF** on App ID `com.amari.mobile`. Enabled
+  in the Identifiers editor → Save → Confirm.
+- **EAS held the stale April provisioning profile** and kept reusing it.
+  Regenerate: `npx eas credentials -p ios` (not `-e`, which is invalid) →
+  production profile → log in to Apple → Build Credentials → All → when asked
+  "reuse the original profile?" answer **no**. Produced profile `8WZ3WUVAT6`,
+  which carries push.
 
-1. iOS EAS build `47e0dc41-7198-4609-9d51-c21cb488124a`, version `1.1.2`,
-   build `19`, runtime `1.1.2`, commit `6305931`, finished successfully.
-2. EAS Submit uploaded the iOS build to App Store Connect/TestFlight:
-   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/1068ab4f-9661-4d43-befc-123245697b10`
-3. App Store Connect reported warning `90683` for missing
-   `NSLocationWhenInUseUsageDescription`. PR #37 added the iOS purpose string,
-   then EAS build `f2ae2b91-03a1-46d4-9c65-1bae96a1cfa8` produced version
-   `1.1.2`, build `20`, commit `d2e89aa`.
-4. EAS Submit uploaded iOS build `20` to App Store Connect:
-   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/fe6672f8-6422-4ff3-81ef-ef80599b4821`
-   App Store version `1.1.2` was resubmitted for live review with build `20`;
-   review submission `e020502a-4a32-42e5-83bb-c7afff9cd758` is
-   `WAITING_FOR_REVIEW`.
-5. GitHub Actions run `25653253525` used the Play upload-key workflow and
-   produced Android EAS build `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72`, version
-   `1.1.2`, versionCode `52`, runtime `1.1.2`, commit `6305931`.
-6. The Android AAB was archived at
-   `C:\Users\tapiw\amari-build\amari-mobile-1.1.2-v52-play-2026-05-11\amari-production-1.1.2-v52.aab`
-   with SHA256
-   `3f1eef7075e23209c2ee9df95e19cb6e4f1b2c5f843c631aa7f00ff8cf02755f`.
-7. Direct Android Publisher API production tests accepted AAB uploads for
-   versionCodes `51` and `52`, and a later alpha-to-production promotion retry
-   also failed on `edits.tracks.update` for `production` with
-   `FAILED_PRECONDITION`. `countryAvailability/production` returns HTTP `204`,
-   and the production track has no active release.
-8. EAS Submit successfully uploaded Android build
-   `0cafe8d2-9e41-4553-bca4-1fd0b94dfd72` to Google Play Alpha/closed testing:
-   `https://expo.dev/accounts/t.jeremy.n/projects/amari-mobile/submissions/da672749-4490-48ac-b63e-ea65bed15bbc`
+An agent cannot drive the `eas credentials` TUI (stdin is not readable) and
+cannot enter Apple passwords or 2FA. **That step is always the user's.**
 
-To release Android publicly, fix the Play Console production-track state first:
-complete Google's production access requirements in Play Console, then
-configure/activate production country availability. After production access and
-country availability are active, retry production submission for build
-`0cafe8d2-9e41-4553-bca4-1fd0b94dfd72` or rebuild from
-`release/v2-redesign-signed` if a newer commit has landed.
+**EU trader status:** the app was available in France, Ireland, and Sweden and
+was flagged "Trader Status Not Provided" under the EU DSA. Tapiwa chose to remove
+EU availability rather than declare trader status, which would publicly display
+the company address. Done via ASC → Pricing and Availability → Manage
+Availability. The UK was kept — not EU.
+
+## Account Facts
+
+**Apple.** Account type **Individual** — "Tadiwanashe Nyerenyere", team
+`4G3Y288Q4D`, Apple ID `tadiwanashe3@hotmail.com`. Bundle `com.amari.mobile`,
+App ID `WU42854D6G`. ASC App ID `6762464403`, SKU `EX1776430680754`, category
+Business/Lifestyle. Free Apps Agreement Active; Paid Apps Agreement "New" —
+only needed if in-app purchases ship. EAS already holds an ASC API key
+("[Expo] EAS Submit", KeyID `K4N2W4XM43`, ADMIN) used for submits.
+
+**Google Play.** Developer account `9098912053143270806` (1C619 Foundry Labs),
+app `4976387495678793526`, closed-testing Alpha track `4698336449985963364`.
+
+**Expo/EAS.** Project `@t.jeremy.n/amari-mobile`. `eas login` =
+`tapiwanashenyerenyere@gmail.com`. Account `t.jeremy.n` is on the **Starter**
+plan.
+
+## Two Open Account Threads
+
+**Play production access is gated.** Google requires **12 testers opted in for 14
+continuous days** before the production track opens. Last count was roughly 6
+opted in of ~20 invited across four email lists. Until that clears, Android ships
+to closed testing only. Send join links from the Play Console Testers tab.
+
+**Apple Organization account (bus-factor fix).** Individual accounts cannot add
+team members — that is the fragility. The plan is to enroll **The AMARI Group AU
+Pty Ltd (ACN 681 233 965)** as an Organization ($99/yr, same price), invite
+Admins with free Apple IDs, then App Transfer the live app into the org. App
+Transfer preserves the app, bundle ID, reviews, TestFlight, and users. Blocked
+at the D-U-N-S lookup, which has a CAPTCHA an agent cannot solve. Use a
+company-owned Apple ID (e.g. `apple@amarigroupau.com`), not a personal one. Legal
+name must match ASIC exactly. The sender must have no iOS version "Waiting for
+Review" when the transfer initiates.
+
+**Apple portal automation caveat:** developer.apple.com and ASC pages frequently
+freeze under browser automation — screenshots time out or come back blank.
+`read_page` and `find` still work when screenshots fail. ASC deep-links like
+`/apps/{id}/availability` do not hydrate; navigate to
+`/apps/{id}/distribution/info` first, then use the sidebar.
+
+## OTA Updates — Blocked
+
+Do not publish unsigned production OTA updates. Signed EAS Updates require the
+**Enterprise** plan; the `t.jeremy.n` account is on Starter, and the app config
+requires signed updates. **Therefore all changes ship via store builds, not OTA.**
+The OTA signing key lives at `amari-mobile-eas-release/certs/private-key.pem` —
+keep it local, never commit it.
+
+## Mapbox Attribution — Do Not Remove
+
+Do not set `logoEnabled={false}` or `attributionEnabled={false}`. A release
+verifier guards against this. Maps using Mapbox SDK/styles/data must keep the
+wordmark and attribution visible and legible. Position and styling can be
+adjusted within the allowed controls; the mark cannot be removed. If AMARI wants
+no visible Mapbox mark, choose a compliant provider path rather than hiding
+attribution.
 
 ## Required Environment Variables
 
@@ -235,42 +214,50 @@ Local `.env` and the EAS production environment must include:
 - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
 - `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
 
-Optional:
+Optional: `EXPO_PUBLIC_MAPBOX_STYLE_URL`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`,
+`EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`.
 
-- `EXPO_PUBLIC_MAPBOX_STYLE_URL`
-- `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`
-- `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME`
+Supabase hosted Auth settings must have Site URL
+`https://www.amarigroupau.com/auth-callback`, redirect URLs `amari://auth-callback`
+and `https://www.amarigroupau.com/auth-callback`, Google provider enabled for
+Android/Web (iOS native client optional — the app falls back to OAuth), and Apple
+provider enabled before iOS review while Google login remains visible on iOS.
 
 ## App Review Access
 
-Before submitting a TestFlight or App Store build, App Store Connect must include Beta App Review credentials for a real Supabase user. The app supports this through the auth screen path:
+App Store Connect must carry Beta App Review credentials for a real Supabase
+user. The path: tap "Already a member?" / "Reviewer or existing member sign in",
+enter the demo account email and password supplied in ASC, and confirm the
+account is an active member with representative tier access and sample content.
 
-1. Tap "Already a member?" / "Reviewer or existing member sign in".
-2. Enter the demo account email and password supplied in App Store Connect.
-3. Confirm the account is an active member with representative tier access and sample content.
+## Release History
 
-The Supabase hosted Auth settings must also have:
+| Version | Date | Android | iOS |
+|---|---|---|---|
+| 1.1.2 | 11 May | build 52, Play alpha | build 20, App Store review |
+| 1.2.0 | 7 Jul | code 55, Play alpha, published to testers | ipa built, submit failed (agreement) |
+| 1.2.1 | 7 Jul | code 56, Play alpha | ipa built, submit failed |
+| 1.2.2 | 10 Jul | code 57, Play alpha | blocked (push provisioning) |
+| 1.2.3 | 10 Jul | code 58, Play alpha | build 34, submitted for review |
+| **1.2.4** | **11 Jul** | **build 60, Play alpha** | **build 35, App Store review** |
 
-- Site URL: `https://www.amarigroupau.com/auth-callback`
-- Redirect URL: `amari://auth-callback`
-- Redirect URL: `https://www.amarigroupau.com/auth-callback`
-- Google provider enabled for Android/Web, with iOS native client optional because the app falls back to OAuth if `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` is absent.
-- Apple provider enabled before iOS release review if Google login remains visible on iOS.
+1.2.4 carries the testing/hardening baseline (PRs #54, #55). It is the version
+members are running.
 
 ## Final Checklist
 
 - `npm run verify:release` passes
+- Both `app.json` and `package.json` versions bumped and matching
+- Migrations applied — see `docs/SUPABASE-MIGRATION-HISTORY.md`
 - Supabase Auth Site URL is not `localhost`
 - TestFlight reviewer account signs in with email/password
 - Google sign-in works or falls back to browser OAuth on iOS
 - Sign in with Apple works on a physical iOS device
-- email magic link opens AMARI or the OTP code fallback signs in
-- Profile > Account includes Privacy Policy and Delete Account request
-- dev client signs in correctly
-- Aligned renders a live Mapbox basemap
+- Email magic link opens AMARI, or the OTP fallback signs in
+- Profile → Account includes Privacy Policy and Delete Account request
+- Aligned renders a live Mapbox basemap with attribution intact
 - Australia remains state-level only
-- Events, Pulse, and membership-card gating match server behavior
-- email/share/open-external actions work on device
-- release build is run from `C:\amari-mobile-release`
-- Play-bound Android production build is created through the GitHub Actions workflow or otherwise verified against Play's upload certificate
-- generated AAB is smoke-tested before upload
+- Events, Pulse, and membership-card gating match server behaviour
+- Android production build came from GitHub Actions, not locally
+- Android submit ran from `C:\amari-mobile-eas-release`
+- Someone pressed **Publish** in Play Console after Google approved
