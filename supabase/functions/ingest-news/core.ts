@@ -1,5 +1,5 @@
 // @ts-nocheck -- Deno remote imports are checked by the Deno Quality Gate.
-import { XMLParser } from "https://esm.sh/fast-xml-parser@4.5.0";
+import { XMLParser } from "https://esm.sh/fast-xml-parser@4.5.5";
 
 export const MAX_ITEMS_PER_SOURCE = 25;
 export const SOURCES_PER_RUN = 15;
@@ -7,6 +7,9 @@ export const ENTITIES_PER_RUN = 10;
 export const ENTITY_ITEMS_PER_ENTITY = 5;
 export const FETCH_CONCURRENCY = 5;
 export const FETCH_TIMEOUT_MS = 15_000;
+export const MAX_FEED_BYTES = 1_000_000;
+export const MAX_FEED_REDIRECTS = 3;
+export const MAX_FUTURE_PUBLISH_SKEW_MS = 15 * 60 * 1_000;
 export const USER_AGENT = "AMARI-App-Feed/1.0 (+https://www.amarigroupau.com)";
 export const GOOGLE_DISCOVERY_SOURCE_FEED_URL =
   "https://news.google.com/rss/search?q=%22African+Australian%22+(business+OR+founder+OR+entrepreneur)&hl=en-AU&gl=AU&ceid=AU:en";
@@ -17,6 +20,130 @@ export interface FeedItem {
   snippet: string | null;
   imageUrl: string | null;
   publishedAt: string | null;
+}
+
+type ResolveDns = (
+  query: string,
+  recordType: "A" | "AAAA",
+) => Promise<string[]>;
+
+function isPublicIpAddress(address: string): boolean {
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  const mappedV4 = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+  const mappedHex = normalized.match(/^(?:(?:0:){5}|::)ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  const mappedHexV4 = mappedHex
+    ? [
+      Number.parseInt(mappedHex[1], 16) >> 8,
+      Number.parseInt(mappedHex[1], 16) & 255,
+      Number.parseInt(mappedHex[2], 16) >> 8,
+      Number.parseInt(mappedHex[2], 16) & 255,
+    ].join(".")
+    : null;
+  const ipv4 = mappedV4 ?? mappedHexV4 ??
+    (/^\d+\.\d+\.\d+\.\d+$/.test(normalized) ? normalized : null);
+
+  if (ipv4) {
+    const octets = ipv4.split(".").map(Number);
+    if (
+      octets.length !== 4 ||
+      octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+    ) return false;
+
+    const [a, b, c] = octets;
+    return !(
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 0 && c === 0) ||
+      (a === 192 && b === 0 && c === 2) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      (a === 198 && b === 51 && c === 100) ||
+      (a === 203 && b === 0 && c === 113) ||
+      a >= 224
+    );
+  }
+
+  if (!normalized.includes(":")) return false;
+  return !(
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    /^fe[89ab]/.test(normalized) ||
+    normalized.startsWith("ff") ||
+    normalized.startsWith("2001:db8:")
+  );
+}
+
+async function assertSafeFeedUrl(url: string, resolveDns: ResolveDns): Promise<URL> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid feed URL");
+  }
+
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username ||
+    parsed.password ||
+    (parsed.port && parsed.port !== "443")
+  ) throw new Error("Feed URL must use HTTPS without credentials or a custom port");
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal")
+  ) throw new Error("Feed URL resolves to a non-public host");
+
+  if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) {
+    if (!isPublicIpAddress(hostname)) {
+      throw new Error("Feed URL resolves to a non-public address");
+    }
+    return parsed;
+  }
+
+  const resolutions = await Promise.allSettled([
+    resolveDns(hostname, "A"),
+    resolveDns(hostname, "AAAA"),
+  ]);
+  const addresses = resolutions.flatMap((result) =>
+    result.status === "fulfilled" ? result.value : []
+  );
+  if (!addresses.length || addresses.some((address) => !isPublicIpAddress(address))) {
+    throw new Error("Feed URL resolves to a non-public address");
+  }
+  return parsed;
+}
+
+async function readBoundedText(response: Response): Promise<string> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_FEED_BYTES) {
+    throw new Error(`Feed exceeds ${MAX_FEED_BYTES} byte limit`);
+  }
+  if (!response.body) return "";
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_FEED_BYTES) {
+      await reader.cancel("feed body too large");
+      throw new Error(`Feed exceeds ${MAX_FEED_BYTES} byte limit`);
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
 }
 
 function stripHtml(value: string): string {
@@ -67,7 +194,7 @@ function extractImage(item: Record<string, unknown>): string | null {
       url &&
       (type.startsWith("image/") || /\.(jpe?g|png|webp)(\?|$)/i.test(url))
     ) {
-      return url;
+      return sanitizeExternalImageUrl(url);
     }
   }
 
@@ -77,10 +204,36 @@ function extractImage(item: Record<string, unknown>): string | null {
     );
   for (const entry of media) {
     const url = String(entry?.["@_url"] ?? "");
-    if (url) return url;
+    if (url) return sanitizeExternalImageUrl(url);
   }
 
   return null;
+}
+
+export function sanitizeExternalImageUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (
+      parsed.protocol !== "https:" || parsed.username || parsed.password ||
+      (parsed.port && parsed.port !== "443")
+    ) return null;
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (
+      hostname === "localhost" || hostname.endsWith(".localhost") ||
+      hostname.endsWith(".local") || hostname.endsWith(".internal") ||
+      ((/^[\d.]+$/.test(hostname) || hostname.includes(":")) &&
+        !isPublicIpAddress(hostname))
+    ) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function normalizePublishedAt(date: Date | null): string | null {
+  if (!date || Number.isNaN(date.getTime())) return null;
+  if (date.getTime() > Date.now() + MAX_FUTURE_PUBLISH_SKEW_MS) return null;
+  return date.toISOString();
 }
 
 export function parseFeed(
@@ -90,6 +243,7 @@ export function parseFeed(
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
+    processEntities: false,
   });
   const doc = parser.parse(xml);
   const hasRssChannel = Object.prototype.hasOwnProperty.call(
@@ -121,9 +275,7 @@ export function parseFeed(
       url,
       snippet: description ? truncate(description, 320) : null,
       imageUrl: extractImage(item),
-      publishedAt: parsedDate && !Number.isNaN(parsedDate.getTime())
-        ? parsedDate.toISOString()
-        : null,
+      publishedAt: normalizePublishedAt(parsedDate),
     });
   }
 
@@ -146,9 +298,7 @@ export function parseFeed(
       url,
       snippet: summary ? truncate(summary, 320) : null,
       imageUrl: null,
-      publishedAt: parsedDate && !Number.isNaN(parsedDate.getTime())
-        ? parsedDate.toISOString()
-        : null,
+      publishedAt: normalizePublishedAt(parsedDate),
     });
   }
 
@@ -208,23 +358,52 @@ export async function fetchAndParseFeed(
   url: string,
   fetchImpl: typeof fetch = fetch,
   timeoutMs = FETCH_TIMEOUT_MS,
+  resolveDns: ResolveDns = Deno.resolveDns,
 ): Promise<FeedItem[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetchImpl(url, {
-      headers: {
-        "User-Agent": USER_AGENT,
-        Accept:
-          "application/rss+xml, application/atom+xml, application/xml, text/xml",
-      },
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    let currentUrl = await assertSafeFeedUrl(url, resolveDns);
+    const originalHostname = currentUrl.hostname;
+    for (let redirects = 0; redirects <= MAX_FEED_REDIRECTS; redirects += 1) {
+      const response = await fetchImpl(currentUrl, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          Accept:
+            "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        },
+        redirect: "manual",
+        signal: controller.signal,
+      });
 
-    // Keep the timeout alive until both the response body and XML parsing finish.
-    const xml = await response.text();
-    return parseFeed(xml);
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get("location");
+        if (!location || redirects === MAX_FEED_REDIRECTS) {
+          throw new Error("Feed redirect limit exceeded");
+        }
+        currentUrl = await assertSafeFeedUrl(
+          new URL(location, currentUrl).toString(),
+          resolveDns,
+        );
+        if (currentUrl.hostname !== originalHostname) {
+          throw new Error("Feed redirects cannot change host");
+        }
+        continue;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (
+        contentType &&
+        !contentType.includes("xml") &&
+        !contentType.includes("text/plain") &&
+        !contentType.includes("application/octet-stream")
+      ) throw new Error(`Unsupported feed content type: ${contentType}`);
+
+      // Keep the timeout alive until both the bounded body read and XML parse finish.
+      return parseFeed(await readBoundedText(response));
+    }
+    throw new Error("Feed redirect limit exceeded");
   } finally {
     clearTimeout(timeout);
   }

@@ -1,6 +1,6 @@
 begin;
 
-select plan(20);
+select plan(29);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -23,6 +23,11 @@ select ok(has_function_privilege('authenticated', 'public.set_feed_interests(tex
 select ok(not has_function_privilege('anon', 'public.set_feed_interests(text[])', 'EXECUTE'), 'anonymous cannot execute interests RPC');
 select is((select prosecdef from pg_proc where oid = 'public.set_feed_interests(text[])'::regprocedure), true, 'interests RPC is security definer');
 select ok((select proconfig @> array['search_path=public'] from pg_proc where oid = 'public.set_feed_interests(text[])'::regprocedure), 'interests RPC fixes search path');
+select ok(has_function_privilege('authenticated', 'public.is_pending_member()', 'EXECUTE'), 'authenticated can evaluate own pending eligibility');
+select ok(not has_function_privilege('anon', 'public.is_pending_member()', 'EXECUTE'), 'anonymous cannot evaluate pending eligibility');
+select is((select prosecdef from pg_proc where oid = 'public.is_pending_member()'::regprocedure), true, 'pending eligibility helper is security definer');
+select ok((select proconfig @> array['search_path=public'] from pg_proc where oid = 'public.is_pending_member()'::regprocedure), 'pending eligibility helper fixes search path');
+select ok(not has_table_privilege('authenticated', 'public.members', 'SELECT'), 'pending interest access does not require members table select privilege');
 select is((select count(*) from pg_policies where schemaname = 'public' and tablename = 'member_feed_interests' and cmd <> 'SELECT'), 0::bigint, 'member interest table has no direct-write policy');
 select is((select count(*) from pg_policies where schemaname = 'public' and tablename = 'member_feed_interests' and cmd = 'SELECT'), 1::bigint, 'member interest table has one select-only policy');
 
@@ -33,6 +38,16 @@ select lives_ok($$select public.set_feed_interests(array['Technology', 'Africa']
 select is((select count(*) from public.member_feed_interests where declared), 2::bigint, 'active member gets declared interests');
 select is((select count(*) from public.member_feed_interests where tag = 'culture' and declared = false and weight = 2.5), 1::bigint, 'learned affinity is preserved');
 select is((select count(*) from public.member_feed_interests), 3::bigint, 'active member can directly select own rows');
+reset role;
+update public.member_feed_interests
+set weight = 2.75
+where member_id = '00000000-0000-0000-0000-00000000d001' and tag = 'technology';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d001', true);
+select lives_ok($$select public.set_feed_interests(array['TECHNOLOGY', 'technology'])$$, 'case variants normalize and deduplicate');
+select is((select count(*) from public.member_feed_interests where member_id = auth.uid() and tag = 'technology' and declared), 1::bigint, 'normalization retains one declared row');
+select is((select weight from public.member_feed_interests where member_id = auth.uid() and tag = 'technology'), 2.75::real, 'normalization preserves the stronger learned weight');
+select throws_ok($$select public.set_feed_interests(array_fill('tag'::text, array[2, 13]))$$, 'P0001', 'Too many interest tags', 'multidimensional arrays cannot bypass the tag cap');
 select ok(not has_table_privilege('authenticated', 'public.member_feed_interests', 'INSERT'), 'authenticated cannot insert directly');
 select ok(not has_table_privilege('authenticated', 'public.member_feed_interests', 'UPDATE'), 'authenticated cannot update directly');
 select ok(not has_table_privilege('authenticated', 'public.member_feed_interests', 'DELETE'), 'authenticated cannot delete directly');
@@ -41,7 +56,7 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d002', true);
 select lives_ok($$select public.set_feed_interests(array['Leadership'])$$, 'pending onboarding member can set interests');
-select is((select count(*) from public.member_feed_interests), 0::bigint, 'pending member cannot directly select rows');
+select is((select count(*) from public.member_feed_interests), 1::bigint, 'pending member can read the declared row needed to resume onboarding');
 
 reset role;
 select is((select count(*) from public.member_feed_interests where member_id = '00000000-0000-0000-0000-00000000d002' and tag = 'leadership' and declared), 1::bigint, 'pending RPC write is committed');

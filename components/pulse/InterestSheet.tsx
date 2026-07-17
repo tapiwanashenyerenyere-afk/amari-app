@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -49,17 +50,26 @@ function ChipGroup({
 }
 
 export function InterestSheet({ visible, onClose }: InterestSheetProps) {
-  const { data: interests = [] } = useFeedInterests();
+  const {
+    data: interests,
+    isError: interestsLoadFailed,
+    isFetching: interestsLoading,
+    refetch: refetchInterests,
+  } = useFeedInterests();
   const setInterests = useSetFeedInterests();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
-    if (visible) {
-      setSelected(new Set(interests.map((interest) => interest.tag)));
+    if (!visible) {
+      setHasHydrated(false);
+      return;
     }
-    // Only resync from server state when the sheet opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+    if (!hasHydrated && interests) {
+      setSelected(new Set(interests.map((interest) => interest.tag)));
+      setHasHydrated(true);
+    }
+  }, [hasHydrated, interests, visible]);
 
   const toggle = (tag: string) => {
     Haptics.selectionAsync();
@@ -81,6 +91,9 @@ export function InterestSheet({ visible, onClose }: InterestSheetProps) {
       onClose();
     } catch {
       // Mutation error state renders below; keep the sheet open.
+      AccessibilityInfo.announceForAccessibility(
+        'We could not confirm your interests were saved. Check your connection and try again.',
+      );
     }
   };
 
@@ -100,14 +113,35 @@ export function InterestSheet({ visible, onClose }: InterestSheetProps) {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionLabel}>SECTORS</Text>
-          <ChipGroup onToggle={toggle} selected={selected} tags={FEED_TOPIC_TAGS} />
+          {hasHydrated ? (
+            <>
+              <Text style={styles.sectionLabel}>SECTORS</Text>
+              <ChipGroup onToggle={toggle} selected={selected} tags={FEED_TOPIC_TAGS} />
 
-          <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>REGIONS</Text>
-          <ChipGroup onToggle={toggle} selected={selected} tags={FEED_REGION_TAGS} />
+              <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>REGIONS</Text>
+              <ChipGroup onToggle={toggle} selected={selected} tags={FEED_REGION_TAGS} />
+            </>
+          ) : interestsLoadFailed ? (
+            <View accessibilityLiveRegion="assertive" style={styles.loadState}>
+              <Text style={styles.errorText}>Your saved interests didn’t load. Try again before making changes.</Text>
+              <Pressable
+                accessibilityLabel="Retry saved interests"
+                accessibilityRole="button"
+                onPress={() => void refetchInterests()}
+                style={styles.retryButton}
+              >
+                <Text style={styles.retryText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View accessibilityLiveRegion="polite" style={styles.loadState}>
+              <ActivityIndicator accessible={false} color={colors.black} size="small" />
+              <Text style={styles.loadText}>Loading saved interests…</Text>
+            </View>
+          )}
 
           {setInterests.isError ? (
-            <Text style={styles.errorText}>
+            <Text accessibilityLiveRegion="assertive" style={styles.errorText}>
               We couldn’t confirm your interests were saved. Check your connection and try again.
             </Text>
           ) : null}
@@ -115,12 +149,18 @@ export function InterestSheet({ visible, onClose }: InterestSheetProps) {
 
         <View style={styles.footer}>
           <Pressable
-            disabled={setInterests.isPending}
+            accessibilityLabel="Save feed interests"
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: !hasHydrated || setInterests.isPending,
+              busy: interestsLoading || setInterests.isPending,
+            }}
+            disabled={!hasHydrated || setInterests.isPending}
             onPress={save}
             style={({ pressed }) => [styles.saveButton, pressed ? styles.saveButtonPressed : null]}
           >
             {setInterests.isPending ? (
-              <ActivityIndicator color={colors.white} size="small" />
+              <ActivityIndicator accessible={false} color={colors.white} size="small" />
             ) : (
               <Text style={styles.saveText}>
                 {selected.size ? `Save ${selected.size} ${selected.size === 1 ? 'interest' : 'interests'}` : 'Save'}
@@ -191,6 +231,30 @@ const styles = StyleSheet.create({
     fontFamily: typography.body.regular,
     fontSize: 12,
     color: colors.error,
+  },
+  loadState: {
+    minHeight: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadText: {
+    fontFamily: typography.body.regular,
+    fontSize: 14,
+    color: colors.gray,
+  },
+  retryButton: {
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: radius.md,
+    backgroundColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: {
+    fontFamily: typography.body.semiBold,
+    fontSize: 14,
+    color: colors.white,
   },
   footer: {
     paddingHorizontal: spacing.xl,

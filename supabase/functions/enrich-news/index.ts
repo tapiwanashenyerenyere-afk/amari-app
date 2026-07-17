@@ -26,11 +26,13 @@ const LLM_PROVIDER = (Deno.env.get('LLM_PROVIDER') ?? 'anthropic').toLowerCase()
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') ?? '';
 const OPENAI_BASE_URL = (Deno.env.get('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1').replace(/\/$/, '');
-const OPENAI_MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
+const OPENAI_MODEL = 'gpt-4o-mini-2024-07-18';
 
 const ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 10;
 const MAX_BATCHES_PER_RUN = 2;
+const LLM_CONCURRENCY = 5;
+const LLM_TIMEOUT_MS = 25_000;
 const RELEVANCE_FLOOR = 25;
 const LEASE_SECONDS = 180;
 const MAX_QUEUE_SIZE = BATCH_SIZE * MAX_BATCHES_PER_RUN;
@@ -131,12 +133,12 @@ async function getPendingCounts(
   const [eligibleResult, staleResult] = await Promise.all([
     serviceClient
       .from('news_articles')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'planned', head: true })
       .eq('status', 'pending')
       .or(eligibleFilter),
     serviceClient
       .from('news_articles')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'planned', head: true })
       .eq('status', 'pending')
       .or(staleFilter),
   ]);
@@ -166,8 +168,10 @@ function pacingReport(
   };
 }
 
-async function classifyBatch(prompt: string): Promise<ClassificationResult> {
+async function classifyArticle(prompt: string): Promise<ClassificationResult> {
   let dispatched = false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
 
   try {
     if (LLM_PROVIDER === 'openai') {
@@ -184,6 +188,7 @@ async function classifyBatch(prompt: string): Promise<ClassificationResult> {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: requestBody,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -219,6 +224,7 @@ async function classifyBatch(prompt: string): Promise<ClassificationResult> {
         'anthropic-version': '2023-06-01',
       },
       body: requestBody,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -250,7 +256,29 @@ async function classifyBatch(prompt: string): Promise<ClassificationResult> {
       dispatched,
       error,
     );
+  } finally {
+    clearTimeout(timeout);
   }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const runWorker = async () => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, runWorker),
+  );
+  return results;
 }
 
 Deno.serve(async (req: Request) => {
@@ -323,6 +351,7 @@ Deno.serve(async (req: Request) => {
           budget_usd: HARD_MONTHLY_BUDGET_USD,
           eligible_pending: pendingCounts.eligible,
           stale_pending: pendingCounts.stale,
+          pending_counts_approximate: true,
           pacing: pacingReport(pacing, budget),
           reservation: { attempted: 0, denied: 0, settled: 0, released: 0, retained: 0 },
           message: `Monthly AI budget of $${HARD_MONTHLY_BUDGET_USD.toFixed(2)} reached; enrichment paused until next month.`,
@@ -338,6 +367,7 @@ Deno.serve(async (req: Request) => {
           budget_usd: HARD_MONTHLY_BUDGET_USD,
           eligible_pending: pendingCounts.eligible,
           stale_pending: pendingCounts.stale,
+          pending_counts_approximate: true,
           pacing: pacingReport(pacing, budget),
           reservation: { attempted: 0, denied: 0, settled: 0, released: 0, retained: 0 },
           message: 'Enrichment is paced to the current UTC month allowance.',
@@ -357,6 +387,7 @@ Deno.serve(async (req: Request) => {
           message: 'No pending articles',
           eligible_pending: pendingCounts.eligible,
           stale_pending: pendingCounts.stale,
+          pending_counts_approximate: true,
           pacing: pacingReport(pacing, budget),
           reservation: { attempted: 0, denied: 0, settled: 0, released: 0, retained: 0 },
         });
@@ -378,6 +409,7 @@ Deno.serve(async (req: Request) => {
         retained_usd: 0,
       };
 
+      batchLoop:
       for (let offset = 0; offset < pending.length; offset += BATCH_SIZE) {
         const batch: PromptArticle[] = pending.slice(offset, offset + BATCH_SIZE).map((row) => ({
           id: row.id,
@@ -385,94 +417,107 @@ Deno.serve(async (req: Request) => {
           snippet: row.snippet,
           source: row.source_name ?? 'Unknown',
         }));
-        const batchIds = new Set(batch.map((article) => article.id));
-        const prompt = buildPrompt(batch);
-        const requestedUsd = promptReservationUsd(prompt, ACTIVE_RATES);
-        pacing = pacingAllowance(new Date());
+        const stopReasons = await mapWithConcurrency(
+          batch,
+          LLM_CONCURRENCY,
+          async (article): Promise<string | null> => {
+          const { data: renewed, error: renewError } = await serviceClient.rpc(
+            'renew_news_pipeline_lease',
+            { p_pipeline: 'enrich-news', p_lease_id: leaseId, p_lease_seconds: LEASE_SECONDS },
+          );
+          if (renewError || renewed !== true) {
+            console.error('[enrich-news] Lease renewal failed:', renewError?.message ?? 'lease ownership lost');
+            return 'lease_lost';
+          }
+          const prompt = buildPrompt(article);
+          const requestedUsd = promptReservationUsd(prompt, ACTIVE_RATES);
+          pacing = pacingAllowance(new Date());
 
-        reservation.attempted += 1;
-        reservation.requested_usd += requestedUsd;
-        const { data: reservationId, error: reservationError } = await serviceClient.rpc(
-          'reserve_news_ai_budget',
-          {
-            p_month: pacing.month,
-            p_requested_usd: Number(requestedUsd.toFixed(8)),
-            p_allowed_usd: Number(pacing.allowedUsd.toFixed(8)),
-          },
-        );
+          reservation.attempted += 1;
+          reservation.requested_usd += requestedUsd;
+          const { data: reservationId, error: reservationError } = await serviceClient.rpc(
+            'reserve_news_ai_budget',
+            {
+              p_month: pacing.month,
+              p_requested_usd: Number(requestedUsd.toFixed(8)),
+              p_allowed_usd: Number(pacing.allowedUsd.toFixed(8)),
+            },
+          );
 
-        if (reservationError) {
-          console.error('[enrich-news] Budget reservation failed:', reservationError.message);
-          failed += batch.length;
-          stoppedReason = 'reservation_error';
-          break;
-        }
+          if (reservationError) {
+            console.error('[enrich-news] Budget reservation failed:', reservationError.message);
+            failed += 1;
+            return 'reservation_error';
+          }
 
-        if (!reservationId) {
-          reservation.denied += 1;
-          stoppedReason = 'pacing_or_budget_limit';
-          break;
-        }
+          if (!reservationId) {
+            reservation.denied += 1;
+            return 'pacing_or_budget_limit';
+          }
 
-        let result: ClassificationResult;
-        try {
-          result = await classifyBatch(prompt);
-        } catch (error) {
-          console.error('[enrich-news] Batch classification failed:', error);
-          failed += batch.length;
+          let result: ClassificationResult;
+          try {
+            result = await classifyArticle(prompt);
+          } catch (error) {
+            console.error(`[enrich-news] Article ${article.id} classification failed:`, error);
+            failed += 1;
 
-          if (error instanceof LlmDispatchError && !error.dispatched) {
-            const { data: released, error: releaseError } = await serviceClient.rpc(
-              'release_news_ai_budget_reservation',
-              { p_reservation_id: reservationId },
-            );
-            if (!releaseError && released === true) {
-              reservation.released += 1;
-              reservation.released_usd += requestedUsd;
+            if (error instanceof LlmDispatchError && !error.dispatched) {
+              const { data: released, error: releaseError } = await serviceClient.rpc(
+                'release_news_ai_budget_reservation',
+                { p_reservation_id: reservationId },
+              );
+              if (!releaseError && released === true) {
+                reservation.released += 1;
+                reservation.released_usd += requestedUsd;
+              } else {
+                reservation.retained += 1;
+                reservation.retained_usd += requestedUsd;
+              }
             } else {
               reservation.retained += 1;
               reservation.retained_usd += requestedUsd;
             }
-          } else {
-            reservation.retained += 1;
-            reservation.retained_usd += requestedUsd;
+
+            return error instanceof LlmDispatchError && error.dispatched
+              ? 'ambiguous_post_dispatch_failure'
+              : 'pre_dispatch_failure';
           }
 
-          stoppedReason = error instanceof LlmDispatchError && error.dispatched
-            ? 'ambiguous_post_dispatch_failure'
-            : 'pre_dispatch_failure';
-          break;
-        }
-
-        const actualUsd = costUsd(result.inputTokens, result.outputTokens, ACTIVE_RATES);
-        const { data: settled, error: settleError } = await serviceClient.rpc(
-          'settle_news_ai_budget',
-          {
-            p_reservation_id: reservationId,
-            p_input_tokens: result.inputTokens,
-            p_output_tokens: result.outputTokens,
-            p_actual_usd: Number(actualUsd.toFixed(8)),
-          },
-        );
-
-        if (settleError || settled !== true) {
-          console.error(
-            '[enrich-news] Budget settlement failed; article updates withheld:',
-            settleError?.message ?? 'reservation was not active',
+          const actualUsd = costUsd(result.inputTokens, result.outputTokens, ACTIVE_RATES);
+          const { data: settled, error: settleError } = await serviceClient.rpc(
+            'settle_news_ai_budget',
+            {
+              p_reservation_id: reservationId,
+              p_input_tokens: result.inputTokens,
+              p_output_tokens: result.outputTokens,
+              p_actual_usd: Number(actualUsd.toFixed(8)),
+            },
           );
-          reservation.retained += 1;
-          reservation.retained_usd += requestedUsd;
-          failed += batch.length;
-          stoppedReason = 'settlement_unknown';
-          break;
-        }
 
-        reservation.settled += 1;
-        reservation.settled_usd += actualUsd;
-        const classifications = result.classifications.filter((entry) => batchIds.has(entry.id));
-        const classifiedIds = new Set(classifications.map((entry) => entry.id));
+          if (settleError || settled !== true) {
+            console.error(
+              `[enrich-news] Budget settlement failed for article ${article.id}; update withheld:`,
+              settleError?.message ?? 'reservation was not active',
+            );
+            reservation.retained += 1;
+            reservation.retained_usd += requestedUsd;
+            failed += 1;
+            return 'settlement_unknown';
+          }
 
-        for (const classification of classifications) {
+          reservation.settled += 1;
+          reservation.settled_usd += actualUsd;
+          const classifications = result.classifications.filter((entry) => entry.id === article.id);
+          if (classifications.length !== 1) {
+            console.warn(
+              `[enrich-news] Article ${article.id} returned ${classifications.length} matching classifications`,
+            );
+            failed += 1;
+            return null;
+          }
+
+          const classification = classifications[0];
           const status = classification.relevance >= RELEVANCE_FLOOR ? 'published' : 'hidden';
           const { error: updateError } = await serviceClient
             .from('news_articles')
@@ -495,11 +540,13 @@ Deno.serve(async (req: Request) => {
           } else {
             hidden += 1;
           }
-        }
-
-        const skipped = batch.filter((article) => !classifiedIds.has(article.id));
-        if (skipped.length) {
-          console.warn(`[enrich-news] ${skipped.length} articles skipped by classifier this run`);
+            return null;
+          },
+        );
+        const batchStopReason = stopReasons.find((reason) => reason !== null);
+        if (batchStopReason) {
+          stoppedReason = batchStopReason;
+          break batchLoop;
         }
       }
 
@@ -517,6 +564,7 @@ Deno.serve(async (req: Request) => {
         budget_usd: HARD_MONTHLY_BUDGET_USD,
         eligible_pending: pendingCounts.eligible,
         stale_pending: pendingCounts.stale,
+        pending_counts_approximate: true,
         pacing: pacingReport(pacing, budget),
         reservation: {
           ...reservation,

@@ -1,5 +1,6 @@
 -- Additive intelligence source and entity expansion, verified 17 Jul 2026.
--- Existing rows and operational state are intentionally never updated.
+-- Existing operational state is preserved; the canonical Google discovery
+-- row receives a display-only provenance correction below.
 
 begin;
 
@@ -57,6 +58,13 @@ values
   ('Campaign', 'https://www.campaignlive.co.uk', 'https://news.google.com/rss/search?q=site%3Acampaignlive.co.uk%20OR%20site%3Acampaignlive.com&hl=en-AU&gl=AU&ceid=AU:en', 'global', 0.90, true),
   ('Little Black Book', 'https://lbbonline.com', 'https://news.google.com/rss/search?q=site%3Albbonline.com&hl=en-AU&gl=AU&ceid=AU:en', 'global', 0.90, true)
 on conflict (feed_url) do nothing;
+
+-- Search feeds are discovery mechanisms, not publishers. Keep one honest
+-- source identity and preserve each Google headline's publisher suffix.
+update public.news_sources
+set name = 'Google News discovery',
+    home_url = 'https://news.google.com'
+where feed_url = 'https://news.google.com/rss/search?q=%22African+Australian%22+(business+OR+founder+OR+entrepreneur)&hl=en-AU&gl=AU&ceid=AU:en';
 
 insert into public.tracked_entities (kind, name, aliases, industry, region, house, status)
 values

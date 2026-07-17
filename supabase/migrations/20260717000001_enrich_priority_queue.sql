@@ -153,6 +153,32 @@ begin
 end;
 $fn$;
 
+create or replace function public.renew_news_pipeline_lease(
+  p_pipeline text,
+  p_lease_id uuid,
+  p_lease_seconds integer default 180
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $fn$
+declare
+  v_now timestamptz := clock_timestamp();
+  v_seconds integer := least(greatest(coalesce(p_lease_seconds, 180), 30), 900);
+  v_rows integer;
+begin
+  update public.news_pipeline_leases
+  set leased_until = v_now + make_interval(secs => v_seconds)
+  where pipeline = p_pipeline
+    and lease_id = p_lease_id
+    and leased_until > v_now;
+
+  get diagnostics v_rows = row_count;
+  return v_rows = 1;
+end;
+$fn$;
+
 create or replace function public.reserve_news_ai_budget(
   p_month text,
   p_requested_usd numeric,
@@ -305,6 +331,8 @@ revoke execute on function public.try_acquire_news_pipeline_lease(text, integer)
   from public, anon, authenticated;
 revoke execute on function public.release_news_pipeline_lease(text, uuid)
   from public, anon, authenticated;
+revoke execute on function public.renew_news_pipeline_lease(text, uuid, integer)
+  from public, anon, authenticated;
 revoke execute on function public.reserve_news_ai_budget(text, numeric, numeric)
   from public, anon, authenticated;
 revoke execute on function public.settle_news_ai_budget(uuid, bigint, bigint, numeric)
@@ -317,6 +345,8 @@ grant execute on function public.get_pending_for_enrichment(integer)
 grant execute on function public.try_acquire_news_pipeline_lease(text, integer)
   to service_role;
 grant execute on function public.release_news_pipeline_lease(text, uuid)
+  to service_role;
+grant execute on function public.renew_news_pipeline_lease(text, uuid, integer)
   to service_role;
 grant execute on function public.reserve_news_ai_budget(text, numeric, numeric)
   to service_role;

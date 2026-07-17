@@ -1,6 +1,6 @@
 begin;
 
-select plan(28);
+select plan(32);
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values
@@ -49,6 +49,8 @@ select ok(has_table_privilege('authenticated', 'public.member_entity_follows', '
 select ok(not has_table_privilege('authenticated', 'public.member_entity_follows', 'INSERT'), 'authenticated cannot insert follows directly');
 select ok(not has_table_privilege('authenticated', 'public.member_entity_follows', 'UPDATE'), 'authenticated cannot update follows directly');
 select ok(not has_table_privilege('authenticated', 'public.member_entity_follows', 'DELETE'), 'authenticated cannot delete follows directly');
+select ok(has_column_privilege('authenticated', 'public.tracked_entities', 'name', 'SELECT'), 'authenticated can read safe entity catalogue columns');
+select ok(not has_column_privilege('authenticated', 'public.tracked_entities', 'notes', 'SELECT'), 'authenticated cannot read internal entity notes');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e001', true);
@@ -73,6 +75,16 @@ select ok(
   (select score from public.get_news_feed(20, 0) where title = 'PR E Entity Article')
     > (select score from public.get_news_feed(20, 0) where title = 'PR E Plain Article'),
   'eligible followed entity boosts ranking'
+);
+select ok(
+  pg_get_functiondef('public.get_news_feed(integer,integer)'::regprocedure)
+    like '%limit least(greatest(coalesce(p_limit, 20), 1), 100)%',
+  'feed RPC caps caller-controlled page size at 100 rows'
+);
+select ok(
+  pg_get_functiondef('public.get_news_feed(integer,integer)'::regprocedure)
+    like '%coalesce(a.published_at, a.ingested_at) <= now() + interval ''15 minutes''%',
+  'feed RPC excludes poisoned future-dated rows'
 );
 
 reset role;
