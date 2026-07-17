@@ -1,6 +1,15 @@
 # EAS Update
 
-AMARI Mobile uses EAS Update to ship JavaScript, styling, and asset-only fixes without producing a new App Store IPA or Play Store AAB.
+> **OTA publishing is currently BLOCKED. Ship via store builds instead.**
+> The app config requires code-signed updates, and Expo requires an EAS
+> **Enterprise** subscription to publish those. The `t.jeremy.n` account is on
+> **Starter**. Every production change since April has shipped as an App Store /
+> Play build, not an OTA update. See `docs/RELEASE-WORKFLOW.md` for the path that
+> actually works. The rest of this document describes the OTA setup as designed,
+> for when the plan changes. Do not bypass the block by publishing unsigned
+> updates.
+
+EAS Update is configured to ship JavaScript, styling, and asset-only fixes without producing a new App Store IPA or Play Store AAB.
 
 ## One-time native baseline
 
