@@ -140,12 +140,12 @@ The 0.9 decay means stale interests fade. Crucially, the fold only touches rows
 where `declared = false` — **a member's explicit choices are never overwritten by
 the algorithm.** `service_role` only; never client-callable.
 
-**Surface.** Pulse home is a digest (hero + bridge + `BriefingPreview` with a
-Tune control), not an endless list. The full feed is at `app/briefing.tsx`. Each
-row carries a reason label from `lib/contentMeta.ts` — prefers a followed-interest
-match, falls back to the source ("Because you follow Technology" / "From
-TechCabal"). This is the trust mechanic: you always know why something reached
-you, and unlike the Pulse-edition footer it is actually computed.
+**Surface.** Pulse home is a digest (hero + bridge + `BriefingPreview` with
+interest and entity-follow controls), not an endless list. The full feed is at
+`app/briefing.tsx`. Each row carries a reason label from `lib/contentMeta.ts` —
+eligible followed entity first, then a declared topic/region, then the source.
+This is the trust mechanic: you always know why something reached you, and the
+reason is computed from real member state.
 
 **Push.** `send-briefing-push` self-regulates on two gates:
 `MIN_DAYS_BETWEEN_SENDS = 3` **and** `MIN_FRESH_ARTICLES = 8`. At most one push
@@ -162,34 +162,25 @@ or an admin JWT.
 endpoint. The entire external-content supply costs nothing but the capped
 classifier calls.
 
+## Resolved Defects
+
+**Fabricated Pulse profile-match footer — resolved 17 July 2026.** Removed the
+profile-only helper and its complete prop/render/style cascade from both Pulse
+article modal paths. There is no replacement line: hand-authored editions now
+end with their actual editorial content. A repository-wide regression test
+blocks the fabricated phrase and stale symbols from returning.
+
+**Onboarding briefing interests — resolved 17 July 2026.** The five-step
+post-auth flow now captures all ten member-facing topics and four regions. Its
+hardened RPC accepts active or pending members and keeps learned affinities.
+
+**Entity follows had no client UI — resolved 17 July 2026.** Both Briefing
+surfaces now open the full-screen approved catalogue. Follows survive retirement
+but only active approved entities boost ranking or produce `matched_entity`.
+
 ## Known Defects
 
 Verified against the code on 2026-07-17. All open.
-
-**`getPulseMatchFooter` fabricates a personalisation claim.** `lib/pulse.ts:110`,
-live at `app/(tabs)/index.tsx:102`. Takes only the member profile — the edition
-is never a parameter — then writes "Matched to {interest} and {city} in your
-profile" onto every Pulse edition regardless of content. Structurally incapable
-of matching anything. `__tests__/lib/pulse.test.ts:85` locks the behaviour in
-rather than catching it. **Breaches the no-fake-data rule. Remove it, do not
-repair it.**
-
-**Entity follows have no client UI.** `tracked_entities` (20 seeded: 18
-companies, 2 themes, 0 people) and `member_entity_follows` exist; the ingester
-rotates entities and tags articles; `get_news_feed` carries the boost. But
-nothing in `app/`, `components/`, `hooks/`, `lib/`, or `queries/` references
-either table. No member can follow anything, so `entity_boost` is zero for
-everyone, always. Backend built, front door missing. Last prod check: **0 entity
-follows.**
-
-**Onboarding never sets feed interests.** `set_feed_interests` is called from
-exactly one place — `components/pulse/InterestSheet.tsx` via `queries/news.ts:59`.
-The onboarding flow is the archetype quiz for Aligned matching, unrelated to the
-feed. A member who never finds the Tune control has no declared interests, so
-both multipliers collapse to 1.0 and their feed reduces to recency × source
-weight × relevance — identical ordering for everyone. **The ranking engine works
-correctly for anyone who turns it on; most members have never been offered the
-chance.** Last prod check: **2 of 21 active members had interests set.**
 
 **News-pipeline cron is not in version control.** `20260301000005_cron_jobs.sql`
 registers four crons (aligned matches, daily seed, rate-limit cleanup, match

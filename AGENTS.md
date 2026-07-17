@@ -41,9 +41,8 @@ of this file described v1.1.2 and was two months behind the code.
 
 Real data or an honest empty state. Never invent numbers, matches, people,
 partnerships, or events. Never tell a member the app did something it did not
-do. This rule has already been breached once in shipped code — see
-`getPulseMatchFooter` under Known Defects. When you find a surface that claims
-personalisation, verify the claim is actually computed before you trust it.
+do. When you find a surface that claims personalisation, verify the claim is
+actually computed before you trust it.
 
 ## Worktree Layout — Get This Right
 
@@ -71,35 +70,25 @@ algorithmic news briefing — two separate systems, see working memory), the
 intelligence feed with LLM classification, entity tracking, push notifications,
 in-app issue reporting with admin fan-out, and a five-tier membership model.
 
+## Resolved Defects
+
+**Fabricated Pulse profile-match footer — resolved 17 July 2026.** The helper,
+both article-modal render paths, footer-only dividers/styles, and the tests that
+locked in the false claim were deleted. Pulse editions now end with their real
+editorial content and no replacement personalisation line.
+
+**Onboarding briefing interests — resolved 17 July 2026.** Post-auth onboarding
+now captures the full member-facing feed taxonomy, and the RPC accepts eligible
+pending members while preserving learned affinities.
+
+**Entity follows had no client UI — resolved 17 July 2026.** Active members can
+follow the approved catalogue from either Briefing surface. Only eligible
+follows boost ranking and produce a matched-entity reason.
+
 ## Known Defects — Read Before You Touch These Areas
 
 These are verified against the code, not speculation. They are open as of
 2026-07-17.
-
-**`getPulseMatchFooter` fabricates a personalisation claim.** `lib/pulse.ts:110`,
-called at `app/(tabs)/index.tsx:102`. It takes only the member profile — the
-edition is never passed in — then writes "Matched to {interest} and {city} in
-your profile" onto every Pulse edition regardless of content. It is structurally
-incapable of matching anything. `__tests__/lib/pulse.test.ts:85` locks the
-behaviour in rather than catching it. This breaches the no-fake-data rule and
-should be removed, not repaired. Note the contrast: the briefing's `reasonLabel`
-in `lib/contentMeta.ts` does real tag matching and is honest.
-
-**Entity follows have no client UI.** `tracked_entities` and
-`member_entity_follows` exist, the ingester rotates entities every run and tags
-articles, and `get_news_feed` carries an entity boost term. But nothing in
-`app/`, `components/`, `hooks/`, `lib/`, or `queries/` references either table.
-No member can follow anything, so the boost evaluates to zero for everyone,
-always. Backend built, front door missing.
-
-**Onboarding never sets feed interests.** `set_feed_interests` is called from
-exactly one place: `components/pulse/InterestSheet.tsx` (via `queries/news.ts`).
-The onboarding flow is the archetype quiz for Aligned matching — unrelated to
-the feed. A member who never finds the Tune control has no declared interests,
-so their tag boost is 1.0 and the feed falls back to recency × source weight ×
-relevance. The ranking engine works correctly for anyone who turns it on; most
-members have never been offered the chance. As of the last prod check, 2 of 21
-active members had interests set and 0 had entity follows.
 
 **News-pipeline cron jobs are not in version control.** `20260301000005_cron_jobs.sql`
 registers four crons (aligned matches, daily seed, rate-limit cleanup, match

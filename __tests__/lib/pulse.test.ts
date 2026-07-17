@@ -3,7 +3,6 @@ import {
   getPulseBlocks,
   getPulseExcerpt,
   getPulseBadgeLabel,
-  getPulseMatchFooter,
   formatPulseDate,
 } from '@/lib/pulse';
 
@@ -72,23 +71,6 @@ describe('getPulseBadgeLabel', () => {
     expect(getPulseBadgeLabel(0)).toBe('NEW THIS WEEK');
     expect(getPulseBadgeLabel(1)).toBe('FEATURED');
     expect(getPulseBadgeLabel(5)).toBe('FEATURED');
-  });
-});
-
-describe('getPulseMatchFooter', () => {
-  it('uses the generic footer when the profile has no matches', () => {
-    expect(getPulseMatchFooter(null)).toBe('Matched to your AMARI profile.');
-    expect(getPulseMatchFooter({})).toBe('Matched to your AMARI profile.');
-  });
-
-  it('names the single match when only one field is present', () => {
-    expect(getPulseMatchFooter({ city: 'Melbourne' })).toBe('Matched to Melbourne in your profile.');
-  });
-
-  it('names the top two matches, preferring interest then industry then city', () => {
-    expect(
-      getPulseMatchFooter({ interests: ['Fintech'], industry: 'Finance', city: 'Melbourne' }),
-    ).toBe('Matched to Fintech and Finance in your profile.');
   });
 });
 
