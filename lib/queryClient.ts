@@ -28,6 +28,11 @@ export const queryKeys = {
     saved: () => [...queryKeys.news.all, 'saved'] as const,
     interests: () => [...queryKeys.news.all, 'interests'] as const,
   },
+  entities: {
+    all: ['entities'] as const,
+    catalogue: () => [...queryKeys.entities.all, 'catalogue'] as const,
+    follows: () => [...queryKeys.entities.all, 'follows'] as const,
+  },
   events: {
     all: ['events'] as const,
     list: (scope?: string, type?: string) => [...queryKeys.events.all, 'list', scope ?? 'upcoming', type ?? 'all'] as const,

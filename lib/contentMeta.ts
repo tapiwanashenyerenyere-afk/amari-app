@@ -31,12 +31,15 @@ export function formatLabel(item: Pick<NewsFeedItem, 'media_type' | 'duration_se
   return timeAgo(item.published_at);
 }
 
-// One-line "why you're seeing this" — the premium trust mechanic. Prefers a
-// followed-interest match; falls back to the source.
+// One-line "why you're seeing this" — the premium trust mechanic. Prefers an
+// eligible followed entity, then a declared topic/region, then the source.
 export function reasonLabel(
-  item: Pick<NewsFeedItem, 'topics' | 'regions' | 'source_name'>,
+  item: Pick<NewsFeedItem, 'topics' | 'regions' | 'source_name'> & {
+    matched_entity?: string | null;
+  },
   interests: FeedInterest[],
 ): string {
+  if (item.matched_entity) return `Because you follow ${item.matched_entity}`;
   const followed = new Set(interests.filter((i) => i.declared).map((i) => i.tag));
   const match = [...item.topics, ...item.regions].find((tag) => followed.has(tag));
   if (match) return `Because you follow ${feedTagLabel(match)}`;

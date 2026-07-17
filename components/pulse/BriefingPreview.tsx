@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, findNodeHandle, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { colors, radius, spacing, typography } from '@/lib/theme';
@@ -8,15 +8,19 @@ import { useFeedInterests, useNewsFeed } from '@/queries/news';
 import { useBriefingActions } from '@/hooks/useBriefingActions';
 import { ArticleRow } from './ArticleRow';
 import { InterestSheet } from './InterestSheet';
+import { BriefingActionRow } from './BriefingActionRow';
+import { EntityFollowSheet } from './EntityFollowSheet';
 
 const PREVIEW_COUNT = 4;
 
 // The briefing on the Pulse home: a compact taste of the personalised feed
-// with the Tune control right here, then a tap into the full screen. Keeps
+// with personalisation controls right here, then a tap into the full screen. Keeps
 // the home short instead of dumping the whole feed inline.
 export function BriefingPreview() {
   const router = useRouter();
   const [interestsOpen, setInterestsOpen] = useState(false);
+  const [entitiesOpen, setEntitiesOpen] = useState(false);
+  const followButtonRef = useRef<View>(null);
   const { data: interests = [], isLoading: interestsLoading } = useFeedInterests();
   const { data, isLoading } = useNewsFeed();
   const { openArticle, handleToggleSave } = useBriefingActions();
@@ -33,6 +37,19 @@ export function BriefingPreview() {
     router.push('/briefing');
   };
 
+  const openEntities = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEntitiesOpen(true);
+  };
+
+  const closeEntities = () => {
+    setEntitiesOpen(false);
+    setTimeout(() => {
+      const node = findNodeHandle(followButtonRef.current);
+      if (node) AccessibilityInfo.setAccessibilityFocus(node);
+    }, 350);
+  };
+
   const noInterests = !interestsLoading && interests.length === 0;
 
   return (
@@ -42,10 +59,13 @@ export function BriefingPreview() {
           <Text style={styles.eyebrow}>ACROSS THE WORLD</Text>
           <Text style={styles.title}>Your briefing</Text>
         </View>
-        <Pressable onPress={openInterests} hitSlop={8} style={({ pressed }) => [styles.tune, pressed ? styles.pressed : null]}>
-          <Text style={styles.tuneText}>Tune →</Text>
-        </Pressable>
       </View>
+
+      <BriefingActionRow
+        followButtonRef={followButtonRef}
+        onFollowWorld={openEntities}
+        onTuneInterests={openInterests}
+      />
 
       {noInterests && topArticles.length > 0 ? (
         <Pressable onPress={openInterests} style={({ pressed }) => [styles.prompt, pressed ? styles.promptPressed : null]}>
@@ -87,6 +107,7 @@ export function BriefingPreview() {
       )}
 
       <InterestSheet onClose={() => setInterestsOpen(false)} visible={interestsOpen} />
+      <EntityFollowSheet onClose={closeEntities} visible={entitiesOpen} />
     </View>
   );
 }
@@ -113,13 +134,7 @@ const styles = StyleSheet.create({
     color: colors.black,
     letterSpacing: -0.3,
   },
-  tune: { paddingBottom: 2 },
   pressed: { opacity: 0.6 },
-  tuneText: {
-    fontFamily: typography.body.semiBold,
-    fontSize: 12,
-    color: colors.goldDark,
-  },
   prompt: {
     marginHorizontal: spacing.xl,
     marginBottom: 16,

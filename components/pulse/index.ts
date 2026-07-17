@@ -3,6 +3,8 @@ export { BriefingPreview } from './BriefingPreview';
 export { ExploreCarousel } from './ExploreCarousel';
 export { ExploreTile } from './ExploreTile';
 export { InterestSheet } from './InterestSheet';
+export { EntityFollowSheet } from './EntityFollowSheet';
+export { BriefingActionRow } from './BriefingActionRow';
 export { PulseArticleModal } from './PulseArticleModal';
 export { PulseBridgeTiles } from './PulseBridgeTiles';
 export { PulseHeroCarousel } from './PulseHeroCarousel';
