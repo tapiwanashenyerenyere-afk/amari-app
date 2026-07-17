@@ -32,3 +32,23 @@ jobs:
 
       - name: Tests
         run: npm run test:ci
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+
+      - name: Deno unit tests
+        run: deno test --no-config supabase/functions
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase db start
+
+      - name: Supabase pgTAP
+        run: supabase test db
