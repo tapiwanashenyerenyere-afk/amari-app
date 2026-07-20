@@ -27,7 +27,7 @@ on conflict (kind, name) do nothing;
 
 select is((select count(*) from public.news_sources), 63::bigint, 'clean catalogue has 63 sources');
 select is((select count(*) from public.tracked_entities), 65::bigint, 'clean catalogue has 65 entities');
-select is((select count(*) from public.news_sources where active), 63::bigint, 'all clean-catalogue sources are active');
+select is((select count(*) from public.news_sources where active), 62::bigint, 'all catalogue sources active except The Voice (feed removed upstream, disabled in 20260720000001)');
 select is((select count(*) from public.news_sources where id > 12), 51::bigint, 'migration contributes 51 sources');
 select is((select count(*) from public.news_sources where id > 12 and feed_url like 'https://news.google.com/%'), 30::bigint, 'migration contributes 30 Google fallbacks');
 select is((select count(*) from public.news_sources where id > 12 and feed_url not like 'https://news.google.com/%'), 21::bigint, 'migration contributes 21 direct feeds');
