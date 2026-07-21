@@ -14,6 +14,12 @@ of this file described v1.1.2 and was two months behind the code.
   known-broken. Read this first.
 - `docs/RELEASE-WORKFLOW.md` — how builds and store submissions actually work,
   including the signing trap that has cost real failed submits.
+- `docs/RELEASE-VERIFICATION.md` — **the playbook to follow whenever you verify,
+  ship, or take over a release.** Independent-verification gate (prove the binary
+  matches the branch, re-hash artifacts, run the full local gate, check
+  linked-production truth, trajectory-review the diffs), migration discipline,
+  backend-decouples-from-binaries, degraded-feed diagnosis, and driving the store
+  consoles. Reproduce, don't trust.
 - `docs/SUPABASE-MIGRATION-HISTORY.md` — migration guardrail. Still in force.
 - `docs/SECURITY-HARDENING-ROADMAP.md` — security posture.
 - `docs/eas-update.md` — OTA policy (short version: OTA is blocked; ship via
