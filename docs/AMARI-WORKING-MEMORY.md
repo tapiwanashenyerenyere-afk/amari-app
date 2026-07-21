@@ -37,13 +37,21 @@ like AMARI, not a generic Expo starter.
 - Do not revert user or other-agent work unless asked.
 - Save durable decisions in GitHub docs, not only local notes.
 
-## Current State — v1.2.4
+## Current State — v1.2.5 (shipped 21 Jul 2026)
 
-Release branch `release/v2-redesign-signed`, head `c6eee96` (11 Jul 2026). Both
-platforms shipped: Android build 60 to the Play closed-testing Alpha track, iOS
-build 35 to App Store review. **This is the version members are running.**
+Release branch `release/v2-redesign-signed`, head `2ee3fd0`. **1.2.5 shipped both
+platforms 21 Jul:** Android build 62 published to the Play closed-testing Alpha
+track; iOS build 37 submitted for App Store review ("Waiting for Review", **manual
+release** — a human presses Release after Apple approves). 1.2.5 = the
+intelligence-feed expansion (sources 12→63, entities 20→65, SSRF-safe bounded
+ingestion, source-weighted enrichment priority queue + atomic $10/mo budget,
+5-step onboarding capturing feed interests, entity following, fabricated Pulse
+match footer removed) plus the two degraded legacy feeds repaired (PR #67:
+Lionesses → canonical www host, The Voice disabled). Full submission record:
+`docs/releases/1.2.5-artifacts.md`. Until 1.2.5 propagates, members are on 1.2.4.
 
-Supabase project `eavnuxccdxqyzvnspmaq`. 48 migrations. Six edge functions.
+Supabase project `eavnuxccdxqyzvnspmaq` (migrations through `20260720000001`;
+`ingest-news` v6, `enrich-news` v8 live). Six edge functions.
 
 What is live: invite/OTP auth with Apple and Google sign-in; Aligned (Mapbox
 project map, Spotify-style shelves, consented introductions); Events with QR
