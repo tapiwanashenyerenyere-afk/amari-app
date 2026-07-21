@@ -58,11 +58,17 @@ If you search the OneDrive checkout for the news feed, entity engine, or push
 system you will not find them and may conclude they do not exist. They are on
 the release line. Work in `C:\amari-ui-build`.
 
-## Current State — v1.2.4 (11 Jul 2026)
+## Current State — v1.2.5 (shipped 21 Jul 2026)
 
-Release branch `release/v2-redesign-signed`, head `c6eee96`. Both platforms
-shipped 1.2.4. Android goes to the Play **closed testing / Alpha** track; iOS to
-App Store review. This is the version members are running today.
+Release branch `release/v2-redesign-signed`, head `2ee3fd0`. **1.2.5 shipped both
+platforms 21 Jul:** Android build 62 **published** to the Play closed-testing
+**Alpha** track; iOS build 37 **submitted for App Store review** (status "Waiting
+for Review", **manual release** — a human presses Release after Apple approves).
+1.2.5 = the intelligence-feed expansion (sources 12→63, entities 20→65, bounded
+SSRF-safe ingestion, source-weighted enrichment priority queue + atomic $10/mo
+budget, 5-step onboarding that captures feed interests, entity following, and
+removal of the fabricated Pulse match footer). Until 1.2.5 propagates (Android
+testers now; iOS after approval + Release), members are on 1.2.4.
 
 What is live: invite/OTP auth, Aligned (map + project shelves + consented
 introductions), Events with QR ticketing, Pulse (hand-written editions **and** an
@@ -117,9 +123,9 @@ nobody can reach it.
 labels do not (`'Gold'` vs `'GOLD MEMBER'`). `app/admin/*` still reads
 `constants.ts`.
 
-**Version drift.** `package.json` says `1.2.3`; `app.json` says `1.2.4`. The
-1.2.4 bump only touched `app.json`. Expo reads `app.json`, so store builds are
-correct — but anything reading `package.json` gets the wrong answer.
+**Version drift — resolved in 1.2.5.** `package.json` and `app.json` now both read
+`1.2.5`. (The earlier 1.2.3/1.2.4 split is fixed; keep both files in lockstep on
+every bump.)
 
 **Orphaned dead code.** `components/pulse/IntelligenceFeed.tsx` is unexported and
 unimported — a PR #48 deletion that did not stick. Harmless, compiles, should go.
